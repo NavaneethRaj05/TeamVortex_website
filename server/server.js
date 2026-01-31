@@ -5,7 +5,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 
 const helmet = require('helmet');
-const mongoSanitize = require('express-mongo-sanitize');
+
 const xss = require('xss-clean');
 const rateLimit = require('express-rate-limit');
 
@@ -33,7 +33,7 @@ const authLimiter = rateLimit({
 app.use(helmet()); // Set security HTTP headers
 app.use(cors());
 app.use(express.json({ limit: '10kb' })); // Body parser, reading data from body into req.body (limited to 10kb for security)
-app.use(mongoSanitize()); // Data sanitization against NoSQL query injection
+
 app.use(xss()); // Data sanitization against XSS
 app.use('/api/', globalLimiter); // Apply to all API routes
 app.use('/api/auth/login', authLimiter);
@@ -51,13 +51,24 @@ const teamRoutes = require('./routes/team');
 const settingsRoutes = require('./routes/settings');
 const sponsorRoutes = require('./routes/sponsors');
 
-app.use('/api/auth', authRoutes);
-app.use('/api/events', eventRoutes);
-app.use('/api/team', teamRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/sponsors', sponsorRoutes);
 
-// Basic Route
+const apiRouter = express.Router();
+
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/events', eventRoutes);
+apiRouter.use('/team', teamRoutes);
+apiRouter.use('/settings', settingsRoutes);
+apiRouter.use('/sponsors', sponsorRoutes);
+
+// Mount the router on both paths to support local dev and Netlify functions
+app.use('/api', apiRouter);
+app.use('/.netlify/functions/api', apiRouter);
+
+// Basic Route for router
+apiRouter.get('/', (req, res) => {
+    res.send('Team Vortex API is Running');
+});
+
 app.get('/api', (req, res) => {
     res.send('Team Vortex API is Running');
 });

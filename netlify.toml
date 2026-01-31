@@ -3,7 +3,7 @@
   publish = "build"
 
 [functions]
-  external_node_modules = ["express", "serverless-http", "mongoose", "cors", "dotenv", "helmet", "express-mongo-sanitize", "xss-clean", "express-rate-limit", "nodemailer"]
+  external_node_modules = ["express", "serverless-http", "mongoose", "cors", "dotenv", "helmet", "xss-clean", "express-rate-limit", "nodemailer"]
   node_bundler = "esbuild"
   directory = "netlify/functions"
 
