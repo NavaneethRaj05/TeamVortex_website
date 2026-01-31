@@ -62,6 +62,10 @@ app.get('/api', (req, res) => {
     res.send('Team Vortex API is Running');
 });
 
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date() });
+});
+
 // Start Server
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
