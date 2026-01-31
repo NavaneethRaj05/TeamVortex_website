@@ -1,0 +1,19 @@
+[build]
+  command = "npm run build"
+  publish = "build"
+
+[functions]
+  external_node_modules = ["express", "serverless-http", "mongoose", "cors", "dotenv", "helmet", "express-mongo-sanitize", "xss-clean", "express-rate-limit", "nodemailer"]
+  node_bundler = "esbuild"
+  directory = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
