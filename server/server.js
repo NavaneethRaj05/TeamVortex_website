@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
 
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
@@ -57,9 +58,23 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/sponsors', sponsorRoutes);
 
 // Basic Route
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
     res.send('Team Vortex API is Running');
 });
+
+// Serve Static Assets in Production
+if (process.env.NODE_ENV === 'production') {
+    // Set static folder
+    app.use(express.static(path.join(__dirname, '../build')));
+
+    app.get('*', (req, res) => {
+        res.sendFile(path.resolve(__dirname, '../build', 'index.html'));
+    });
+} else {
+    app.get('/', (req, res) => {
+        res.send('Team Vortex API is Running (Development Mode)');
+    });
+}
 
 // Start Server
 app.listen(PORT, () => {
