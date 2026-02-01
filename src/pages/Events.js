@@ -86,8 +86,7 @@ const Events = () => {
     couponCode: '',
     appliedCoupon: null,
     paid: false,
-    paymentId: '',
-    paymentStep: false
+    paymentId: ''
   });
   const [rsvpStatus, setRsvpStatus] = useState({ loading: false, message: '', type: '' });
   const [feedbackEvent, setFeedbackEvent] = useState(null);
@@ -118,8 +117,7 @@ const Events = () => {
         couponCode: '',
         appliedCoupon: null,
         paid: false,
-        paymentId: '',
-        paymentStep: false
+        paymentId: ''
       });
       setActiveInfoTab('details');
       setRsvpStatus({ loading: false, message: '', type: '' });
@@ -474,8 +472,7 @@ const Events = () => {
               couponCode: '',
               appliedCoupon: null,
               paid: false,
-              paymentId: '',
-              paymentStep: false
+              paymentId: ''
             });
             fetchEvents();
           }, 2500);
@@ -1078,12 +1075,9 @@ const Events = () => {
                 ) : (
                   <form onSubmit={async (e) => {
                     e.preventDefault();
+                    // For paid events, trigger the payment flow directly
                     if (rsvpEvent.price > 0 && !rsvpForm.paid && (rsvpEvent.capacity > 0 && rsvpEvent.registrationCount < rsvpEvent.capacity)) {
-                      setRsvpStatus({ loading: true, message: 'Redirecting to Payment...', type: '' });
-                      setTimeout(() => {
-                        setRsvpStatus({ loading: false, message: '', type: '' });
-                        setRsvpForm({ ...rsvpForm, paymentStep: true });
-                      }, 1500);
+                      handleRsvpSubmit(e);
                       return;
                     }
                     handleRsvpSubmit(e);
@@ -1100,9 +1094,7 @@ const Events = () => {
                       </div>
                     )}
 
-                    {!rsvpForm.paymentStep ? (
-                      <>
-                        <div className="space-y-6">
+                    <div className="space-y-6">
                           {/* Team Details (if applicable) */}
                           {(rsvpEvent.registrationType === 'Team' || rsvpEvent.registrationType === 'Duo') && (
                             <div className="space-y-4 p-4 bg-white/5 rounded-2xl border border-white/5">
@@ -1551,8 +1543,8 @@ const Events = () => {
                             );
                           }
                         })()}
-                      </>
-                    ) : showingPayment ? (
+                    
+                    {showingPayment && (
                       <PaymentFlow
                         eventId={rsvpEvent._id}
                         eventTitle={rsvpEvent.title}
@@ -1566,21 +1558,6 @@ const Events = () => {
                         }}
                         onCancel={() => setShowingPayment(false)}
                       />
-                    ) : (
-                      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 pb-4">
-                        <div className="p-6 bg-white/5 border border-white/10 rounded-3xl text-center">
-                          <AlertCircle size={48} className="mx-auto text-vortex-blue mb-4" />
-                          <h4 className="text-xl font-bold text-white mb-2">Notice</h4>
-                          <p className="text-white/60 mb-6 font-medium">This event uses an external payment flow. Please click the button below to proceed.</p>
-                          <button
-                            type="button"
-                            onClick={(e) => handleRsvpSubmit(e)}
-                            className="glass-button bg-vortex-blue text-black font-bold px-8 py-3 w-full"
-                          >
-                            PROCEED TO PAYMENT
-                          </button>
-                        </div>
-                      </motion.div>
                     )}
                   </form>
                 )}
