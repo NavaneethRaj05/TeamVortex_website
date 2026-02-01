@@ -16,12 +16,11 @@ import AnalyticsDashboard from '../components/dashboard/AnalyticsDashboard';
 import RegistrationViewer from '../components/dashboard/RegistrationViewer';
 import PaymentVerificationPanel from '../components/dashboard/PaymentVerificationPanel';
 import PastEventsManager from '../components/dashboard/PastEventsManager';
-import ContentManager from '../components/dashboard/ContentManager';
 
 const Dashboard = () => {
     const navigate = useNavigate();
     const [user] = useState(JSON.parse(localStorage.getItem('user')));
-    const [activeTab, setActiveTab] = useState('events'); // events | team | settings | sponsors
+    const [activeTab, setActiveTab] = useState('contests'); // contests | events | team | settings | sponsors
 
     // Data States
     const [events, setEvents] = useState([]);
@@ -178,8 +177,6 @@ const Dashboard = () => {
             images: Array.isArray(newEvent.images) ? newEvent.images : (newEvent.images?.split(',').map(img => img.trim()).filter(img => img) || [])
         };
 
-        console.log('Saving event with data:', eventData);
-
         try {
             const res = await fetch(url, {
                 method,
@@ -187,67 +184,30 @@ const Dashboard = () => {
                 body: JSON.stringify(eventData)
             });
 
-            const responseData = await res.json();
+            if (!res.ok) throw new Error("Failed to save event");
 
-            if (!res.ok) {
-                console.error('Server error response:', responseData);
-                throw new Error(responseData.message || "Failed to save event");
-            }
-
-            console.log('Event saved successfully:', responseData);
             setShowEventForm(false);
             setEditingEventId(null);
             setNewEvent({
-                title: '',
-                description: '',
-                date: '',
-                location: '',
-                startTime: '',
-                endTime: '',
-                images: '',
-                eventType: 'Inter-College',
-                category: 'Technical',
-                price: 0,
+                title: '', description: '', date: '', location: '', startTime: '', endTime: '', images: '',
+                eventType: 'Inter-College', category: 'Technical', price: 0,
                 teamPricing: { perTeam: true, pricePerMember: 0 },
                 earlyBirdDiscount: { enabled: false, discountPercent: 0, validUntil: '', limitedTo: 0 },
-                capacity: Math.floor(Math.random() * 50) + 50,
-                registrationType: 'Solo',
-                minTeamSize: 1,
-                maxTeamSize: 1,
-                registrationOpens: '',
-                registrationCloses: '',
-                autoCloseOnCapacity: true,
-                enableWaitlist: true,
+                capacity: 100, registrationType: 'Solo', minTeamSize: 1, maxTeamSize: 1,
+                registrationOpens: '', registrationCloses: '', autoCloseOnCapacity: true, enableWaitlist: true,
                 eligibility: { participants: [], minAge: '', maxAge: '', requiredDocs: [] },
                 organizer: { name: '', email: '', phone: '', department: '' },
-                rules: '',
-                rulebookUrl: '',
-                tags: [],
-                paymentGateway: 'UPI',
-                upiId: '',
-                upiQrCode: '',
-                paymentReceiverName: '',
-                offlineMethods: [],
+                rules: '', rulebookUrl: '', tags: [],
+                paymentGateway: 'UPI', upiId: '', upiQrCode: '', paymentReceiverName: '', offlineMethods: [],
                 bankDetails: { bankName: '', accountName: '', accountNumber: '', ifscCode: '' },
-                cashDetails: { location: '' },
-                enableOfflinePayment: false,
-                gstEnabled: false,
-                gstPercent: 18,
-                gstNumber: '',
-                coupons: [],
-                isMultiRound: false,
-                rounds: [],
-                judgingCriteria: [],
-                prizes: [],
-                participationCertificate: true,
-                winnerCertificate: true,
+                cashDetails: { location: '' }, enableOfflinePayment: false, gstEnabled: false, gstPercent: 18, gstNumber: '',
+                coupons: [], isMultiRound: false, rounds: [], judgingCriteria: [], prizes: [],
+                participationCertificate: true, winnerCertificate: true,
                 socialLinks: { website: '', facebook: '', instagram: '', whatsapp: '', linkedin: '' },
-                sponsors: [],
-                faqs: [],
-                enableQrCheckin: false,
-                certificateTemplate: ''
+                sponsors: [], faqs: [], enableQrCheckin: false, certificateTemplate: ''
             });
             fetchEvents();
+            alert(`Event ${editingEventId ? 'updated' : 'created'} successfully!`);
         } catch (err) {
             console.error('Event save error:', err);
             alert(err.message);
@@ -324,28 +284,8 @@ const Dashboard = () => {
             setShowSponsorForm(false);
             setEditingSponsorId(null);
             setNewSponsor({
-                name: '',
-                description: '',
-                type: 'partner',
-                logo: '',
-                website: '',
-                contactEmail: '',
-                contactPerson: '',
-                phone: '',
-                industry: '',
-                sponsorshipAmount: 0,
-                benefits: [],
-                startDate: '',
-                endDate: '',
-                isActive: true,
-                socialLinks: {
-                    linkedin: '',
-                    twitter: '',
-                    instagram: '',
-                    facebook: ''
-                },
-                events: [],
-                notes: ''
+                name: '', description: '', type: 'partner', logo: '', website: '', contactEmail: '', contactPerson: '', phone: '', industry: '', sponsorshipAmount: 0, benefits: [], startDate: '', endDate: '', isActive: true,
+                socialLinks: { linkedin: '', twitter: '', instagram: '', facebook: '' }, events: [], notes: ''
             });
             fetchSponsors();
         } catch (err) { alert(err.message); }
@@ -357,11 +297,7 @@ const Dashboard = () => {
         fetchSponsors();
     };
 
-    const startEditSponsor = (s) => {
-        setNewSponsor(s);
-        setEditingSponsorId(s._id);
-        setShowSponsorForm(true);
-    };
+    const startEditSponsor = (s) => { setNewSponsor(s); setEditingSponsorId(s._id); setShowSponsorForm(true); };
 
     const handleToggleSponsorStatus = async (id) => {
         try {
@@ -371,115 +307,70 @@ const Dashboard = () => {
     };
 
     const exportToPDF = (event) => {
-        if (!event.registrations || event.registrations.length === 0) {
-            alert('No registrations to export');
-            return;
-        }
-
+        if (!event.registrations || event.registrations.length === 0) { alert('No registrations to export'); return; }
         const doc = new jsPDF();
-
-        // Add Header
-        doc.setFontSize(20);
-        doc.setTextColor(33, 150, 243); // Vortex Blue
-        doc.text('TEAM VORTEX - REGISTRATION REPORT', 14, 22);
-
-        doc.setFontSize(12);
-        doc.setTextColor(100);
-        doc.text(`Event: ${event.title}`, 14, 32);
-        doc.text(`Date: ${new Date(event.date).toLocaleDateString()}`, 14, 38);
-        doc.text(`Total Registrations: ${event.registrations.length}`, 14, 44);
-        doc.text(`Exported On: ${new Date().toLocaleString()}`, 14, 50);
+        doc.setFontSize(20); doc.setTextColor(33, 150, 243); doc.text('TEAM VORTEX - REGISTRATION REPORT', 14, 22);
+        doc.setFontSize(12); doc.setTextColor(100);
+        doc.text(`Event: ${event.title}`, 14, 32); doc.text(`Date: ${new Date(event.date).toLocaleDateString()}`, 14, 38);
+        doc.text(`Total Registrations: ${event.registrations.length}`, 14, 44); doc.text(`Exported On: ${new Date().toLocaleString()}`, 14, 50);
 
         const tableColumn = ["Team/Lead", "Email", "Phone", "Participants", "Payment"];
         const tableRows = [];
-
         event.registrations.forEach(r => {
-            const rowData = [
-                r.teamName || r.members[0]?.name || 'N/A',
-                r.members[0]?.email || 'N/A',
-                r.members[0]?.phone || 'N/A',
-                r.members?.length || 0,
-                r.paid ? 'PAID' : (r.paymentStatus || 'PENDING')
-            ];
-            tableRows.push(rowData);
+            tableRows.push([
+                r.teamName || r.members[0]?.name || 'N/A', r.members[0]?.email || 'N/A', r.members[0]?.phone || 'N/A', r.members?.length || 0, r.paid ? 'PAID' : (r.paymentStatus || 'PENDING')
+            ]);
         });
 
-        autoTable(doc, {
-            head: [tableColumn],
-            body: tableRows,
-            startY: 60,
-            theme: 'grid',
-            headStyles: { fillColor: [33, 150, 243], textColor: 255 },
-            alternateRowStyles: { fillColor: [245, 245, 245] },
-            margin: { top: 60 },
-        });
-
-        // Add Member details on new pages if needed (Summary version for now)
+        autoTable(doc, { head: [tableColumn], body: tableRows, startY: 60, theme: 'grid', headStyles: { fillColor: [33, 150, 243], textColor: 255 }, alternateRowStyles: { fillColor: [245, 245, 245] }, margin: { top: 60 } });
         doc.save(`${event.title.replace(/\s+/g, '_')}_Registrations.pdf`);
     };
 
     const exportToCSV = (event) => {
-        if (!event.registrations || event.registrations.length === 0) {
-            alert('No registrations to export');
-            return;
-        }
-
+        if (!event.registrations || event.registrations.length === 0) { alert('No registrations to export'); return; }
         const headers = ['Team Name', 'Member Name', 'Email', 'Phone', 'College', 'ID Number', 'Registered At', 'Payment Status'];
         const rows = [];
-
         event.registrations.forEach(r => {
             r.members.forEach(m => {
-                rows.push([
-                    `"${r.teamName || 'Solo'}"`,
-                    `"${m.name}"`,
-                    `"${m.email}"`,
-                    `"${m.phone || ''}"`,
-                    `"${m.college || ''}"`,
-                    `"${m.idNumber || ''}"`,
-                    `"${new Date(r.registeredAt).toLocaleString()}"`,
-                    `"${r.paid ? 'PAID' : (r.paymentStatus || 'PENDING')}"`
-                ]);
+                rows.push([`"${r.teamName || 'Solo'}"`, `"${m.name}"`, `"${m.email}"`, `"${m.phone || ''}"`, `"${m.college || ''}"`, `"${m.idNumber || ''}"`, `"${new Date(r.registeredAt).toLocaleString()}"`, `"${r.paid ? 'PAID' : (r.paymentStatus || 'PENDING')}"`]);
             });
         });
-
         const csvContent = [headers, ...rows].map(e => e.join(',')).join("\n");
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `${event.title.replace(/\s+/g, '_')}_Registrations.csv`);
+        link.href = URL.createObjectURL(blob);
+        link.download = `${event.title.replace(/\s+/g, '_')}_Registrations.csv`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
-    const generateGCalLink = () => {
-        if (!newEvent.title || !newEvent.date || !newEvent.startTime) {
-            alert("Please provide title, date, and start time first.");
-            return;
-        }
-
-        try {
-            const startDateTime = new Date(`${newEvent.date}T${newEvent.startTime}`);
-            // Default to 2 hours if no end time
-            const endDateTime = new Date(newEvent.endTime ? `${newEvent.date}T${newEvent.endTime}` : startDateTime.getTime() + 2 * 60 * 60 * 1000);
-
-            const start = startDateTime.toISOString().replace(/-|:|\.\d\d\d/g, "");
-            const end = endDateTime.toISOString().replace(/-|:|\.\d\d\d/g, "");
-
-            const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(newEvent.title)}&details=${encodeURIComponent(newEvent.description)}&location=${encodeURIComponent(newEvent.location)}&dates=${start}/${end}`;
-            window.open(url, '_blank');
-        } catch (e) {
-            alert("Error generating link. Please check date and time formats.");
-        }
-    };
+    const menuItems = [
+        { id: 'contests', label: 'Contests', icon: Calendar },
+        { id: 'events', label: 'Events', icon: Activity },
+        { id: 'payments', label: 'Payments', icon: CreditCard },
+        { id: 'analytics', label: 'Analytics', icon: Activity },
+        { id: 'team', label: 'Team', icon: Users },
+        { id: 'sponsors', label: 'Sponsors', icon: Users },
+        { id: 'settings', label: 'Settings', icon: FileText }
+    ];
 
     if (loading) return <div className="min-h-screen pt-24 text-center text-white">Loading Dashboard...</div>;
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const upcomingContests = events.filter(e => {
+        const title = (e.title || '').trim().toLowerCase();
+        if (title === 'prayog 1.0') return false;
+        if (e.status === 'draft' || e.status === 'completed') return false;
+        const eventDate = new Date(e.date);
+        return eventDate >= now;
+    });
 
     return (
         <div className="min-h-screen pt-24 pb-12 px-4 bg-dark-bg">
             <div className="max-w-7xl mx-auto space-y-8">
-
                 {/* Header & Tabs */}
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
                     <div>
@@ -487,41 +378,34 @@ const Dashboard = () => {
                         <p className="text-white/60">Manage Events, Team, Club, and Content</p>
                     </div>
                     <div className="flex bg-white/5 p-1 rounded-xl overflow-x-auto scrollbar-hide max-w-full">
-                        {['events', 'past-events', 'content', 'payments', 'analytics', 'team', 'sponsors', 'settings'].map(tab => (
+                        {menuItems.map(item => (
                             <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                className={`px-4 sm:px-6 py-2 rounded-lg font-medium capitalize transition-all whitespace-nowrap ${activeTab === tab ? 'bg-vortex-blue text-black shadow-lg' : 'text-white/70 hover:text-white'}`}
+                                key={item.id}
+                                onClick={() => setActiveTab(item.id)}
+                                className={`px-4 sm:px-6 py-2 rounded-lg font-medium capitalize transition-all whitespace-nowrap flex items-center gap-2 ${activeTab === item.id ? 'bg-vortex-blue text-black shadow-lg' : 'text-white/70 hover:text-white'}`}
                             >
-                                {tab === 'past-events' ? 'Past Events' : tab === 'content' ? 'PRAYOG Content' : tab}
+                                <item.icon className="w-4 h-4" />
+                                {item.label}
                             </button>
                         ))}
                     </div>
                 </div>
 
-                {/* --- CONTENT TAB --- */}
-                {activeTab === 'content' && <ContentManager />}
-
-                {/* --- PAST EVENTS TAB --- */}
-                {activeTab === 'past-events' && <PastEventsManager />}
-
-                {/* --- PAYMENTS TAB --- */}
-                {activeTab === 'payments' && <PaymentVerificationPanel />}
-
-                {/* --- ANALYTICS TAB --- */}
-                {activeTab === 'analytics' && <AnalyticsDashboard eventStats={eventStats} />}
-
-                {/* --- EVENTS TAB --- */}
-                {activeTab === 'events' && (
+                {/* --- CONTESTS TAB (Formerly Events) --- */}
+                {activeTab === 'contests' && (
                     <div className="space-y-6 animate-fade-in">
+                        {/* Stats */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             <StatsCard icon={Users} label="Total Members" value={teamMembers.length} color="text-vortex-blue" />
-                            <StatsCard icon={Calendar} label="Active Events" value={events.length} color="text-vortex-orange" />
-                            <StatsCard icon={Activity} label="Registrations" value={events.reduce((acc, e) => acc + (e.registrationCount || 0), 0)} color="text-green-400" />
+                            <StatsCard icon={Calendar} label="Active Contests" value={upcomingContests.length} color="text-vortex-orange" />
+                            <StatsCard icon={Activity} label="Registrations" value={upcomingContests.reduce((acc, e) => acc + (e.registrationCount || 0), 0)} color="text-green-400" />
                         </div>
 
                         <div className="flex justify-between items-center bg-white/[0.02] p-4 rounded-2xl border border-white/5">
-                            <h2 className="text-xl sm:text-2xl font-bold text-white">Upcoming Events</h2>
+                            <div>
+                                <h2 className="text-2xl font-bold text-white">Upcoming Contests</h2>
+                                <p className="text-white/60">Manage your active hackathons and competitions</p>
+                            </div>
                             <button onClick={() => {
                                 setShowEventForm(true);
                                 setEditingEventId(null);
@@ -532,22 +416,22 @@ const Dashboard = () => {
                                 });
                             }}
                                 className="glass-button bg-vortex-blue/10 text-vortex-blue border-vortex-blue/20 flex items-center gap-2 text-xs sm:text-sm px-4 py-2 hover:bg-vortex-blue hover:text-black transition-all duration-300">
-                                <Plus size={16} /> <span className="hidden xs:inline">Add Event</span><span className="xs:hidden">Add</span>
+                                <Plus size={16} /> <span className="hidden xs:inline">Add Contest</span><span className="xs:hidden">Add</span>
                             </button>
                         </div>
 
                         {showEventForm && (
                             <EventForm
-                                newEvent={newEvent}
-                                setNewEvent={setNewEvent}
+                                onClose={() => { setShowEventForm(false); setEditingEventId(null); }}
                                 onSubmit={handleSaveEvent}
-                                onCancel={() => setShowEventForm(false)}
-                                editingEventId={editingEventId}
+                                initialData={newEvent}
+                                setEventData={setNewEvent}
+                                isEditing={!!editingEventId}
                             />
                         )}
 
                         <div className="grid gap-4">
-                            {events.map(event => (
+                            {upcomingContests.map(event => (
                                 <div key={event._id} className="glass-card p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-vortex-blue/30 transition-all group">
                                     <div className="space-y-1">
                                         <h3 className="font-bold text-white text-lg group-hover:text-vortex-blue transition-colors line-clamp-1">{event.title}</h3>
@@ -568,6 +452,15 @@ const Dashboard = () => {
                         </div>
                     </div>
                 )}
+
+                {/* --- EVENTS TAB (Formerly Past Events) --- */}
+                {activeTab === 'events' && <PastEventsManager />}
+
+                {/* --- PAYMENTS TAB --- */}
+                {activeTab === 'payments' && <PaymentVerificationPanel />}
+
+                {/* --- ANALYTICS TAB --- */}
+                {activeTab === 'analytics' && <AnalyticsDashboard eventStats={eventStats} />}
 
                 {/* --- TEAM TAB --- */}
                 {activeTab === 'team' && (

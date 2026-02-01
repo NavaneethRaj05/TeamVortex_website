@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 
+// Event model for Team Vortex - manages event registrations and data
+// File monitoring test - added comment
+
 const participantSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true },
@@ -226,7 +229,19 @@ const eventSchema = new mongoose.Schema({
         enum: ['draft', 'published', 'completed'],
         default: 'published'
     },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+
+    // Dynamic Sub-Events
+    subEvents: [{
+        title: { type: String, required: true },
+        description: { type: String, required: true },
+        details: { type: String },
+        icon: { type: String, default: 'Calendar' },
+        color: { type: String, default: 'from-blue-500 to-purple-500' },
+        duration: { type: String },
+        participants: { type: String },
+        images: [{ type: String }]
+    }]
 });
 
 // Add indexes for performance optimization
@@ -234,5 +249,13 @@ eventSchema.index({ date: 1 });
 eventSchema.index({ status: 1 });
 eventSchema.index({ eventType: 1 });
 eventSchema.index({ category: 1 });
+// Performance Indexes for faster queries
+eventSchema.index({ date: 1, status: 1 }); // Compound index for date and status queries
+eventSchema.index({ status: 1, eventType: 1 }); // Index for filtering by status and type
+eventSchema.index({ title: 1 }); // Index for title searches (like PRAYOG lookup)
+eventSchema.index({ 'subEvents.title': 1 }); // Index for sub-event queries
+eventSchema.index({ priority: -1, date: 1 }); // Index for priority-based sorting
+eventSchema.index({ registrationOpens: 1, registrationCloses: 1 }); // Index for registration timing
+eventSchema.index({ createdAt: -1 }); // Index for recent events
 
 module.exports = mongoose.model('Event', eventSchema);

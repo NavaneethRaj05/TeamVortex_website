@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X, AlertCircle, Mail, Plus, CreditCard } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
@@ -15,6 +15,55 @@ const Events = () => {
   const [showingPayment, setShowingPayment] = useState(false);
   const [currentRegistrationIndex, setCurrentRegistrationIndex] = useState(null);
   const [paymentInfo, setPaymentInfo] = useState(null);
+  const prayogFallback = useMemo(() => ({
+    title: 'PRAYOG 1.0',
+    date: 'March 25, 2025',
+    venue: 'Navkis College of Engineering',
+    description1: 'Prayog 1.0 was a flagship technical event organized by Team Vortex at Navkis College of Engineering, Hassan, held on 25th March 2025. Designed to foster innovation, collaboration, and tech-oriented problem-solving, Prayog 1.0 showcased the club\'s commitment to hands-on learning and student engagement through its four key sub-events.',
+    description2: 'The event drew over 150 participants, reflecting strong interest across disciplines. Prayog 1.0 not only provided a platform for skill development and networking but also celebrated the diversity and enthusiasm of the tech community at Navkis College of Engineering. The success and energetic response to Prayog 1.0 have laid a strong foundation for it to become a recurring highlight in the annual calendar of Team Vortex.',
+    galleryDriveLink: '',
+    images: []
+  }), []);
+
+  const prayogSubEventsFallback = useMemo(() => ([
+    {
+      title: 'Champions League',
+      description: 'Branch-wise competitive event where teams represented their respective departments.',
+      details: 'Champions League was a branch-wise competitive event where teams represented their respective departments. It focused on testing participants\' technical knowledge, logical thinking, and teamwork through multiple challenging rounds, fostering healthy competition among branches.',
+      icon: 'Trophy',
+      color: 'from-yellow-500 to-orange-500',
+      duration: 'Full Day',
+      participants: 'Branch-wise Teams'
+    },
+    {
+      title: 'Hackathon',
+      description: 'Inter-college team-based coding and innovation challenge.',
+      details: 'The Hackathon was an inter-college team-based coding and innovation challenge. Teams worked intensively to develop practical solutions to real-world problems within a limited time. This event emphasized innovation, problem-solving, coding skills, and collaboration.',
+      icon: 'Code',
+      color: 'from-vortex-blue to-cyan-400',
+      duration: 'Full Day',
+      participants: 'Inter-College Teams'
+    },
+    {
+      title: 'Eureka',
+      description: 'Idea and innovation-based event conducted within the college.',
+      details: 'Eureka was an idea and innovation-based event conducted within the college. Teams presented creative solutions and project ideas to real-world or technical problems, focusing on original thinking, feasibility, and impact.',
+      icon: 'Key',
+      color: 'from-purple-500 to-pink-500',
+      duration: 'Half Day',
+      participants: 'Intra-College Teams'
+    },
+    {
+      title: 'Gameathon',
+      description: 'Fun yet competitive intra-college event centered around strategic games.',
+      details: 'Gameathon was a fun yet competitive intra-college event centered around strategic and skill-based games. It tested participants\' decision-making, coordination, and analytical skills, making it both engaging and intellectually stimulating.',
+      icon: 'Gamepad2',
+      color: 'from-red-500 to-vortex-orange',
+      duration: 'Half Day',
+      participants: 'Intra-College Teams'
+    }
+  ]), []);
+
   const [rsvpForm, setRsvpForm] = useState({
     teamName: '',
     country: 'India',
@@ -43,44 +92,7 @@ const Events = () => {
   const [rsvpStatus, setRsvpStatus] = useState({ loading: false, message: '', type: '' });
   const [feedbackEvent, setFeedbackEvent] = useState(null);
   const [feedbackForm, setFeedbackForm] = useState({ studentId: '', name: '', rating: 5, comment: '' });
-
-  // Dynamic PRAYOG content state
-  const [prayogContent, setPrayogContent] = useState({
-    title: 'PRAYOG 1.0',
-    date: 'March 25, 2025',
-    venue: 'Navkis College of Engineering',
-    description1: 'Prayog 1.0 was a flagship technical event organized by Team Vortex at Navkis College of Engineering, Hassan, held on 25th March 2025. Designed to foster innovation, collaboration, and tech-oriented problem-solving, Prayog 1.0 showcased the club\'s commitment to hands-on learning and student engagement through its four key sub-events.',
-    description2: 'The event drew over 150 participants, reflecting strong interest across disciplines. Prayog 1.0 not only provided a platform for skill development and networking but also celebrated the diversity and enthusiasm of the tech community at Navkis College of Engineering. The success and energetic response to Prayog 1.0 have laid a strong foundation for it to become a recurring highlight in the annual calendar of Team Vortex.',
-    participantCount: '150+',
-    galleryDriveLink: '',
-    images: ''
-  });
-
-  useEffect(() => {
-    fetchEvents();
-
-    // Load PRAYOG content from localStorage
-    const savedContent = localStorage.getItem('prayogContent');
-    if (savedContent) {
-      try {
-        const parsed = JSON.parse(savedContent);
-        setPrayogContent(prev => ({ ...prev, ...parsed }));
-      } catch (error) {
-        console.error('Error loading PRAYOG content:', error);
-      }
-    }
-
-    // Listen for content updates from dashboard
-    const handleContentUpdate = (event) => {
-      setPrayogContent(prev => ({ ...prev, ...event.detail }));
-    };
-
-    window.addEventListener('prayogContentUpdated', handleContentUpdate);
-
-    return () => {
-      window.removeEventListener('prayogContentUpdated', handleContentUpdate);
-    };
-  }, []);
+  const [emailValidation, setEmailValidation] = useState({});
 
   useEffect(() => {
     if (!rsvpEvent) {
@@ -100,7 +112,8 @@ const Events = () => {
           year: '',
           age: '',
           state: '',
-          city: ''
+          city: '',
+          idCardFile: ''
         }],
         couponCode: '',
         appliedCoupon: null,
@@ -113,8 +126,13 @@ const Events = () => {
     }
   }, [rsvpEvent]);
 
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
   const fetchEvents = () => {
-    fetch(`${API_BASE_URL}/api/events`)
+    // Use lightweight endpoint for faster initial loading
+    fetch(`${API_BASE_URL}/api/events/lightweight`)
       .then(res => res.json())
       .then(data => {
         setEvents(data);
@@ -122,22 +140,288 @@ const Events = () => {
       })
       .catch(err => {
         console.error('Error fetching events:', err);
-        setLoading(false);
+        // Fallback to regular endpoint if lightweight fails
+        fetch(`${API_BASE_URL}/api/events`)
+          .then(res => res.json())
+          .then(data => {
+            setEvents(data);
+            setLoading(false);
+          })
+          .catch(fallbackErr => {
+            console.error('Error fetching events (fallback):', fallbackErr);
+            setLoading(false);
+          });
       });
   };
 
+  // Email validation function
+  const validateEmail = (email, memberIndex) => {
+    const validationResult = {
+      isValid: false,
+      errors: [],
+      warnings: []
+    };
+
+    // Basic format validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      validationResult.errors.push('Invalid email format');
+      return validationResult;
+    }
+
+    // Extract domain and local part
+    const [localPart, domain] = email.split('@');
+    const domainLower = domain.toLowerCase();
+
+    // Check for common typos in popular domains
+    const commonDomains = {
+      'gmail.com': ['gmai.com', 'gmial.com', 'gmail.co', 'gmaill.com', 'gmil.com'],
+      'yahoo.com': ['yaho.com', 'yahoo.co', 'yahooo.com', 'yhoo.com'],
+      'hotmail.com': ['hotmai.com', 'hotmial.com', 'hotmail.co'],
+      'outlook.com': ['outlok.com', 'outlook.co', 'outloo.com'],
+      'college.edu': ['colege.edu', 'college.ed', 'collge.edu']
+    };
+
+    let suggestedDomain = null;
+    for (const [correct, typos] of Object.entries(commonDomains)) {
+      if (typos.includes(domainLower)) {
+        suggestedDomain = correct;
+        break;
+      }
+    }
+
+    if (suggestedDomain) {
+      validationResult.errors.push(`Did you mean ${localPart}@${suggestedDomain}?`);
+      return validationResult;
+    }
+
+    // Check for suspicious patterns
+    const suspiciousPatterns = [
+      /test/i,
+      /fake/i,
+      /dummy/i,
+      /temp/i,
+      /example/i,
+      /sample/i,
+      /^[a-z]{1,3}@/,  // Very short local parts
+      /^\d+@/,         // Only numbers in local part
+      /^[a-z]+\d{1,2}@/, // Simple pattern like abc1@
+    ];
+
+    const isSuspicious = suspiciousPatterns.some(pattern => pattern.test(email));
+    if (isSuspicious) {
+      validationResult.warnings.push('Email appears suspicious. Please use your real email address.');
+    }
+
+    // Check for educational domains (preferred for students)
+    const eduDomains = ['.edu', '.ac.', '.edu.', 'college', 'university', 'institute', 'school'];
+    const isEduDomain = eduDomains.some(edu => domainLower.includes(edu));
+    
+    // Check for common personal email providers
+    const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'protonmail.com'];
+    const isPersonalDomain = personalDomains.includes(domainLower);
+
+    // Validate domain exists (basic check)
+    if (!domainLower.includes('.') || domainLower.endsWith('.') || domainLower.startsWith('.')) {
+      validationResult.errors.push('Invalid domain format');
+      return validationResult;
+    }
+
+    // Check for minimum length requirements
+    if (localPart.length < 3) {
+      validationResult.errors.push('Email username too short (minimum 3 characters)');
+    }
+
+    if (domain.length < 4) {
+      validationResult.errors.push('Domain name too short');
+    }
+
+    // Check for consecutive dots or special characters
+    if (email.includes('..') || email.includes('@@')) {
+      validationResult.errors.push('Invalid email format (consecutive special characters)');
+    }
+
+    // Check for valid TLD
+    const tld = domain.split('.').pop().toLowerCase();
+    const validTlds = ['com', 'org', 'net', 'edu', 'gov', 'mil', 'int', 'co', 'in', 'uk', 'de', 'fr', 'jp', 'au', 'ca', 'br', 'ru', 'cn', 'it', 'es', 'nl', 'se', 'no', 'dk', 'fi', 'pl', 'be', 'ch', 'at', 'ie', 'nz', 'za', 'mx', 'ar', 'cl', 'pe', 'co', 'kr', 'th', 'sg', 'my', 'ph', 'id', 'vn', 'bd', 'pk', 'lk', 'np', 'mm', 'kh', 'la', 'bn', 'mv'];
+    
+    if (!validTlds.includes(tld)) {
+      validationResult.warnings.push('Uncommon domain extension. Please verify your email is correct.');
+    }
+
+    // Additional validation for educational events
+    if (rsvpEvent && rsvpEvent.eventType === 'Intra-College') {
+      if (!isEduDomain && !email.toLowerCase().includes('navkis')) {
+        validationResult.warnings.push('For college events, please use your college email if available.');
+      }
+    }
+
+    // Check for duplicate emails in the same registration
+    const currentEmails = rsvpForm.members.map(m => m.email.toLowerCase()).filter(e => e);
+    const duplicateCount = currentEmails.filter(e => e === email.toLowerCase()).length;
+    if (duplicateCount > 1) {
+      validationResult.errors.push('This email is already used by another team member');
+    }
+
+    // If no errors, mark as valid
+    if (validationResult.errors.length === 0) {
+      validationResult.isValid = true;
+    }
+
+    return validationResult;
+  };
+
+  // Real-time email validation
+  const handleEmailChange = (memberIndex, email) => {
+    updateMember(memberIndex, 'email', email);
+    
+    if (email.length > 3) {
+      const validation = validateEmail(email, memberIndex);
+      setEmailValidation(prev => ({
+        ...prev,
+        [memberIndex]: validation
+      }));
+    } else {
+      setEmailValidation(prev => ({
+        ...prev,
+        [memberIndex]: { isValid: false, errors: [], warnings: [] }
+      }));
+    }
+  };
+
+  const now = new Date();
+
+  const displayableEvents = events.filter(e => e.status !== 'draft');
+
+  const prayogEvent = useMemo(() => {
+    return displayableEvents.find(e => (e.title || '').trim().toLowerCase() === 'prayog 1.0');
+  }, [displayableEvents]);
+
+  const prayogDisplay = useMemo(() => {
+    if (!prayogEvent) return prayogFallback;
+
+    const eventDateStr = prayogEvent.date
+      ? new Date(prayogEvent.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      : prayogFallback.date;
+
+    const venueStr = (prayogEvent.location || '').trim() || prayogFallback.venue;
+
+    const rawDesc = (prayogEvent.description || '').trim();
+    const parts = rawDesc
+      ? rawDesc.split(/\n\s*\n+/g).map(p => p.trim()).filter(Boolean)
+      : [];
+
+    return {
+      title: (prayogEvent.title || '').trim() || prayogFallback.title,
+      date: eventDateStr,
+      venue: venueStr,
+      description1: parts[0] || prayogFallback.description1,
+      description2: parts[1] || prayogFallback.description2,
+      galleryDriveLink: prayogEvent.galleryDriveLink || '',
+      images: Array.isArray(prayogEvent.images) ? prayogEvent.images : []
+    };
+  }, [prayogEvent, prayogFallback]);
+
+  const prayogSubEvents = useMemo(() => {
+    if (prayogEvent?.subEvents?.length > 0) return prayogEvent.subEvents;
+    return prayogSubEventsFallback;
+  }, [prayogEvent, prayogSubEventsFallback]);
+
+  const upcomingEvents = displayableEvents.filter(e => {
+    if (e.status === 'completed') return false;
+
+    const eventDate = new Date(e.date);
+    const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
+
+    if (e.endTime) {
+      const [h, m] = e.endTime.split(':');
+      eventEnd.setHours(parseInt(h), parseInt(m), 0);
+    }
+
+    return now <= eventEnd;
+  }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const pastEvents = displayableEvents.filter(e => {
+    if (e.status === 'completed') return true;
+
+    const eventDate = new Date(e.date);
+    const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
+
+    if (e.endTime) {
+      const [h, m] = e.endTime.split(':');
+      eventEnd.setHours(parseInt(h), parseInt(m), 0);
+    }
+
+    return now > eventEnd;
+  }).sort((a, b) => {
+    if ((b.priority || 0) !== (a.priority || 0)) {
+      return (b.priority || 0) - (a.priority || 0);
+    }
+    return new Date(b.date) - new Date(a.date);
+  });
+
+  const nextSlide = () => {
+    if (pastEvents.length === 0) return;
+    setCurrentSlide((prev) => (prev + 1) % pastEvents.length);
+  };
+
+  const prevSlide = () => {
+    if (pastEvents.length === 0) return;
+    setCurrentSlide((prev) => (prev - 1 + pastEvents.length) % pastEvents.length);
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+      },
+    },
+  };
+
+  const getIconComponent = useMemo(() => (iconName) => {
+    const icons = { Trophy, Code, Key, Gamepad2, Users, MapPin, Clock };
+    return icons[iconName] || Calendar;
+  }, []);
+
   const handleRsvpSubmit = async (e, forceData = null) => {
     if (e && e.preventDefault) e.preventDefault();
+    
+    // Validate all emails before submission
+    const emailErrors = [];
+    rsvpForm.members.forEach((member, index) => {
+      if (member.email) {
+        const validation = validateEmail(member.email, index);
+        if (!validation.isValid) {
+          emailErrors.push(`Member ${index + 1}: ${validation.errors.join(', ')}`);
+        }
+      }
+    });
+
+    if (emailErrors.length > 0) {
+      setRsvpStatus({ 
+        loading: false, 
+        message: `Please fix email errors:\n${emailErrors.join('\n')}`, 
+        type: 'error' 
+      });
+      return;
+    }
+
     setRsvpStatus({ loading: true, message: rsvpEvent.price > 0 && !forceData ? 'PREPARING PAYMENT...' : 'REGISTERING...', type: '' });
 
     const submitData = forceData ? { ...rsvpForm, ...forceData } : rsvpForm;
-
-    // Check minimum team size
-    const minSize = rsvpEvent.registrationType === 'Solo' ? 1 : (rsvpEvent.registrationType === 'Duo' ? 2 : (rsvpEvent.minTeamSize || 1));
-    if (submitData.members.length < minSize) {
-      setRsvpStatus({ loading: false, message: `This event requires at least ${minSize} members.`, type: 'error' });
-      return;
-    }
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/events/${rsvpEvent._id}/register`, {
@@ -146,15 +430,8 @@ const Events = () => {
         body: JSON.stringify(submitData)
       });
 
-      // Check if response is JSON
-      const contentType = res.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Server returned non-JSON response. Please check your connection and try again.');
-      }
-
       const data = await res.json();
       if (res.ok) {
-        // If it's a paid event and we haven't shown the payment flow yet
         if (rsvpEvent.price > 0 && !forceData && !showingPayment) {
           try {
             const payInfoRes = await fetch(`${API_BASE_URL}/api/events/${rsvpEvent._id}/payment-info`);
@@ -167,7 +444,6 @@ const Events = () => {
           } catch (err) {
             console.error('Failed to fetch payment info:', err);
             setRsvpStatus({ loading: false, message: 'Registration successful! Please contact admin for payment.', type: 'success' });
-            // Close after delay if failed to load payment info but registration succeeded
             setTimeout(() => setRsvpEvent(null), 3000);
           }
         } else {
@@ -293,304 +569,110 @@ const Events = () => {
     }
   };
 
-
-  const prayogSubEvents = [
-    {
-      id: 1,
-      title: 'Champions League',
-      icon: Trophy,
-      color: 'from-yellow-500 to-orange-500',
-      description: 'A competitive segment that brought together teams to test their technical prowess, teamwork, and strategic thinking in a curated set of challenges.',
-      details: 'Champions League: A competitive segment that brought together teams to test their technical prowess, teamwork, and strategic thinking in a curated set of challenges. Teams competed across multiple rounds showcasing their problem-solving abilities and collaboration skills.',
-      duration: 'Full Day',
-      participants: 'Multiple Teams',
-    },
-    {
-      id: 2,
-      title: 'Hackathon',
-      icon: Code,
-      color: 'from-vortex-blue to-cyan-400',
-      description: 'This marathon programming event encouraged students to tackle real-world problems by developing creative solutions over a focused time period.',
-      details: 'Hackathon: This marathon programming event encouraged students to tackle real-world problems by developing creative solutions over a focused time period. Teams presented their project ideas, built prototypes, and were assessed on innovation, implementation, and impact.',
-      duration: 'Marathon Session',
-      participants: 'Developer Teams',
-    },
-    {
-      id: 3,
-      title: 'Eureka',
-      icon: Key,
-      color: 'from-purple-500 to-pink-500',
-      description: 'This ideation contest challenged participants to pitch unique concepts or startup ideas, aiming to inspire creativity and entrepreneurial thinking.',
-      details: 'Eureka: This ideation contest challenged participants to pitch unique concepts or startup ideas, aiming to inspire creativity and entrepreneurial thinking within the student body. Participants presented innovative solutions and business models, judged on creativity, feasibility, and potential impact.',
-      duration: 'Full Day',
-      participants: 'Aspiring Entrepreneurs',
-    },
-    {
-      id: 4,
-      title: 'Gameathon',
-      icon: Gamepad2,
-      color: 'from-red-500 to-vortex-orange',
-      description: 'A gaming event that tested logic, skill, and strategic planning in a fun, competitive environment, bringing gamers together for an unforgettable experience.',
-      details: 'Gameathon: A gaming event that tested logic, skill, and strategic planning in a fun, competitive environment. Participants engaged in various gaming challenges that combined entertainment with strategic thinking.',
-      duration: 'Full Day',
-      participants: 'Gaming Enthusiasts',
-    },
-  ];
-
-  const now = new Date();
-
-  // Filter for displayable events (not drafts)
-  const displayableEvents = events.filter(e => e.status !== 'draft');
-
-  const upcomingEvents = displayableEvents.filter(e => {
-    if (e.status === 'completed') return false;
-
-    const eventDate = new Date(e.date);
-    const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
-
-    if (e.endTime) {
-      const [h, m] = e.endTime.split(':');
-      eventEnd.setHours(parseInt(h), parseInt(m), 0);
-    }
-
-    return now <= eventEnd;
-  }).sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  const pastEvents = displayableEvents.filter(e => {
-    if (e.status === 'completed') return true;
-
-    const eventDate = new Date(e.date);
-    const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
-
-    if (e.endTime) {
-      const [h, m] = e.endTime.split(':');
-      eventEnd.setHours(parseInt(h), parseInt(m), 0);
-    }
-
-    return now > eventEnd;
-  }).sort((a, b) => {
-    // Sort by Priority (descending) first, then Date (descending)
-    if ((b.priority || 0) !== (a.priority || 0)) {
-      return (b.priority || 0) - (a.priority || 0);
-    }
-    return new Date(b.date) - new Date(a.date);
-  });
-
-
-  const nextSlide = () => {
-    if (pastEvents.length === 0) return;
-    setCurrentSlide((prev) => (prev + 1) % pastEvents.length);
-  };
-
-  const prevSlide = () => {
-    if (pastEvents.length === 0) return;
-    setCurrentSlide((prev) => (prev - 1 + pastEvents.length) % pastEvents.length);
-  };
-
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-      },
-    },
-  };
-
   return (
     <div className="pt-24 pb-12 px-4">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
           <h1 className="text-4xl md:text-6xl font-display font-bold mb-4">
-            <span className="gradient-text">EVENTS</span>
+            <span className="gradient-text">EVENTS GALLERY</span>
           </h1>
           <p className="text-white/70 text-lg max-w-2xl mx-auto">
-            We are excited to conduct innovative events, hackathons, and tech competitions in upcoming sessions. Stay tuned for announcements!
+            Explore our memories and past events. A showcase of our journey, potential, and the milestones we've achieved together.
           </p>
         </motion.div>
 
-        {/* PRAYOG 1.0 Section */}
-        <section className="mb-20">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-3xl glass-card p-8 md:p-12 mb-12"
-          >
-            {/* Background Effects */}
-            <div className="absolute inset-0 bg-gradient-to-br from-vortex-blue/10 via-transparent to-vortex-orange/10"></div>
-            <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-vortex-blue/20 to-transparent rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-vortex-orange/20 to-transparent rounded-full blur-3xl"></div>
-
-            <div className="relative z-10 text-center">
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="mb-8"
-              >
-
-                <h2 className="text-5xl md:text-7xl font-orbitron font-bold mb-4 tracking-wider">
-                  <span className="gradient-text">{prayogContent.title}</span>
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-16"
+        >
+          <div className="glass-card overflow-hidden bg-white/5 border border-white/10">
+            <div className="p-10">
+              <div className="text-center mb-8">
+                <h2 className="text-4xl md:text-6xl font-orbitron font-bold mb-4 tracking-wider">
+                  <span className="gradient-text">{prayogDisplay.title}</span>
                 </h2>
-                <div className="text-lg text-white/60 mb-8 flex flex-col md:flex-row items-center justify-center gap-2">
-                  <span className="px-3 py-1 glass-card rounded-full text-sm font-medium">{prayogContent.date}</span>
-                  <span className="px-3 py-1 glass-card rounded-full text-sm font-medium">{prayogContent.venue}</span>
+                <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-white/60">
+                  <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">
+                    {prayogDisplay.date}
+                  </span>
+                  <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">
+                    {prayogDisplay.venue}
+                  </span>
                 </div>
-                <div className="text-lg text-white/80 max-w-4xl mx-auto leading-relaxed space-y-6 text-justify">
-                  <p>
-                    {prayogContent.description1}
-                  </p>
-                  <p>
-                    {prayogContent.description2}
-                  </p>
-                </div>
-              </motion.div>
-            </div>
-          </motion.div>
-
-          {/* PRAYOG Gallery Section */}
-          {(prayogContent.galleryDriveLink || prayogContent.images) && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="mb-12"
-            >
-              <h3 className="text-2xl font-display font-bold text-center mb-8">
-                <span className="gradient-text">Event Gallery</span>
-              </h3>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                {/* Drive Gallery Button */}
-                {prayogContent.galleryDriveLink && (
-                  <button
-                    onClick={() => window.open(prayogContent.galleryDriveLink, '_blank')}
-                    className="glass-button text-green-400 border border-green-400/30 hover:bg-green-400 hover:text-black transition-all inline-flex items-center justify-center px-8 py-3 rounded-xl font-bold"
-                  >
-                    📁 View Drive Gallery
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </button>
-                )}
-
-                {/* Photo Gallery Button */}
-                {prayogContent.images && prayogContent.images.trim() && (
-                  <button
-                    onClick={() => {
-                      const imageUrls = prayogContent.images.split(',').map(img => img.trim()).filter(img => img);
-                      if (imageUrls.length > 0) {
-                        setSelectedEventGallery({
-                          title: prayogContent.title,
-                          images: imageUrls
-                        });
-                      }
-                    }}
-                    className="glass-button text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black transition-all inline-flex items-center justify-center px-8 py-3 rounded-xl font-bold"
-                  >
-                    📸 View Photo Gallery
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </button>
-                )}
               </div>
 
-              {/* Preview Images Grid (if images available) */}
-              {prayogContent.images && prayogContent.images.trim() && (
-                <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-                  {prayogContent.images.split(',').map(img => img.trim()).filter(img => img).slice(0, 4).map((img, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.1 * idx }}
-                      className="aspect-square rounded-xl overflow-hidden glass-card group cursor-pointer"
-                      onClick={() => {
-                        const imageUrls = prayogContent.images.split(',').map(img => img.trim()).filter(img => img);
-                        setSelectedEventGallery({
-                          title: prayogContent.title,
-                          images: imageUrls
-                        });
-                      }}
+              <div className="text-white/80 max-w-4xl mx-auto leading-relaxed space-y-4 text-justify">
+                <p>{prayogDisplay.description1}</p>
+                <p>{prayogDisplay.description2}</p>
+              </div>
+
+              {(prayogDisplay.images?.length > 0 || prayogDisplay.galleryDriveLink) && (
+                <div className="mt-8 flex flex-wrap gap-4 justify-center">
+                  {prayogDisplay.images?.length > 0 && (
+                    <button
+                      onClick={() => setSelectedEventGallery({
+                        _id: prayogEvent?._id,
+                        title: prayogDisplay.title,
+                        images: prayogDisplay.images
+                      })}
+                      className="glass-button text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"
                     >
-                      <img
-                        src={img}
-                        alt={`${prayogContent.title} preview ${idx + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">View Gallery</span>
-                      </div>
-                    </motion.div>
-                  ))}
+                      📸 View Photos
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </button>
+                  )}
+
+                  {prayogDisplay.galleryDriveLink && (
+                    <button
+                      onClick={() => window.open(prayogDisplay.galleryDriveLink, '_blank')}
+                      className="glass-button text-green-400 border border-green-400/30 hover:bg-green-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"
+                    >
+                      📁 Drive Gallery
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </button>
+                  )}
                 </div>
               )}
-            </motion.div>
-          )}
 
-          {/* Sub-Events Grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <h3 className="text-3xl font-display font-bold text-center mb-12">
-              <span className="gradient-text">Featured Events</span>
-            </h3>
+              {prayogSubEvents?.length > 0 && (
+                <div className="mt-10">
+                  <h3 className="text-xl font-bold text-white/80 mb-4 text-center">Sub-Events</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {prayogSubEvents.map((subEvent, index) => {
+                      const IconComponent = getIconComponent(subEvent.icon);
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {prayogSubEvents.map((event, index) => {
-                const IconComponent = event.icon;
-                return (
-                  <motion.div
-                    key={event.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * index }}
-                    className="glass-card-hover p-6 text-center group cursor-pointer"
-                    onClick={() => setSelectedSubEvent(event)}
-                  >
-                    <div className={`w-16 h-16 bg-gradient-to-br ${event.color} rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                      <IconComponent className="h-8 w-8 text-white" />
-                    </div>
-
-                    <h4 className="text-xl font-bold text-white mb-3 group-hover:text-vortex-blue transition-colors">
-                      {event.title}
-                    </h4>
-
-                    <p className="text-white/70 text-sm mb-6 leading-relaxed">
-                      {event.description}
-                    </p>
-
-                    <button className="glass-button text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black transition-all duration-300 text-sm font-medium w-full">
-                      Know More
-                    </button>
-                  </motion.div>
-                );
-              })}
+                      return (
+                        <button
+                          key={`prayog-subevent-${subEvent.title || index}`}
+                          onClick={() => setSelectedSubEvent(subEvent)}
+                          className="p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all text-left"
+                        >
+                          <div className={`w-10 h-10 bg-gradient-to-br ${subEvent.color || 'from-blue-500 to-purple-500'} rounded-xl flex items-center justify-center mb-3`}>
+                            <IconComponent className="h-5 w-5 text-white" />
+                          </div>
+                          <div className="text-sm font-semibold text-white">{subEvent.title}</div>
+                          {subEvent.duration && (
+                            <div className="text-xs text-white/50 mt-1">{subEvent.duration}</div>
+                          )}
+                          {subEvent.participants && (
+                            <div className="text-[11px] text-white/40 mt-1">{subEvent.participants}</div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-          </motion.div>
-        </section>
+          </div>
+        </motion.section>
 
-        {/* Upcoming Events */}
-        {(upcomingEvents.length > 0) ? (
+        {upcomingEvents.length > 0 && (
           <section className="mb-16">
             <motion.h2
               initial={{ opacity: 0, x: -20 }}
@@ -599,83 +681,103 @@ const Events = () => {
             >
               Upcoming Events
             </motion.h2>
-
             <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
             >
-              {upcomingEvents.map((event) => (
+              {upcomingEvents.map((event, eventIndex) => {
+                // Define different gradient backgrounds for each card
+                const gradientConfigs = [
+                  'from-green-400 to-cyan-400',
+                  'from-blue-400 to-purple-400', 
+                  'from-cyan-400 to-blue-400',
+                  'from-purple-400 to-pink-400',
+                  'from-orange-400 to-red-400'
+                ];
+                
+                const gradientClass = gradientConfigs[eventIndex % gradientConfigs.length];
+                
+                return (
                 <motion.div
                   key={event._id}
                   variants={itemVariants}
-                  className="glass-card overflow-hidden hover:bg-white/10 transition-all duration-300 group flex flex-col h-full"
+                  className="glass-card overflow-hidden group"
                 >
-                  <div className="h-48 bg-gradient-to-r from-vortex-blue/30 to-vortex-orange/30 flex items-center justify-center relative">
-                    <div className="text-6xl font-bold text-white/20">
-                      {event.title.split(' ')[0]}
-                    </div>
-                    <div className="absolute top-4 right-4 bg-vortex-blue text-black px-3 py-1 rounded-full text-xs font-bold">
-                      UPCOMING
+                  <div className="h-48 overflow-hidden relative">
+                    {event.images && event.images.length > 0 ? (
+                      <img src={event.images[0]} alt={event.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-vortex-blue/20 to-vortex-orange/20 flex items-center justify-center">
+                        <Calendar className="h-16 w-16 text-white/10" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/40" />
+                    
+                    {/* Gradient background with text */}
+                    <div className="absolute bottom-4 left-6">
+                      <div className={`px-4 py-2 bg-gradient-to-r ${gradientClass} rounded-lg shadow-lg`}>
+                        <div className="text-white font-bold text-lg">
+                          {event.title.split(' ')[0]}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="p-6 flex-1 flex flex-col">
-                    <h3 className="text-xl font-bold text-white mb-3 group-hover:text-vortex-blue transition-colors">
-                      {event.title}
-                    </h3>
-                    <p className="text-white/70 text-sm mb-6 flex-1">
-                      {event.description}
-                    </p>
-                    <div className="space-y-2 mb-6 text-sm text-white/60">
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-white mb-4">{event.title}</h3>
+                    <div className="space-y-2 text-white/60 mb-6">
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 mr-2 text-vortex-blue" />
-                        {new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-2 text-vortex-blue" />
-                        {event.startTime ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}` : 'TBA'}
+                        {new Date(event.date).toLocaleDateString()}
                       </div>
                       <div className="flex items-center">
                         <MapPin className="h-4 w-4 mr-2 text-vortex-blue" />
                         {event.location}
                       </div>
-                      <div className="flex items-center justify-between mt-4 p-2 bg-white/5 rounded-lg border border-white/10">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] uppercase text-white/40">Price</span>
-                          <span className="text-vortex-blue font-bold">{event.price > 0 ? `₹${event.price}` : 'FREE'}</span>
-                        </div>
-                        <div className="flex flex-col text-right">
-                          <span className="text-[10px] uppercase text-white/40">Spots Left</span>
-                          <span className={`${(event.capacity - (event.registrationCount || 0)) <= 5 ? 'text-vortex-orange' : 'text-white'} font-bold`}>
-                            {event.capacity > 0 ? Math.max(0, event.capacity - (event.registrationCount || 0)) : '∞'}
-                          </span>
-                        </div>
-                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-2">
-                      <button
-                        onClick={() => setRsvpEvent(event)}
-                        className={`w-full glass-button ${event.capacity > 0 && event.registrationCount >= event.capacity ? 'bg-vortex-orange' : 'bg-vortex-blue'} text-black font-bold py-3 transition-colors flex items-center justify-center group/btn`}
-                      >
-                        {event.capacity > 0 && event.registrationCount >= event.capacity ? 'Join Waitlist' : 'Register Now'}
-                        <ArrowRight className="h-4 w-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
-                      </button>
-                      <button
-                        onClick={() => addToCalendar(event)}
-                        className="w-full glass-button border border-white/10 text-white/70 py-2 text-xs hover:text-white transition-all flex items-center justify-center"
-                      >
-                        <Calendar className="h-3 w-3 mr-2" /> Add to Calendar
-                      </button>
-                    </div>
+                    {/* Sub-Events Display */}
+                    {event.subEvents && event.subEvents.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="text-sm font-bold text-white/80 mb-3">Sub-Events</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                          {event.subEvents.map((subEvent, index) => {
+                            const IconComponent = getIconComponent(subEvent.icon);
+                            
+                            return (
+                              <button
+                                key={`subevent-${subEvent.title || index}`}
+                                onClick={() => setSelectedSubEvent(subEvent)}
+                                className="p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-all text-left"
+                              >
+                                <div className={`w-8 h-8 bg-gradient-to-br ${subEvent.color} rounded-lg flex items-center justify-center mb-2`}>
+                                  <IconComponent className="h-4 w-4 text-white" />
+                                </div>
+                                <div className="text-xs font-medium text-white">{subEvent.title}</div>
+                                <div className="text-xs text-white/50">{subEvent.duration}</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => setRsvpEvent(event)}
+                      className="w-full glass-button bg-vortex-blue text-white font-bold py-3"
+                    >
+                      Register Now
+                    </button>
                   </div>
                 </motion.div>
-              ))}
+              );
+              })}
             </motion.div>
           </section>
-        ) : null}
+        )}
+
 
         {/* RSVP Modal */}
         <AnimatePresence>
@@ -1220,10 +1322,50 @@ const Events = () => {
                                       type="text" placeholder="FULL NAME" className="w-full bg-transparent border-b border-white/10 p-3 text-sm focus:border-vortex-blue outline-none transition-colors text-white" required
                                       value={member.name} onChange={e => updateMember(idx, 'name', e.target.value)}
                                     />
-                                    <input
-                                      type="email" placeholder="EMAIL ADDRESS" className="w-full bg-transparent border-b border-white/10 p-3 text-sm focus:border-vortex-blue outline-none transition-colors text-white" required
-                                      value={member.email} onChange={e => updateMember(idx, 'email', e.target.value)}
-                                    />
+                                    <div className="relative">
+                                      <input
+                                        type="email" 
+                                        placeholder="EMAIL ADDRESS" 
+                                        className={`w-full bg-transparent border-b p-3 text-sm outline-none transition-colors text-white ${
+                                          emailValidation[idx]?.isValid === false 
+                                            ? 'border-red-400 focus:border-red-400' 
+                                            : emailValidation[idx]?.isValid === true 
+                                              ? 'border-green-400 focus:border-green-400' 
+                                              : 'border-white/10 focus:border-vortex-blue'
+                                        }`}
+                                        required
+                                        value={member.email} 
+                                        onChange={e => handleEmailChange(idx, e.target.value)}
+                                      />
+                                      {emailValidation[idx]?.isValid === true && (
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-400">
+                                          ✓
+                                        </div>
+                                      )}
+                                      {emailValidation[idx]?.isValid === false && (
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400">
+                                          ✗
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Email Validation Feedback */}
+                                    {emailValidation[idx] && (emailValidation[idx].errors.length > 0 || emailValidation[idx].warnings.length > 0) && (
+                                      <div className="mt-2 space-y-1">
+                                        {emailValidation[idx].errors.map((error, errorIdx) => (
+                                          <div key={errorIdx} className="text-red-400 text-xs flex items-center gap-2">
+                                            <span className="w-1 h-1 bg-red-400 rounded-full"></span>
+                                            {error}
+                                          </div>
+                                        ))}
+                                        {emailValidation[idx].warnings.map((warning, warningIdx) => (
+                                          <div key={warningIdx} className="text-yellow-400 text-xs flex items-center gap-2">
+                                            <span className="w-1 h-1 bg-yellow-400 rounded-full"></span>
+                                            {warning}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                     <input
                                       type="tel" placeholder="PHONE NO. (10 DIGITS)" className="w-full bg-transparent border-b border-white/10 p-3 text-sm focus:border-vortex-blue outline-none transition-colors text-white" required
                                       value={member.phone} onChange={e => updateMember(idx, 'phone', e.target.value)}
@@ -1355,13 +1497,40 @@ const Events = () => {
                               : (rsvpEvent.minTeamSize || 1));
 
                           if (rsvpForm.members.length >= minSize) {
+                            // Check email validation status
+                            const emailIssues = rsvpForm.members.map((member, idx) => {
+                              if (member.email && emailValidation[idx]) {
+                                return emailValidation[idx].isValid ? null : `Member ${idx + 1}`;
+                              }
+                              return member.email ? null : `Member ${idx + 1}`;
+                            }).filter(Boolean);
+
                             return (
                               <div className="pt-8 sticky bottom-0 bg-dark-bg/90 backdrop-blur-sm">
+                                {/* Email Validation Summary */}
+                                {emailIssues.length > 0 && (
+                                  <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-red-400 text-sm font-bold">⚠️ Email Issues Detected</span>
+                                    </div>
+                                    <div className="text-red-300 text-xs">
+                                      Please fix email validation errors for: {emailIssues.join(', ')}
+                                    </div>
+                                  </div>
+                                )}
+                                
                                 <button
-                                  type="submit" disabled={rsvpStatus.loading}
-                                  className={`w-full py-5 rounded-2xl ${rsvpEvent.capacity > 0 && rsvpEvent.registrations?.length >= rsvpEvent.capacity ? 'bg-vortex-orange' : 'bg-vortex-blue'} text-black font-black uppercase tracking-[0.2em] shadow-2xl hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-3 border-t-2 border-white/20`}
+                                  type="submit" 
+                                  disabled={rsvpStatus.loading || emailIssues.length > 0}
+                                  className={`w-full py-5 rounded-2xl ${
+                                    emailIssues.length > 0 
+                                      ? 'bg-gray-500 cursor-not-allowed' 
+                                      : rsvpEvent.capacity > 0 && rsvpEvent.registrations?.length >= rsvpEvent.capacity 
+                                        ? 'bg-vortex-orange' 
+                                        : 'bg-vortex-blue'
+                                  } text-black font-black uppercase tracking-[0.2em] shadow-2xl hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-3 border-t-2 border-white/20`}
                                 >
-                                  {rsvpStatus.loading ? 'INITIATING...' : (
+                                  {rsvpStatus.loading ? 'INITIATING...' : emailIssues.length > 0 ? 'FIX EMAIL ERRORS FIRST' : (
                                     <>
                                       {rsvpEvent.capacity > 0 && rsvpEvent.registrationCount >= rsvpEvent.capacity ? 'JOIN WAITLIST' : (rsvpEvent.price > 0 ? `PROCEED TO PAYMENT (₹${rsvpEvent.price})` : 'CONFIRM REGISTRATION')}
                                       <ArrowRight size={20} />
@@ -1480,7 +1649,7 @@ const Events = () => {
               animate={{ opacity: 1, x: 0 }}
               className="text-3xl font-display font-bold mb-8 text-white uppercase tracking-wider"
             >
-              Past Events Gallery
+              Our Journey
             </motion.h2>
 
             <motion.div
@@ -1627,7 +1796,9 @@ const Events = () => {
 
               <div className="text-center mb-6">
                 <div className={`w-20 h-20 bg-gradient-to-br ${selectedSubEvent.color} rounded-2xl flex items-center justify-center mx-auto mb-4`}>
-                  <selectedSubEvent.icon className="h-10 w-10 text-white" />
+                  {getIconComponent(selectedSubEvent.icon) && 
+                    React.createElement(getIconComponent(selectedSubEvent.icon), { className: "h-10 w-10 text-white" })
+                  }
                 </div>
                 <h3 className="text-3xl font-display font-bold gradient-text mb-2">
                   {selectedSubEvent.title}
@@ -1638,6 +1809,20 @@ const Events = () => {
               </div>
 
               <div className="space-y-6">
+                {/* Sub-Event Images (PRAYOG 1.0 Only) */}
+                {selectedSubEvent.images && selectedSubEvent.images.length > 0 && (
+                  <div>
+                    <h4 className="text-xl font-bold text-white mb-3">Event Photos</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      {selectedSubEvent.images.map((img, index) => (
+                        <div key={index} className="aspect-video rounded-xl overflow-hidden">
+                          <img src={img} alt={`${selectedSubEvent.title} photo ${index + 1}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <h4 className="text-xl font-bold text-white mb-3">Event Details</h4>
                   <p className="text-white/80 leading-relaxed">

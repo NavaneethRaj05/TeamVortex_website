@@ -4,10 +4,61 @@ const Event = require('../models/Event');
 const PaymentLog = require('../models/PaymentLog');
 const { sendEmail } = require('../utils/emailService');
 
+// @route   GET /api/events/lightweight
+// @desc    Get lightweight events data for fast loading (minimal fields)
+router.get('/lightweight', async (req, res) => {
+    try {
+        // Set aggressive cache headers for lightweight data
+        res.set('Cache-Control', 'public, max-age=600'); // Cache for 10 minutes
+        
+        const events = await Event.aggregate([
+            { $sort: { date: 1 } },
+            {
+                $project: {
+                    title: 1,
+                    date: 1,
+                    location: 1,
+                    startTime: 1,
+                    endTime: 1,
+                    eventType: 1,
+                    category: 1,
+                    price: 1,
+                    capacity: 1,
+                    registrationType: 1,
+                    status: 1,
+                    images: { $slice: ["$images", 1] }, // Only first image
+                    subEvents: {
+                        $map: {
+                            input: { $slice: ["$subEvents", 4] }, // Only first 4 sub-events
+                            as: "subEvent",
+                            in: {
+                                title: "$$subEvent.title",
+                                icon: "$$subEvent.icon",
+                                color: "$$subEvent.color",
+                                duration: "$$subEvent.duration",
+                                participants: "$$subEvent.participants"
+                            }
+                        }
+                    },
+                    registrationCount: { $size: { $ifNull: ["$registrations", []] } }
+                }
+            }
+        ]).allowDiskUse(true);
+        
+        res.json(events);
+    } catch (err) {
+        console.error('Lightweight events fetch error:', err);
+        res.status(500).json({ message: 'Failed to fetch events', error: err.message });
+    }
+});
+
 // @route   GET /api/events
-// @desc    Get all events (Optimized for performance)
+// @desc    Get all events (Optimized for performance with caching)
 router.get('/', async (req, res) => {
     try {
+        // Set cache headers for better performance
+        res.set('Cache-Control', 'public, max-age=300'); // Cache for 5 minutes
+        
         // Exclude registrations, waitlist and feedback from list view to reduce payload size
         const events = await Event.aggregate([
             { $sort: { date: 1 } },
@@ -63,16 +114,21 @@ router.get('/', async (req, res) => {
                     enableQrCheckin: 1,
                     certificateTemplate: 1,
                     status: 1,
-                    images: 1,
+                    images: { $slice: ["$images", 3] }, // Limit images to first 3 for performance
+                    galleryDriveLink: 1,
+                    subEvents: 1,
+                    priority: 1,
                     registrationCount: { $size: { $ifNull: ["$registrations", []] } },
                     waitlistCount: { $size: { $ifNull: ["$waitlist", []] } },
                     feedbackCount: { $size: { $ifNull: ["$feedback", []] } }
                 }
             }
-        ]);
+        ]).allowDiskUse(true); // Allow disk use for large datasets
+        
         res.json(events);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error('Events fetch error:', err);
+        res.status(500).json({ message: 'Failed to fetch events', error: err.message });
     }
 });
 

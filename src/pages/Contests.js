@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, MapPin, Clock, X, User, Mail, GraduationCap, CreditCard, Plus } from 'lucide-react';
+import { Calendar, MapPin, Clock, X, User, Mail, GraduationCap, Plus } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
 import PaymentFlow from '../components/PaymentFlow';
 
@@ -28,7 +28,7 @@ const Contests = () => {
   const [regSuccess, setRegSuccess] = useState(false);
   const [showingPayment, setShowingPayment] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState(null);
-  const [currentRegistrationIndex, setCurrentRegistrationIndex] = useState(null);
+  const [emailValidation, setEmailValidation] = useState({});
 
   useEffect(() => {
     fetchEvents();
@@ -67,6 +67,102 @@ const Contests = () => {
     } catch (err) {
       console.error('❌ Error fetching events:', err);
       setLoading(false);
+    }
+  };
+
+  // Email validation function (same as Events.js)
+  const validateEmail = (email, memberIndex) => {
+    const validationResult = {
+      isValid: false,
+      errors: [],
+      warnings: []
+    };
+
+    // Basic format validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      validationResult.errors.push('Invalid email format');
+      return validationResult;
+    }
+
+    // Extract domain and local part
+    const [localPart, domain] = email.split('@');
+    const domainLower = domain.toLowerCase();
+
+    // Check for common typos in popular domains
+    const commonDomains = {
+      'gmail.com': ['gmai.com', 'gmial.com', 'gmail.co', 'gmaill.com', 'gmil.com'],
+      'yahoo.com': ['yaho.com', 'yahoo.co', 'yahooo.com', 'yhoo.com'],
+      'hotmail.com': ['hotmai.com', 'hotmial.com', 'hotmail.co'],
+      'outlook.com': ['outlok.com', 'outlook.co', 'outloo.com'],
+      'college.edu': ['colege.edu', 'college.ed', 'collge.edu']
+    };
+
+    let suggestedDomain = null;
+    for (const [correct, typos] of Object.entries(commonDomains)) {
+      if (typos.includes(domainLower)) {
+        suggestedDomain = correct;
+        break;
+      }
+    }
+
+    if (suggestedDomain) {
+      validationResult.errors.push(`Did you mean ${localPart}@${suggestedDomain}?`);
+      return validationResult;
+    }
+
+    // Check for suspicious patterns
+    const suspiciousPatterns = [
+      /test/i, /fake/i, /dummy/i, /temp/i, /example/i, /sample/i,
+      /^[a-z]{1,3}@/, /^\d+@/, /^[a-z]+\d{1,2}@/
+    ];
+
+    const isSuspicious = suspiciousPatterns.some(pattern => pattern.test(email));
+    if (isSuspicious) {
+      validationResult.warnings.push('Email appears suspicious. Please use your real email address.');
+    }
+
+    // Check for duplicate emails in the same registration
+    const currentEmails = regData.members.map(m => m.email.toLowerCase()).filter(e => e);
+    const duplicateCount = currentEmails.filter(e => e === email.toLowerCase()).length;
+    if (duplicateCount > 1) {
+      validationResult.errors.push('This email is already used by another team member');
+    }
+
+    // Basic validation checks
+    if (localPart.length < 3) {
+      validationResult.errors.push('Email username too short (minimum 3 characters)');
+    }
+
+    if (email.includes('..') || email.includes('@@')) {
+      validationResult.errors.push('Invalid email format (consecutive special characters)');
+    }
+
+    // If no errors, mark as valid
+    if (validationResult.errors.length === 0) {
+      validationResult.isValid = true;
+    }
+
+    return validationResult;
+  };
+
+  // Real-time email validation
+  const handleEmailChange = (memberIndex, email) => {
+    const newMembers = [...regData.members];
+    newMembers[memberIndex].email = email;
+    setRegData({ ...regData, members: newMembers });
+    
+    if (email.length > 3) {
+      const validation = validateEmail(email, memberIndex);
+      setEmailValidation(prev => ({
+        ...prev,
+        [memberIndex]: validation
+      }));
+    } else {
+      setEmailValidation(prev => ({
+        ...prev,
+        [memberIndex]: { isValid: false, errors: [], warnings: [] }
+      }));
     }
   };
 
@@ -151,13 +247,13 @@ const Contests = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(registrationData)
       });
-      
+
       // Check if response is JSON
       const contentType = res.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         throw new Error('Server returned non-JSON response. Please check your connection and try again.');
       }
-      
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
@@ -167,7 +263,6 @@ const Contests = () => {
           const payInfoRes = await fetch(`${API_BASE_URL}/api/events/${selectedEvent._id}/payment-info`);
           const payInfoData = await payInfoRes.json();
           setPaymentInfo(payInfoData);
-          setCurrentRegistrationIndex(data.registrationIndex);
           setShowingPayment(true);
           setSubmitting(false);
         } catch (err) {
@@ -225,7 +320,7 @@ const Contests = () => {
           className="text-center mb-16"
         >
           <h1 className="text-4xl md:text-6xl font-display font-bold mb-4">
-            <span className="gradient-text">UPCOMING EVENTS</span>
+            <span className="gradient-text">UPCOMING CONTESTS</span>
           </h1>
           <p className="text-white/70 text-lg max-w-2xl mx-auto">
             Challenge yourself and showcase your skills in our upcoming hackathons,
@@ -655,15 +750,49 @@ const Contests = () => {
                             <div className="relative">
                               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={16} />
                               <input
-                                className="w-full input-glass pl-10 p-2.5 rounded-lg text-sm"
+                                className={`w-full input-glass pl-10 p-2.5 rounded-lg text-sm ${
+                                  emailValidation[idx]?.isValid === false 
+                                    ? 'border-red-400 focus:border-red-400' 
+                                    : emailValidation[idx]?.isValid === true 
+                                      ? 'border-green-400 focus:border-green-400' 
+                                      : 'focus:border-vortex-blue'
+                                }`}
                                 type="email"
                                 placeholder="Email Address"
                                 value={member.email}
-                                onChange={e => updateMember(idx, 'email', e.target.value)}
+                                onChange={e => handleEmailChange(idx, e.target.value)}
                                 required
                               />
+                              {emailValidation[idx]?.isValid === true && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-400">
+                                  ✓
+                                </div>
+                              )}
+                              {emailValidation[idx]?.isValid === false && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400">
+                                  ✗
+                                </div>
+                              )}
                             </div>
-
+                            
+                            {/* Email Validation Feedback */}
+                            {emailValidation[idx] && (emailValidation[idx].errors.length > 0 || emailValidation[idx].warnings.length > 0) && (
+                              <div className="mt-2 space-y-1">
+                                {emailValidation[idx].errors.map((error, errorIdx) => (
+                                  <div key={errorIdx} className="text-red-400 text-xs flex items-center gap-2">
+                                    <span className="w-1 h-1 bg-red-400 rounded-full"></span>
+                                    {error}
+                                  </div>
+                                ))}
+                                {emailValidation[idx].warnings.map((warning, warningIdx) => (
+                                  <div key={warningIdx} className="text-yellow-400 text-xs flex items-center gap-2">
+                                    <span className="w-1 h-1 bg-yellow-400 rounded-full"></span>
+                                    {warning}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
                             <div className="relative">
                               <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={16} />
                               <input

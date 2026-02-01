@@ -158,8 +158,10 @@ const seedFutureEvents = async () => {
         console.log('✅ Connected to MongoDB');
 
         // Clear existing events
-        await Event.deleteMany({});
-        console.log('🗑️  Cleared existing events');
+        if (process.env.SEED_CLEAR === 'true') {
+            await Event.deleteMany({});
+            console.log('🗑️  Cleared existing events');
+        }
 
         // Insert future events
         const createdEvents = await Event.insertMany(futureEvents);

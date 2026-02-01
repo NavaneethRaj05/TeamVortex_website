@@ -808,6 +808,193 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                         </div>
                     </div>
 
+                    {/* Sub-Events Management Section */}
+                    <div className="p-4 bg-gradient-to-br from-indigo-500/10 rounded-xl border border-indigo-500/20 space-y-4">
+                        <div className="flex justify-between items-center px-1">
+                            <label className="text-[10px] text-indigo-400 uppercase font-black tracking-widest">🎯 Sub-Events</label>
+                            <button 
+                                type="button" 
+                                onClick={() => {
+                                    try {
+                                        const newSubEvent = { 
+                                            title: '', 
+                                            description: '', 
+                                            details: '', 
+                                            icon: 'Calendar', 
+                                            color: 'from-blue-500 to-purple-500',
+                                            duration: '',
+                                            participants: '',
+                                            images: []
+                                        };
+                                        setNewEvent({ 
+                                            ...newEvent, 
+                                            subEvents: [...(newEvent.subEvents || []), newSubEvent]
+                                        }); 
+                                    } catch (error) {
+                                        console.error('Error adding sub-event:', error);
+                                        alert('Failed to add sub-event. Please try again.');
+                                    }
+                                }} 
+                                className="text-[10px] text-indigo-400 font-bold hover:underline"
+                            >
+                                + Add Sub-Event
+                            </button>
+                        </div>
+                        
+                        {/* Sub-Events List View */}
+                        <div className="space-y-3">
+                            {newEvent.subEvents?.map((subEvent, index) => (
+                                <div key={`subevent-${index}-${subEvent.title || 'new'}`} className="bg-black/20 p-3 rounded-lg border border-white/5 space-y-3">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <input
+                                                className="input-glass p-2 rounded text-xs"
+                                                placeholder="Sub-Event Title *"
+                                                value={subEvent.title}
+                                                required
+                                                onChange={e => {
+                                                    const subEvents = newEvent.subEvents.map((se, i) => 
+                                                        i === index ? { ...se, title: e.target.value } : se
+                                                    );
+                                                    setNewEvent({ ...newEvent, subEvents });
+                                                }}
+                                            />
+                                            <input
+                                                className="input-glass p-2 rounded text-xs"
+                                                placeholder="Duration (e.g., Full Day, 2 Hours)"
+                                                value={subEvent.duration}
+                                                onChange={e => {
+                                                    const subEvents = newEvent.subEvents.map((se, i) => 
+                                                        i === index ? { ...se, duration: e.target.value } : se
+                                                    );
+                                                    setNewEvent({ ...newEvent, subEvents });
+                                                }}
+                                            />
+                                            <input
+                                                className="input-glass p-2 rounded text-xs"
+                                                placeholder="Participants (e.g., Multiple Teams, Solo)"
+                                                value={subEvent.participants}
+                                                onChange={e => {
+                                                    const subEvents = newEvent.subEvents.map((se, i) => 
+                                                        i === index ? { ...se, participants: e.target.value } : se
+                                                    );
+                                                    setNewEvent({ ...newEvent, subEvents });
+                                                }}
+                                            />
+                                            <select
+                                                className="input-glass p-2 rounded text-xs bg-[#1a1a1a]"
+                                                value={subEvent.icon}
+                                                onChange={e => {
+                                                    const subEvents = newEvent.subEvents.map((se, i) => 
+                                                        i === index ? { ...se, icon: e.target.value } : se
+                                                    );
+                                                    setNewEvent({ ...newEvent, subEvents });
+                                                }}
+                                            >
+                                                <option value="Calendar">Calendar</option>
+                                                <option value="Trophy">Trophy</option>
+                                                <option value="Code">Code</option>
+                                                <option value="Key">Key</option>
+                                                <option value="Gamepad2">Gamepad2</option>
+                                                <option value="Users">Users</option>
+                                                <option value="MapPin">MapPin</option>
+                                                <option value="Clock">Clock</option>
+                                            </select>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                try {
+                                                    setNewEvent({ ...newEvent, subEvents: newEvent.subEvents.filter((_, idx) => idx !== index) });
+                                                } catch (error) {
+                                                    console.error('Error deleting sub-event:', error);
+                                                    alert('Failed to delete sub-event. Please try again.');
+                                                }
+                                            }}
+                                            className="text-red-400/40 hover:text-red-400 transition-colors ml-2"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                    
+                                    <textarea
+                                        className="input-glass p-2 rounded text-xs w-full h-16 resize-none"
+                                        placeholder="Brief description of the sub-event *"
+                                        value={subEvent.description}
+                                        required
+                                        onChange={e => {
+                                            const subEvents = newEvent.subEvents.map((se, i) => 
+                                                i === index ? { ...se, description: e.target.value } : se
+                                            );
+                                            setNewEvent({ ...newEvent, subEvents });
+                                        }}
+                                    />
+                                    
+                                    <textarea
+                                        className="input-glass p-2 rounded text-xs w-full h-20 resize-none"
+                                        placeholder="Detailed information about the sub-event"
+                                        value={subEvent.details}
+                                        onChange={e => {
+                                            const subEvents = newEvent.subEvents.map((se, i) => 
+                                                i === index ? { ...se, details: e.target.value } : se
+                                            );
+                                            setNewEvent({ ...newEvent, subEvents });
+                                        }}
+                                    />
+                                    
+                                    <select
+                                        className="input-glass p-2 rounded text-xs bg-[#1a1a1a] w-full"
+                                        value={subEvent.color}
+                                        onChange={e => {
+                                            const subEvents = newEvent.subEvents.map((se, i) => 
+                                                i === index ? { ...se, color: e.target.value } : se
+                                            );
+                                            setNewEvent({ ...newEvent, subEvents });
+                                        }}
+                                    >
+                                        <option value="from-blue-500 to-purple-500">Blue to Purple</option>
+                                        <option value="from-yellow-500 to-orange-500">Yellow to Orange</option>
+                                        <option value="from-vortex-blue to-cyan-400">Vortex Blue to Cyan</option>
+                                        <option value="from-purple-500 to-pink-500">Purple to Pink</option>
+                                        <option value="from-red-500 to-vortex-orange">Red to Orange</option>
+                                        <option value="from-green-500 to-emerald-500">Green to Emerald</option>
+                                    </select>
+                                    
+                                    {/* Conditional Photo Upload for PRAYOG 1.0 */}
+                                    {newEvent.title === 'PRAYOG 1.0' && (
+                                        <div className="space-y-2 p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                                            <label className="text-[9px] text-yellow-300 uppercase font-bold block">📸 Photos (PRAYOG 1.0 Only)</label>
+                                            <input
+                                                className="input-glass p-2 rounded text-xs w-full"
+                                                placeholder="Enter image URLs (comma separated)"
+                                                value={subEvent.images?.join(', ') || ''}
+                                                onChange={e => {
+                                                    const urls = e.target.value.split(',').map(url => url.trim()).filter(url => url);
+                                                    const validUrls = urls.filter(url => {
+                                                        try { new URL(url); return true; } 
+                                                        catch { return false; }
+                                                    });
+                                                    const subEvents = newEvent.subEvents.map((se, i) => 
+                                                        i === index ? { ...se, images: validUrls } : se
+                                                    );
+                                                    setNewEvent({ ...newEvent, subEvents });
+                                                }}
+                                            />
+                                            <div className="text-[8px] text-white/30">Add image URLs separated by commas</div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                        
+                        {(!newEvent.subEvents || newEvent.subEvents.length === 0) && (
+                            <div className="text-center py-6 text-white/30 text-xs">
+                                <div className="mb-2">No sub-events added yet</div>
+                                <div className="text-white/20">Click "+ Add Sub-Event" to get started</div>
+                            </div>
+                        )}
+                    </div>
+
                     <div className="flex flex-col xs:flex-row gap-4 pt-6">
                         <button type="submit" className="glass-button bg-vortex-blue text-white flex-1 font-bold h-12 order-2 xs:order-1">
                             {editingEventId ? 'Sync Changes' : 'Launch Event'}

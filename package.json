@@ -2,11 +2,11 @@
   "name": "team-vortex-website",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://localhost:5001",
   "dependencies": {
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^13.5.0",
+    "chokidar": "^3.6.0",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
@@ -30,11 +30,15 @@
     "xss-clean": "^0.1.4"
   },
   "scripts": {
-    "start": "cd server && node server.js",
+    "start": "react-scripts start",
     "dev": "concurrently \"npm start\" \"npm run server\"",
+    "start:3001": "cross-env PORT=3001 react-scripts start",
+    "dev:3001": "concurrently \"npm run start:3001\" \"npm run server\"",
     "build": "cross-env CI=false react-scripts build",
     "server": "cd server && npm run dev",
-    "production": "npm run build && cross-env NODE_ENV=production npm start",
+    "watch": "node change-server.js",
+    "start:server": "cd server && node server.js",
+    "production": "npm run build && cross-env NODE_ENV=production npm run start:server",
     "install-all": "npm install && cd server && npm install",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
