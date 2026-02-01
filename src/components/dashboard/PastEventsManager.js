@@ -46,7 +46,10 @@ const PastEventsManager = () => {
       const data = await res.json();
 
       const prayog = data.find(e => (e.title || '').trim().toLowerCase() === 'prayog 1.0');
-      setPrayogMissing(!prayog);
+      
+      // Check if PRAYOG exists but has no sub-events
+      const prayogNeedsSubEvents = prayog && (!prayog.subEvents || prayog.subEvents.length === 0);
+      setPrayogMissing(!prayog || prayogNeedsSubEvents);
 
       // Filter for completed events or events in the past
       const now = new Date();
@@ -328,14 +331,14 @@ const PastEventsManager = () => {
         <div className="glass-card p-6 border border-yellow-500/30 bg-yellow-500/5">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <div className="text-white font-bold">PRAYOG 1.0 is missing</div>
-              <div className="text-white/60 text-sm">Create PRAYOG 1.0 so you can manage its info, sub-events, and gallery from here.</div>
+              <div className="text-white font-bold">PRAYOG 1.0 needs setup</div>
+              <div className="text-white/60 text-sm">PRAYOG 1.0 is missing or doesn't have sub-events. Create/update it to manage its info, sub-events, and gallery from here.</div>
             </div>
             <button
               onClick={handleCreatePrayog}
               className="bg-vortex-blue text-black font-bold py-2 px-4 rounded-lg hover:bg-vortex-blue/80 transition-colors"
             >
-              Create PRAYOG 1.0
+              Setup PRAYOG 1.0
             </button>
           </div>
         </div>
@@ -395,6 +398,11 @@ const PastEventsManager = () => {
                       <span className="px-2 py-1 rounded-full text-xs bg-white/10 text-white/70">
                         <Users className="w-3 h-3 inline mr-1" />
                         {event.registrationCount} participants
+                      </span>
+                    )}
+                    {event.subEvents && event.subEvents.length > 0 && (
+                      <span className="px-2 py-1 rounded-full text-xs bg-vortex-blue/20 text-vortex-blue">
+                        {event.subEvents.length} sub-events
                       </span>
                     )}
                     {event.price > 0 && (
