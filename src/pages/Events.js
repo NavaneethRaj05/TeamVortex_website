@@ -711,16 +711,16 @@ const Events = () => {
                           <span className="text-white/40 uppercase tracking-wider text-xs block mb-2">Payment Methods</span>
                           <div className="flex flex-wrap gap-2">
                             {rsvpEvent.paymentGateway === 'UPI' && (
-                              <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded-full border border-blue-500/20">UPI</span>
+                              <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded-full border border-blue-500/20">UPI Only</span>
                             )}
-                            {rsvpEvent.paymentGateway === 'Razorpay' && (
-                              <span className="text-[10px] bg-purple-500/10 text-purple-400 px-2 py-1 rounded-full border border-purple-500/20">Online Payment</span>
+                            {rsvpEvent.paymentGateway === 'Offline' && (
+                              <span className="text-[10px] bg-orange-500/10 text-orange-400 px-2 py-1 rounded-full border border-orange-500/20">Offline Only</span>
                             )}
-                            {(rsvpEvent.paymentGateway === 'Offline' || rsvpEvent.paymentGateway === 'Mixed') && (
-                              <span className="text-[10px] bg-orange-500/10 text-orange-400 px-2 py-1 rounded-full border border-orange-500/20">Offline Payment</span>
-                            )}
-                            {rsvpEvent.paymentGateway === 'Mixed' && (
-                              <span className="text-[10px] bg-green-500/10 text-green-400 px-2 py-1 rounded-full border border-green-500/20">Multiple Options</span>
+                            {rsvpEvent.paymentGateway === 'Both' && (
+                              <>
+                                <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded-full border border-blue-500/20">UPI</span>
+                                <span className="text-[10px] bg-orange-500/10 text-orange-400 px-2 py-1 rounded-full border border-orange-500/20">Offline</span>
+                              </>
                             )}
                           </div>
                         </div>
@@ -1356,7 +1356,7 @@ const Events = () => {
           )}
         </AnimatePresence>
 
-        {/* Past Events */}
+        {/* Past Events with Gallery */}
         {pastEvents.length > 0 && (
           <section className="mb-16">
             <motion.h2
@@ -1364,7 +1364,7 @@ const Events = () => {
               animate={{ opacity: 1, x: 0 }}
               className="text-3xl font-display font-bold mb-8 text-white uppercase tracking-wider"
             >
-              Past Events
+              Past Events Gallery
             </motion.h2>
 
             <motion.div
@@ -1417,18 +1417,33 @@ const Events = () => {
                             </div>
 
                             <div className="flex gap-4">
-                              <button
-                                onClick={() => setSelectedEventGallery(event)}
-                                className="glass-button text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black transition-all inline-flex items-center justify-center self-start px-8"
-                              >
-                                View Gallery
-                                <ArrowRight className="h-4 w-4 ml-2" />
-                              </button>
+                              {/* Gallery Button - Show images if available */}
+                              {event.images && event.images.length > 0 && (
+                                <button
+                                  onClick={() => setSelectedEventGallery(event)}
+                                  className="glass-button text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"
+                                >
+                                  📸 View Photos
+                                  <ArrowRight className="h-4 w-4 ml-2" />
+                                </button>
+                              )}
+                              
+                              {/* Drive Gallery Button - Show if drive link available */}
+                              {event.galleryDriveLink && (
+                                <button
+                                  onClick={() => window.open(event.galleryDriveLink, '_blank')}
+                                  className="glass-button text-green-400 border border-green-400/30 hover:bg-green-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"
+                                >
+                                  📁 Drive Gallery
+                                  <ArrowRight className="h-4 w-4 ml-2" />
+                                </button>
+                              )}
+                              
                               <button
                                 onClick={() => setFeedbackEvent(event)}
-                                className="glass-button text-purple-400 border border-purple-400/30 hover:bg-purple-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-8"
+                                className="glass-button text-purple-400 border border-purple-400/30 hover:bg-purple-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"
                               >
-                                Leave Feedback
+                                💬 Feedback
                               </button>
                             </div>
                           </div>

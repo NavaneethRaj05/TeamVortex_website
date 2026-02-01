@@ -485,13 +485,16 @@ const Contests = () => {
                                   <span className="text-white/40 uppercase tracking-wider text-xs block mb-2">Payment Options</span>
                                   <div className="flex flex-wrap gap-2">
                                     {selectedEvent.paymentGateway === 'UPI' && (
-                                      <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded-full">UPI</span>
+                                      <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded-full">UPI Only</span>
                                     )}
-                                    {selectedEvent.paymentGateway === 'Razorpay' && (
-                                      <span className="text-[10px] bg-purple-500/10 text-purple-400 px-2 py-1 rounded-full">Online</span>
+                                    {selectedEvent.paymentGateway === 'Offline' && (
+                                      <span className="text-[10px] bg-orange-500/10 text-orange-400 px-2 py-1 rounded-full">Offline Only</span>
                                     )}
-                                    {(selectedEvent.paymentGateway === 'Offline' || selectedEvent.paymentGateway === 'Mixed') && (
-                                      <span className="text-[10px] bg-orange-500/10 text-orange-400 px-2 py-1 rounded-full">Offline</span>
+                                    {selectedEvent.paymentGateway === 'Both' && (
+                                      <>
+                                        <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded-full">UPI</span>
+                                        <span className="text-[10px] bg-orange-500/10 text-orange-400 px-2 py-1 rounded-full">Offline</span>
+                                      </>
                                     )}
                                   </div>
                                 </div>

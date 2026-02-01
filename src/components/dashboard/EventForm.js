@@ -645,6 +645,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                 <option value="published">Published (Upcoming)</option>
                                 <option value="completed">Completed (Past Event)</option>
                             </select>
+                            <div className="text-[8px] text-white/30 px-1">Set to "Completed" to show in Past Events Gallery section</div>
                         </div>
                     </div>
 
@@ -665,22 +666,8 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                         className="accent-green-400"
                                     />
                                     <div className="flex-1">
-                                        <div className="text-sm font-medium text-white">UPI Direct Payment</div>
+                                        <div className="text-sm font-medium text-white">UPI Payment Only</div>
                                         <div className="text-xs text-white/60">QR Code + UPI ID for instant payments</div>
-                                    </div>
-                                </label>
-                                <label className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
-                                    <input
-                                        type="radio"
-                                        name="paymentGateway"
-                                        value="Razorpay"
-                                        checked={newEvent.paymentGateway === 'Razorpay'}
-                                        onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
-                                        className="accent-green-400"
-                                    />
-                                    <div className="flex-1">
-                                        <div className="text-sm font-medium text-white">Online Payment Gateway</div>
-                                        <div className="text-xs text-white/60">Cards, UPI, Net Banking, Wallets</div>
                                     </div>
                                 </label>
                                 <label className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
@@ -701,14 +688,14 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                     <input
                                         type="radio"
                                         name="paymentGateway"
-                                        value="Mixed"
-                                        checked={newEvent.paymentGateway === 'Mixed'}
+                                        value="Both"
+                                        checked={newEvent.paymentGateway === 'Both'}
                                         onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
                                         className="accent-green-400"
                                     />
                                     <div className="flex-1">
-                                        <div className="text-sm font-medium text-white">Multiple Payment Options</div>
-                                        <div className="text-xs text-white/60">Both online and offline methods</div>
+                                        <div className="text-sm font-medium text-white">Both UPI & Offline</div>
+                                        <div className="text-xs text-white/60">Participants can choose either option</div>
                                     </div>
                                 </label>
                             </div>
@@ -733,108 +720,72 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                             </div>
                         </div>
 
-                        {/* UPI Details for Direct UPI */}
-                        {newEvent.paymentGateway === 'UPI' && (
-                            <div className="space-y-3 p-3 bg-white/5 rounded-lg border border-white/5">
-                                <label className="text-[9px] text-green-300 uppercase font-bold block">UPI Payment Details</label>
-                                <input
-                                    className="input-glass p-2 rounded-lg w-full text-xs"
-                                    placeholder="UPI ID (e.g., teamvortex@upi)"
-                                    value={newEvent.upiId || ''}
-                                    onChange={e => setNewEvent({ ...newEvent, upiId: e.target.value })}
-                                />
-                                <input
-                                    className="input-glass p-2 rounded-lg w-full text-xs"
-                                    placeholder="QR Code Image URL (optional)"
-                                    value={newEvent.upiQrCode || ''}
-                                    onChange={e => setNewEvent({ ...newEvent, upiQrCode: e.target.value })}
-                                />
+                        {/* UPI Details for UPI or Both payment methods */}
+                        {(newEvent.paymentGateway === 'UPI' || newEvent.paymentGateway === 'Both') && (
+                            <div className="space-y-3 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                                <label className="text-[9px] text-blue-300 uppercase font-bold block">🔵 UPI Payment Configuration (Required)</label>
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="text-[8px] text-white/40 uppercase ml-1 block mb-1">UPI ID *</label>
+                                        <input
+                                            className="input-glass p-3 rounded-lg w-full text-sm"
+                                            placeholder="e.g., teamvortex@paytm, admin@upi"
+                                            value={newEvent.upiId || ''}
+                                            onChange={e => setNewEvent({ ...newEvent, upiId: e.target.value })}
+                                            required={newEvent.paymentGateway === 'UPI' || newEvent.paymentGateway === 'Both'}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[8px] text-white/40 uppercase ml-1 block mb-1">QR Code Image URL *</label>
+                                        <input
+                                            className="input-glass p-3 rounded-lg w-full text-sm"
+                                            placeholder="https://example.com/qr-code.jpg"
+                                            value={newEvent.upiQrCode || ''}
+                                            onChange={e => setNewEvent({ ...newEvent, upiQrCode: e.target.value })}
+                                            required={newEvent.paymentGateway === 'UPI' || newEvent.paymentGateway === 'Both'}
+                                        />
+                                        <div className="text-[8px] text-white/30 mt-1">Upload QR code image to a hosting service and paste the direct image URL</div>
+                                    </div>
+                                </div>
+                                
+                                {/* UPI Preview */}
+                                {newEvent.upiId && newEvent.upiQrCode && (
+                                    <div className="p-3 bg-white/5 rounded-lg border border-white/5">
+                                        <div className="text-[8px] text-green-400 uppercase font-bold mb-2">Preview</div>
+                                        <div className="flex items-center gap-3">
+                                            <img 
+                                                src={newEvent.upiQrCode} 
+                                                alt="QR Code Preview" 
+                                                className="w-12 h-12 rounded border border-white/10"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextSibling.style.display = 'block';
+                                                }}
+                                            />
+                                            <div className="hidden text-[10px] text-red-400 bg-red-500/10 px-2 py-1 rounded">Invalid Image URL</div>
+                                            <div className="text-xs text-white/70">
+                                                <div className="font-medium">UPI ID: {newEvent.upiId}</div>
+                                                <div className="text-[10px] text-white/50">QR Code will be displayed to users</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
                         {/* Offline Details */}
-                        {newEvent.paymentGateway === 'Offline' && (
-                            <div className="space-y-4">
-                                <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-4">
-                                    <div>
-                                        <label className="text-[9px] text-white/40 uppercase font-black block mb-2">General Offline Instructions</label>
-                                        <textarea
-                                            className="input-glass p-2 rounded-lg w-full text-xs h-16 resize-none"
-                                            placeholder="General instructions for offline payment (e.g., Pay at the help desk)..."
-                                            value={newEvent.offlineInstructions || ''}
-                                            onChange={e => setNewEvent({ ...newEvent, offlineInstructions: e.target.value })}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-[9px] text-orange-300 uppercase font-bold block">Accepted Offline Methods</label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {['UPI', 'Bank Transfer', 'Cash', 'Cheque'].map(method => (
-                                                <label key={method} className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={newEvent.offlineMethods?.includes(method) || false}
-                                                        onChange={e => {
-                                                            const methods = newEvent.offlineMethods || [];
-                                                            if (e.target.checked) {
-                                                                setNewEvent({ ...newEvent, offlineMethods: [...methods, method] });
-                                                            } else {
-                                                                setNewEvent({ ...newEvent, offlineMethods: methods.filter(m => m !== method) });
-                                                            }
-                                                        }}
-                                                        className="accent-orange-400"
-                                                    />
-                                                    {method}
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
+                        {(newEvent.paymentGateway === 'Offline' || newEvent.paymentGateway === 'Both') && (
+                            <div className="space-y-3 p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
+                                <label className="text-[9px] text-orange-300 uppercase font-bold block">🟠 Offline Payment Configuration</label>
+                                <div>
+                                    <label className="text-[8px] text-white/40 uppercase ml-1 block mb-1">Payment Instructions</label>
+                                    <textarea
+                                        className="input-glass p-3 rounded-lg w-full text-sm h-20 resize-none"
+                                        placeholder="Provide instructions for offline payment (e.g., Pay at registration desk, Bank transfer details, etc.)"
+                                        value={newEvent.offlineInstructions || ''}
+                                        onChange={e => setNewEvent({ ...newEvent, offlineInstructions: e.target.value })}
+                                    />
                                 </div>
-
-                                {/* UPI (if selected in offline) */}
-                                {newEvent.offlineMethods?.includes('UPI') && (
-                                    <div className="p-3 bg-white/5 rounded-lg border border-white/5 space-y-2">
-                                        <label className="text-[9px] text-green-300 uppercase font-bold block">UPI Details</label>
-                                        <input
-                                            className="input-glass p-2 rounded-lg w-full text-xs"
-                                            placeholder="UPI ID"
-                                            value={newEvent.upiId || ''}
-                                            onChange={e => setNewEvent({ ...newEvent, upiId: e.target.value })}
-                                        />
-                                        <input
-                                            className="input-glass p-2 rounded-lg w-full text-xs"
-                                            placeholder="QR Code URL"
-                                            value={newEvent.upiQrCode || ''}
-                                            onChange={e => setNewEvent({ ...newEvent, upiQrCode: e.target.value })}
-                                        />
-                                    </div>
-                                )}
-
-                                {/* Bank Details */}
-                                {newEvent.offlineMethods?.includes('Bank Transfer') && (
-                                    <div className="p-3 bg-white/5 rounded-lg border border-white/5 space-y-2">
-                                        <label className="text-[9px] text-blue-300 uppercase font-bold block">Bank Account Details</label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <input className="input-glass p-2 rounded text-xs" placeholder="Bank Name" value={newEvent.bankDetails?.bankName || ''} onChange={e => setNewEvent({ ...newEvent, bankDetails: { ...newEvent.bankDetails, bankName: e.target.value } })} />
-                                            <input className="input-glass p-2 rounded text-xs" placeholder="Account Name" value={newEvent.bankDetails?.accountName || ''} onChange={e => setNewEvent({ ...newEvent, bankDetails: { ...newEvent.bankDetails, accountName: e.target.value } })} />
-                                            <input className="input-glass p-2 rounded text-xs" placeholder="Account Number" value={newEvent.bankDetails?.accountNumber || ''} onChange={e => setNewEvent({ ...newEvent, bankDetails: { ...newEvent.bankDetails, accountNumber: e.target.value } })} />
-                                            <input className="input-glass p-2 rounded text-xs" placeholder="IFSC Code" value={newEvent.bankDetails?.ifscCode || ''} onChange={e => setNewEvent({ ...newEvent, bankDetails: { ...newEvent.bankDetails, ifscCode: e.target.value } })} />
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Cash Details */}
-                                {newEvent.offlineMethods?.includes('Cash') && (
-                                    <div className="p-3 bg-white/5 rounded-lg border border-white/5 space-y-2">
-                                        <label className="text-[10px] text-amber-300 uppercase font-bold block">Cash Collection Info</label>
-                                        <textarea
-                                            className="input-glass p-2 rounded-lg w-full text-xs h-16 resize-none"
-                                            placeholder="Location, timings, and contact person for cash payment..."
-                                            value={newEvent.cashDetails?.location || ''}
-                                            onChange={e => setNewEvent({ ...newEvent, cashDetails: { ...newEvent.cashDetails, location: e.target.value } })}
-                                        />
-                                    </div>
-                                )}
                             </div>
                         )}
 

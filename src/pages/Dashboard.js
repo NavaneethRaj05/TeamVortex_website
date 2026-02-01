@@ -15,6 +15,7 @@ import SettingsManager from '../components/dashboard/SettingsManager';
 import AnalyticsDashboard from '../components/dashboard/AnalyticsDashboard';
 import RegistrationViewer from '../components/dashboard/RegistrationViewer';
 import PaymentVerificationPanel from '../components/dashboard/PaymentVerificationPanel';
+import PastEventsManager from '../components/dashboard/PastEventsManager';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -485,17 +486,20 @@ const Dashboard = () => {
                         <p className="text-white/60">Manage Events, Team, Club, and Content</p>
                     </div>
                     <div className="flex bg-white/5 p-1 rounded-xl overflow-x-auto scrollbar-hide max-w-full">
-                        {['events', 'payments', 'analytics', 'team', 'sponsors', 'settings'].map(tab => (
+                        {['events', 'past-events', 'payments', 'analytics', 'team', 'sponsors', 'settings'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
                                 className={`px-4 sm:px-6 py-2 rounded-lg font-medium capitalize transition-all whitespace-nowrap ${activeTab === tab ? 'bg-vortex-blue text-black shadow-lg' : 'text-white/70 hover:text-white'}`}
                             >
-                                {tab}
+                                {tab === 'past-events' ? 'Past Events' : tab}
                             </button>
                         ))}
                     </div>
                 </div>
+
+                {/* --- PAST EVENTS TAB --- */}
+                {activeTab === 'past-events' && <PastEventsManager />}
 
                 {/* --- PAYMENTS TAB --- */}
                 {activeTab === 'payments' && <PaymentVerificationPanel />}

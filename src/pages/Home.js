@@ -86,21 +86,6 @@ const Home = () => {
               Join the revolution of technical excellence.
             </motion.p>
 
-            {/* Mobile Rocket Icon */}
-            <motion.div 
-              variants={item}
-              className="lg:hidden flex justify-center mb-8"
-            >
-              <div className="relative">
-                <div className="w-20 h-20 bg-vortex-blue/10 rounded-full flex items-center justify-center backdrop-blur-md border border-vortex-blue/20">
-                  <Rocket className="w-10 h-10 text-vortex-blue animate-pulse" />
-                </div>
-                <div className="absolute -top-1 -right-1 w-6 h-6 bg-vortex-orange rounded-full flex items-center justify-center">
-                  <Zap className="w-3 h-3 text-black" />
-                </div>
-              </div>
-            </motion.div>
-
             <motion.div variants={item} className="flex flex-col sm:flex-row gap-4">
               <Link to="/team" className="glass-button group flex items-center justify-center space-x-2 text-white">
                 <span>Meet the Team</span>
