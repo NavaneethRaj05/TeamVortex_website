@@ -48,17 +48,25 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                         <div>
-                            <label className="text-[10px] text-white/40 uppercase font-black tracking-widest ml-1 mb-2 block">Event Type</label>
+                            <label className="text-[10px] text-white/40 uppercase font-black tracking-widest ml-1 mb-2 block">Event Type & Scope</label>
                             <select
                                 className="input-glass p-3 sm:p-4 rounded-xl w-full bg-[#1a1a1a] text-white outline-none cursor-pointer"
                                 value={newEvent.eventType}
                                 onChange={e => setNewEvent({ ...newEvent, eventType: e.target.value })}
                             >
-                                <option value="Inter-College">Inter-College</option>
-                                <option value="Intra-College">Intra-College</option>
-                                <option value="Open">Open to All</option>
-                                <option value="Workshop">Workshop</option>
+                                <option value="Inter-College">Inter-College (Multiple Institutions)</option>
+                                <option value="Intra-College">Intra-College (Single Institution)</option>
+                                <option value="Open">Open to All (No Restrictions)</option>
+                                <option value="Workshop">Workshop/Training</option>
+                                <option value="Corporate">Corporate Event</option>
                             </select>
+                            <div className="text-[8px] text-white/30 mt-1 px-1">
+                                {newEvent.eventType === 'Inter-College' && 'Students from multiple colleges can participate'}
+                                {newEvent.eventType === 'Intra-College' && 'Only students from one specific college'}
+                                {newEvent.eventType === 'Open' && 'Anyone can participate regardless of affiliation'}
+                                {newEvent.eventType === 'Workshop' && 'Educational/training focused event'}
+                                {newEvent.eventType === 'Corporate' && 'Professional/industry event'}
+                            </div>
                         </div>
                         <div>
                             <label className="text-[10px] text-white/40 uppercase font-black tracking-widest ml-1 mb-2 block">Category</label>
@@ -71,7 +79,148 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                 <option value="Cultural">Cultural</option>
                                 <option value="Sports">Sports</option>
                                 <option value="Gaming">Gaming</option>
+                                <option value="Business">Business/Entrepreneurship</option>
+                                <option value="Academic">Academic</option>
                             </select>
+                        </div>
+                    </div>
+
+                    {/* College/Institution Verification Section */}
+                    <div className="p-4 bg-gradient-to-br from-blue-500/10 rounded-xl border border-blue-500/20 space-y-4">
+                        <label className="text-[10px] text-blue-400 uppercase font-black tracking-widest block">🏫 Institution Verification & Restrictions</label>
+                        
+                        {/* Intra-College Specific Settings */}
+                        {newEvent.eventType === 'Intra-College' && (
+                            <div className="space-y-3 p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
+                                <label className="text-[9px] text-orange-300 uppercase font-bold block">Intra-College Configuration</label>
+                                <input
+                                    className="input-glass p-3 rounded-lg w-full text-sm"
+                                    placeholder="Allowed College/Institution Name (e.g., Navkis College of Engineering)"
+                                    value={newEvent.allowedCollege || ''}
+                                    onChange={e => setNewEvent({ ...newEvent, allowedCollege: e.target.value })}
+                                    required={newEvent.eventType === 'Intra-College'}
+                                />
+                                <div className="text-[8px] text-white/30">Only students from this institution will be allowed to register</div>
+                                
+                                {/* Department Restrictions */}
+                                <div className="space-y-2">
+                                    <label className="text-[9px] text-orange-300 uppercase font-bold block">Department Restrictions (Optional)</label>
+                                    <input
+                                        className="input-glass p-2 rounded-lg w-full text-xs"
+                                        placeholder="Allowed departments (comma separated, e.g., CSE, ECE, ME)"
+                                        value={newEvent.allowedDepartments || ''}
+                                        onChange={e => setNewEvent({ ...newEvent, allowedDepartments: e.target.value })}
+                                    />
+                                    <div className="text-[8px] text-white/30">Leave empty to allow all departments</div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Inter-College Settings */}
+                        {newEvent.eventType === 'Inter-College' && (
+                            <div className="space-y-3 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                                <label className="text-[9px] text-green-300 uppercase font-bold block">Inter-College Configuration</label>
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={newEvent.requireCollegeVerification || false}
+                                            onChange={e => setNewEvent({ ...newEvent, requireCollegeVerification: e.target.checked })}
+                                            className="accent-green-400"
+                                        />
+                                        Require College ID Card Upload
+                                    </label>
+                                    <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={newEvent.verifyStudentStatus || false}
+                                            onChange={e => setNewEvent({ ...newEvent, verifyStudentStatus: e.target.checked })}
+                                            className="accent-green-400"
+                                        />
+                                        Verify Active Student Status
+                                    </label>
+                                </div>
+                                
+                                {/* Excluded Colleges */}
+                                <div className="space-y-2">
+                                    <label className="text-[9px] text-green-300 uppercase font-bold block">Excluded Institutions (Optional)</label>
+                                    <textarea
+                                        className="input-glass p-2 rounded-lg w-full text-xs h-16 resize-none"
+                                        placeholder="List institutions to exclude (one per line)..."
+                                        value={newEvent.excludedColleges || ''}
+                                        onChange={e => setNewEvent({ ...newEvent, excludedColleges: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* General Verification Settings */}
+                        <div className="space-y-3">
+                            <label className="text-[9px] text-blue-300 uppercase font-bold block">General Verification Requirements</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={newEvent.requireIdProof || false}
+                                        onChange={e => setNewEvent({ ...newEvent, requireIdProof: e.target.checked })}
+                                        className="accent-blue-400"
+                                    />
+                                    ID Proof Required
+                                </label>
+                                <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={newEvent.requireAddressProof || false}
+                                        onChange={e => setNewEvent({ ...newEvent, requireAddressProof: e.target.checked })}
+                                        className="accent-blue-400"
+                                    />
+                                    Address Verification
+                                </label>
+                                <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={newEvent.requirePhoneVerification || false}
+                                        onChange={e => setNewEvent({ ...newEvent, requirePhoneVerification: e.target.checked })}
+                                        className="accent-blue-400"
+                                    />
+                                    Phone OTP Verification
+                                </label>
+                                <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={newEvent.requireEmailVerification || false}
+                                        onChange={e => setNewEvent({ ...newEvent, requireEmailVerification: e.target.checked })}
+                                        className="accent-blue-400"
+                                    />
+                                    Email Verification
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* Geographic Restrictions */}
+                        <div className="space-y-3 pt-3 border-t border-white/5">
+                            <label className="text-[9px] text-blue-300 uppercase font-bold block">Geographic Restrictions (Optional)</label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[8px] text-white/40 uppercase ml-1 block mb-1">Allowed States</label>
+                                    <input
+                                        className="input-glass p-2 rounded-lg w-full text-xs"
+                                        placeholder="e.g., Karnataka, Tamil Nadu"
+                                        value={newEvent.allowedStates || ''}
+                                        onChange={e => setNewEvent({ ...newEvent, allowedStates: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[8px] text-white/40 uppercase ml-1 block mb-1">Allowed Cities</label>
+                                    <input
+                                        className="input-glass p-2 rounded-lg w-full text-xs"
+                                        placeholder="e.g., Bangalore, Hassan"
+                                        value={newEvent.allowedCities || ''}
+                                        onChange={e => setNewEvent({ ...newEvent, allowedCities: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="text-[8px] text-white/30">Leave empty to allow participants from anywhere</div>
                         </div>
                     </div>
 
@@ -239,14 +388,112 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
 
                     <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
                         <label className="text-[10px] text-green-400 uppercase font-black tracking-widest block">💰 Pricing & Limits</label>
-                        <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
-                            <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-xs">₹</span>
-                                <input className="input-glass p-3 pl-7 rounded-lg w-full text-sm" type="number" placeholder="Entry Fee (per person/team)" value={newEvent.price} onChange={e => setNewEvent({ ...newEvent, price: e.target.value })} />
+                        
+                        {/* Free vs Paid Event Toggle */}
+                        <div className="flex items-center gap-4 p-3 bg-white/5 rounded-lg border border-white/5">
+                            <label className="flex items-center gap-2 text-sm text-white/70 cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="eventPricing"
+                                    checked={!newEvent.price || newEvent.price === 0}
+                                    onChange={() => setNewEvent({ ...newEvent, price: 0 })}
+                                    className="accent-green-400"
+                                />
+                                Free Event
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-white/70 cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="eventPricing"
+                                    checked={newEvent.price > 0}
+                                    onChange={() => setNewEvent({ ...newEvent, price: newEvent.price || 100 })}
+                                    className="accent-green-400"
+                                />
+                                Paid Event
+                            </label>
+                        </div>
+
+                        {/* Pricing Details (only show if paid event) */}
+                        {newEvent.price > 0 && (
+                            <div className="space-y-4 p-3 bg-green-500/5 rounded-lg border border-green-500/10">
+                                <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-xs">₹</span>
+                                        <input 
+                                            className="input-glass p-3 pl-7 rounded-lg w-full text-sm" 
+                                            type="number" 
+                                            placeholder="Entry Fee Amount" 
+                                            value={newEvent.price} 
+                                            onChange={e => setNewEvent({ ...newEvent, price: e.target.value })} 
+                                            min="1"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <select 
+                                            className="input-glass p-3 rounded-lg w-full text-sm bg-[#1a1a1a]"
+                                            value={newEvent.feeType || 'per_person'}
+                                            onChange={e => setNewEvent({ ...newEvent, feeType: e.target.value })}
+                                        >
+                                            <option value="per_person">Per Person</option>
+                                            <option value="per_team">Per Team (Flat Rate)</option>
+                                        </select>
+                                        <div className="text-[9px] text-white/30 px-1">How the fee is calculated</div>
+                                    </div>
+                                </div>
+
+                                {/* Fee Breakdown Preview */}
+                                <div className="p-3 bg-white/5 rounded-lg border border-white/5">
+                                    <div className="text-[9px] text-green-300 uppercase font-bold mb-2">Fee Breakdown Preview</div>
+                                    <div className="space-y-1 text-xs">
+                                        <div className="flex justify-between">
+                                            <span className="text-white/70">Base Fee ({newEvent.feeType === 'per_team' ? 'Per Team' : 'Per Person'})</span>
+                                            <span className="text-white">₹{newEvent.price || 0}</span>
+                                        </div>
+                                        {newEvent.gstEnabled && (
+                                            <div className="flex justify-between">
+                                                <span className="text-white/50">GST ({newEvent.gstPercent || 18}%)</span>
+                                                <span className="text-white/70">₹{Math.round((newEvent.price || 0) * ((newEvent.gstPercent || 18) / 100))}</span>
+                                            </div>
+                                        )}
+                                        <div className="border-t border-white/10 pt-1 flex justify-between font-bold">
+                                            <span className="text-white">Total Amount</span>
+                                            <span className="text-green-400">
+                                                ₹{newEvent.gstEnabled ? 
+                                                    Math.round((newEvent.price || 0) * (1 + ((newEvent.gstPercent || 18) / 100))) : 
+                                                    (newEvent.price || 0)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="space-y-1">
-                                <input className="input-glass p-3 rounded-lg w-full text-sm" type="number" placeholder="Total Participants Limit" value={newEvent.capacity} onChange={e => setNewEvent({ ...newEvent, capacity: e.target.value })} />
-                                <div className="text-[9px] text-white/30 px-1">Max people who can attend (0 = unlimited)</div>
+                        )}
+
+                        {/* Capacity Settings */}
+                        <div className="space-y-3">
+                            <label className="text-[9px] text-white/40 uppercase font-bold block">Participant Capacity</label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <input 
+                                        className="input-glass p-3 rounded-lg w-full text-sm" 
+                                        type="number" 
+                                        placeholder="Max Participants" 
+                                        value={newEvent.capacity} 
+                                        onChange={e => setNewEvent({ ...newEvent, capacity: e.target.value })} 
+                                        min="0"
+                                    />
+                                    <div className="text-[9px] text-white/30 px-1">0 = unlimited</div>
+                                </div>
+                                <div className="space-y-1">
+                                    <input 
+                                        className="input-glass p-3 rounded-lg w-full text-sm" 
+                                        type="number" 
+                                        placeholder="Waitlist Limit" 
+                                        value={newEvent.waitlistCapacity || ''} 
+                                        onChange={e => setNewEvent({ ...newEvent, waitlistCapacity: e.target.value })} 
+                                        min="0"
+                                    />
+                                    <div className="text-[9px] text-white/30 px-1">Max waitlist size</div>
+                                </div>
                             </div>
                         </div>
 
@@ -359,27 +606,131 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                         <textarea className="input-glass p-4 rounded-xl w-full h-40 resize-none" placeholder="Enter event details, prerequisites, and what to expect..." value={newEvent.description} onChange={e => setNewEvent({ ...newEvent, description: e.target.value })} required />
                     </div>
 
-                    <div className="p-4 bg-gradient-to-br from-green-500/10 rounded-xl border border-green-500/20 space-y-4">
-                        <label className="text-[10px] text-green-400 uppercase font-black block">💳 Payment & Fee Collection</label>
-
-                        {/* Payment Gateway Selection */}
+                    {/* Event Images & Gallery */}
+                    <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
+                        <label className="text-[10px] text-cyan-400 uppercase font-black tracking-widest block">📸 Event Gallery</label>
+                        
+                        {/* Image URLs */}
                         <div className="space-y-2">
-                            <label className="text-[9px] text-white/40 uppercase ml-1 block">Payment Method</label>
-                            <select className="input-glass p-3 rounded-lg w-full bg-[#1a1a1a]" value={newEvent.paymentGateway} onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}>
-                                <option value="UPI">UPI Direct (QR Code + UPI ID)</option>
-                                <option value="Offline">Offline Only (Bank/Cash/Multiple)</option>
-                            </select>
+                            <label className="text-[9px] text-white/40 uppercase ml-1 block">Image URLs (comma separated)</label>
+                            <textarea 
+                                className="input-glass p-3 rounded-lg w-full h-20 resize-none text-xs" 
+                                placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
+                                value={Array.isArray(newEvent.images) ? newEvent.images.join(', ') : newEvent.images}
+                                onChange={e => setNewEvent({ ...newEvent, images: e.target.value })}
+                            />
                         </div>
 
-                        {/* Payment Receiver Name */}
+                        {/* Google Drive Link for Past Events */}
                         <div className="space-y-2">
-                            <label className="text-[9px] text-white/40 uppercase ml-1 block">Payment Receiver Name</label>
-                            <input
-                                className="input-glass p-3 rounded-lg w-full text-sm"
-                                placeholder="Organization/Person name appearing on bills"
-                                value={newEvent.paymentReceiverName || ''}
-                                onChange={e => setNewEvent({ ...newEvent, paymentReceiverName: e.target.value })}
+                            <label className="text-[9px] text-white/40 uppercase ml-1 block">Google Drive Gallery Link (for past events)</label>
+                            <input 
+                                className="input-glass p-3 rounded-lg w-full text-xs" 
+                                placeholder="https://drive.google.com/drive/folders/..."
+                                value={newEvent.galleryDriveLink || ''}
+                                onChange={e => setNewEvent({ ...newEvent, galleryDriveLink: e.target.value })}
                             />
+                            <div className="text-[8px] text-white/30 px-1">Share Google Drive folder link for event photos (make sure it's publicly accessible)</div>
+                        </div>
+
+                        {/* Event Status for Gallery */}
+                        <div className="space-y-2">
+                            <label className="text-[9px] text-white/40 uppercase ml-1 block">Event Status</label>
+                            <select 
+                                className="input-glass p-3 rounded-lg w-full bg-[#1a1a1a] text-white outline-none cursor-pointer text-xs"
+                                value={newEvent.status || 'published'}
+                                onChange={e => setNewEvent({ ...newEvent, status: e.target.value })}
+                            >
+                                <option value="draft">Draft</option>
+                                <option value="published">Published (Upcoming)</option>
+                                <option value="completed">Completed (Past Event)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="p-4 bg-gradient-to-br from-green-500/10 rounded-xl border border-green-500/20 space-y-4">
+                        <label className="text-[10px] text-green-400 uppercase font-black block">💳 Payment Configuration & Fee Collection</label>
+
+                        {/* Payment Method Selection */}
+                        <div className="space-y-3">
+                            <label className="text-[9px] text-white/40 uppercase ml-1 block">Payment Gateway Selection</label>
+                            <div className="grid grid-cols-1 gap-2">
+                                <label className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                                    <input
+                                        type="radio"
+                                        name="paymentGateway"
+                                        value="UPI"
+                                        checked={newEvent.paymentGateway === 'UPI'}
+                                        onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
+                                        className="accent-green-400"
+                                    />
+                                    <div className="flex-1">
+                                        <div className="text-sm font-medium text-white">UPI Direct Payment</div>
+                                        <div className="text-xs text-white/60">QR Code + UPI ID for instant payments</div>
+                                    </div>
+                                </label>
+                                <label className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                                    <input
+                                        type="radio"
+                                        name="paymentGateway"
+                                        value="Razorpay"
+                                        checked={newEvent.paymentGateway === 'Razorpay'}
+                                        onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
+                                        className="accent-green-400"
+                                    />
+                                    <div className="flex-1">
+                                        <div className="text-sm font-medium text-white">Online Payment Gateway</div>
+                                        <div className="text-xs text-white/60">Cards, UPI, Net Banking, Wallets</div>
+                                    </div>
+                                </label>
+                                <label className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                                    <input
+                                        type="radio"
+                                        name="paymentGateway"
+                                        value="Offline"
+                                        checked={newEvent.paymentGateway === 'Offline'}
+                                        onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
+                                        className="accent-green-400"
+                                    />
+                                    <div className="flex-1">
+                                        <div className="text-sm font-medium text-white">Offline Payment Only</div>
+                                        <div className="text-xs text-white/60">Cash, Bank Transfer, Manual Collection</div>
+                                    </div>
+                                </label>
+                                <label className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                                    <input
+                                        type="radio"
+                                        name="paymentGateway"
+                                        value="Mixed"
+                                        checked={newEvent.paymentGateway === 'Mixed'}
+                                        onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
+                                        className="accent-green-400"
+                                    />
+                                    <div className="flex-1">
+                                        <div className="text-sm font-medium text-white">Multiple Payment Options</div>
+                                        <div className="text-xs text-white/60">Both online and offline methods</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* Payment Receiver Information */}
+                        <div className="space-y-3 pt-3 border-t border-white/5">
+                            <label className="text-[9px] text-white/40 uppercase ml-1 block">Payment Receiver Details</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <input
+                                    className="input-glass p-3 rounded-lg w-full text-sm"
+                                    placeholder="Organization/Person Name"
+                                    value={newEvent.paymentReceiverName || ''}
+                                    onChange={e => setNewEvent({ ...newEvent, paymentReceiverName: e.target.value })}
+                                />
+                                <input
+                                    className="input-glass p-3 rounded-lg w-full text-sm"
+                                    placeholder="Contact Number"
+                                    value={newEvent.paymentContactNumber || ''}
+                                    onChange={e => setNewEvent({ ...newEvent, paymentContactNumber: e.target.value })}
+                                />
+                            </div>
                         </div>
 
                         {/* UPI Details for Direct UPI */}

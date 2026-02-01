@@ -151,6 +151,13 @@ const Contests = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(registrationData)
       });
+      
+      // Check if response is JSON
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response. Please check your connection and try again.');
+      }
+      
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
@@ -658,13 +665,13 @@ const Contests = () => {
                               <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={16} />
                               <input
                                 className="w-full input-glass pl-10 p-2.5 rounded-lg text-sm"
-                                placeholder="Student ID / USN (10 Digits)"
+                                placeholder="Student ID / USN (e.g., 4YG23AD002)"
                                 value={member.studentId}
                                 onChange={e => updateMember(idx, 'studentId', e.target.value)}
-                                minLength={10}
-                                maxLength={10}
-                                pattern="\d{10}"
-                                title="Please enter exactly 10 digits"
+                                minLength={6}
+                                maxLength={15}
+                                pattern="[A-Za-z0-9]+"
+                                title="Please enter alphanumeric USN (letters and numbers only)"
                                 required
                               />
                             </div>

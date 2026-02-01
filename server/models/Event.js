@@ -52,6 +52,7 @@ const eventSchema = new mongoose.Schema({
     endTime: { type: String }, // Optional
     location: { type: String },
     images: [{ type: String }], // Gallery images
+    galleryDriveLink: { type: String }, // Google Drive link for event photos
 
     // Event Type & Category
     eventType: {

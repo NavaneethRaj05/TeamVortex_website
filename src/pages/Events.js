@@ -31,7 +31,8 @@ const Events = () => {
       year: '',
       age: '',
       state: '',
-      city: ''
+      city: '',
+      idCardFile: ''
     }],
     couponCode: '',
     appliedCoupon: null,
@@ -110,6 +111,13 @@ const Events = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData)
       });
+      
+      // Check if response is JSON
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response. Please check your connection and try again.');
+      }
+      
       const data = await res.json();
       if (res.ok) {
         // If it's a paid event and we haven't shown the payment flow yet
@@ -150,7 +158,8 @@ const Events = () => {
                 year: '',
                 age: '',
                 state: '',
-                city: ''
+                city: '',
+                idCardFile: ''
               }],
               couponCode: '',
               appliedCoupon: null,
@@ -165,7 +174,12 @@ const Events = () => {
         setRsvpStatus({ loading: false, message: data.message, type: 'error' });
       }
     } catch (err) {
-      setRsvpStatus({ loading: false, message: 'Failed to register', type: 'error' });
+      console.error('Registration error:', err);
+      setRsvpStatus({ 
+        loading: false, 
+        message: err.message || 'Failed to register. Please check your connection and try again.', 
+        type: 'error' 
+      });
     }
   };
 
@@ -184,7 +198,8 @@ const Events = () => {
           year: '',
           age: '',
           state: '',
-          city: ''
+          city: '',
+          idCardFile: ''
         }]
       });
     }
@@ -268,11 +283,11 @@ const Events = () => {
     },
     {
       id: 3,
-      title: 'Cicada',
+      title: 'Eureka',
       icon: Key,
       color: 'from-purple-500 to-pink-500',
       description: 'This ideation contest challenged participants to pitch unique concepts or startup ideas, aiming to inspire creativity and entrepreneurial thinking.',
-      details: 'Cicada: This ideation contest challenged participants to pitch unique concepts or startup ideas, aiming to inspire creativity and entrepreneurial thinking within the student body. Participants presented innovative solutions and business models, judged on creativity, feasibility, and potential impact.',
+      details: 'Eureka: This ideation contest challenged participants to pitch unique concepts or startup ideas, aiming to inspire creativity and entrepreneurial thinking within the student body. Participants presented innovative solutions and business models, judged on creativity, feasibility, and potential impact.',
       duration: 'Full Day',
       participants: 'Aspiring Entrepreneurs',
     },
@@ -1099,9 +1114,9 @@ const Events = () => {
                                       value={member.college} onChange={e => updateMember(idx, 'college', e.target.value)}
                                     />
                                     <input
-                                      type="text" placeholder="ID NUMBER / USN (10 DIGITS)" className="w-full bg-transparent border-b border-white/10 p-3 text-sm focus:border-vortex-blue outline-none transition-colors text-white" required
+                                      type="text" placeholder="ID NUMBER / USN (e.g., 4YG23AD002)" className="w-full bg-transparent border-b border-white/10 p-3 text-sm focus:border-vortex-blue outline-none transition-colors text-white" required
                                       value={member.idNumber} onChange={e => updateMember(idx, 'idNumber', e.target.value)}
-                                      minLength={10} maxLength={10} pattern="\d{10}" title="Please enter exactly 10 digits"
+                                      minLength={6} maxLength={15} pattern="[A-Za-z0-9]+" title="Please enter alphanumeric USN (letters and numbers only)"
                                     />
 
                                     {/* Additional fields for better verification */}
@@ -1138,20 +1153,67 @@ const Events = () => {
                                     )}
 
                                     <div className="pt-2">
-                                      <button
-                                        type="button"
-                                        className="w-full py-4 border-2 border-dashed border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/40 hover:border-vortex-blue/30 hover:text-vortex-blue transition-all flex flex-col items-center gap-1 group/upload"
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          <Mail size={16} className="group-hover/upload:scale-110 transition-transform" /> UPLOAD ID CARD
-                                        </div>
-                                        <span className="text-[8px] font-medium text-white/20">
-                                          {rsvpEvent.eligibility?.requiredDocs?.length > 0
-                                            ? `Required: ${rsvpEvent.eligibility.requiredDocs.join(', ')}`
-                                            : 'Formats: JPG, PNG, PDF (Max 2MB)'
-                                          }
-                                        </span>
-                                      </button>
+                                      <div className="space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Upload ID Card / Document</label>
+                                        <input
+                                          type="file"
+                                          accept="image/*,.pdf"
+                                          className="hidden"
+                                          id={`file-upload-${idx}`}
+                                          onChange={(e) => {
+                                            const file = e.target.files[0];
+                                            if (file) {
+                                              // Validate file type (more comprehensive)
+                                              const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+                                              const fileName = file.name.toLowerCase();
+                                              const fileExtension = fileName.split('.').pop();
+                                              const validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
+                                              
+                                              if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
+                                                alert('❌ Invalid file type!\n\nPlease upload only:\n• Image files: JPG, JPEG, PNG, WebP\n• Document files: PDF\n\nCurrent file: ' + file.name);
+                                                e.target.value = '';
+                                                return;
+                                              }
+                                              
+                                              // Validate file size (max 2MB)
+                                              if (file.size > 2 * 1024 * 1024) {
+                                                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                                                alert(`❌ File too large!\n\nFile size: ${fileSizeMB}MB\nMaximum allowed: 2MB\n\nPlease compress your image or choose a smaller file.`);
+                                                e.target.value = '';
+                                                return;
+                                              }
+                                              
+                                              // Validate minimum file size (prevent empty files)
+                                              if (file.size < 1024) {
+                                                alert('❌ File too small!\n\nThe selected file appears to be empty or corrupted. Please choose a valid document.');
+                                                e.target.value = '';
+                                                return;
+                                              }
+                                              
+                                              // Success - store the file name
+                                              updateMember(idx, 'idCardFile', file.name);
+                                              console.log('✅ File uploaded successfully:', file.name, `(${(file.size / 1024).toFixed(1)}KB)`);
+                                            }
+                                          }}
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => document.getElementById(`file-upload-${idx}`).click()}
+                                          className="w-full py-4 border-2 border-dashed border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/40 hover:border-vortex-blue/30 hover:text-vortex-blue transition-all flex flex-col items-center gap-1 group/upload"
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            <Mail size={16} className="group-hover/upload:scale-110 transition-transform" /> 
+                                            {member.idCardFile ? 'CHANGE DOCUMENT' : 'UPLOAD ID CARD'}
+                                          </div>
+                                          <span className="text-[8px] font-medium text-white/20">
+                                            {member.idCardFile ? `Selected: ${member.idCardFile}` : (
+                                              rsvpEvent.eligibility?.requiredDocs?.length > 0
+                                                ? `Required: ${rsvpEvent.eligibility.requiredDocs.join(', ')}`
+                                                : 'Formats: JPG, PNG, PDF (Max 2MB)'
+                                            )}
+                                          </span>
+                                        </button>
+                                      </div>
                                     </div>
                                   </div>
                                 </motion.div>
