@@ -64,6 +64,15 @@ const Events = () => {
     }
   ]), []);
 
+  // Enhanced state management for registration flow
+  const [registrationFlow, setRegistrationFlow] = useState({
+    step: 'form', // 'form' | 'processing' | 'payment' | 'success' | 'error'
+    isSubmitting: false,
+    canSubmit: true,
+    error: null,
+    success: null
+  });
+
   const [rsvpForm, setRsvpForm] = useState({
     teamName: '',
     country: 'India',
@@ -95,6 +104,14 @@ const Events = () => {
 
   useEffect(() => {
     if (!rsvpEvent) {
+      // Reset all states when modal closes
+      setRegistrationFlow({
+        step: 'form',
+        isSubmitting: false,
+        canSubmit: true,
+        error: null,
+        success: null
+      });
       setRsvpForm({
         teamName: '',
         country: 'India',
@@ -121,6 +138,9 @@ const Events = () => {
       });
       setActiveInfoTab('details');
       setRsvpStatus({ loading: false, message: '', type: '' });
+      setShowingPayment(false);
+      setPaymentInfo(null);
+      setCurrentRegistrationIndex(null);
     }
   }, [rsvpEvent]);
 
@@ -394,10 +414,77 @@ const Events = () => {
     return icons[iconName] || Calendar;
   }, []);
 
+  // Enhanced registration handler with state machine logic
   const handleRsvpSubmit = async (e, forceData = null) => {
     if (e && e.preventDefault) e.preventDefault();
     
-    // Validate all emails before submission
+    // Prevent multiple submissions
+    if (registrationFlow.isSubmitting || !registrationFlow.canSubmit) {
+      console.log('Registration already in progress or blocked');
+      return;
+    }
+
+    // Validate form data
+    const validationResult = validateRegistrationForm();
+    if (!validationResult.isValid) {
+      setRegistrationFlow(prev => ({
+        ...prev,
+        step: 'error',
+        error: validationResult.error,
+        canSubmit: true
+      }));
+      return;
+    }
+
+    // Set processing state
+    setRegistrationFlow(prev => ({
+      ...prev,
+      step: 'processing',
+      isSubmitting: true,
+      canSubmit: false,
+      error: null
+    }));
+
+    const submitData = forceData ? { ...rsvpForm, ...forceData } : rsvpForm;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/events/${rsvpEvent._id}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(submitData)
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: 'Registration failed' }));
+        throw new Error(errorData.message || `Server error: ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      // Handle successful registration
+      if (rsvpEvent.price > 0 && !forceData) {
+        // Paid event - initiate payment flow
+        await initiatePaymentFlow(data);
+      } else {
+        // Free event or payment already processed
+        handleRegistrationSuccess(data);
+      }
+
+    } catch (err) {
+      console.error('Registration error:', err);
+      setRegistrationFlow(prev => ({
+        ...prev,
+        step: 'error',
+        isSubmitting: false,
+        canSubmit: true,
+        error: err.message || 'Registration failed. Please try again.'
+      }));
+    }
+  };
+
+  // Validate registration form
+  const validateRegistrationForm = () => {
+    // Email validation
     const emailErrors = [];
     rsvpForm.members.forEach((member, index) => {
       if (member.email) {
@@ -409,85 +496,134 @@ const Events = () => {
     });
 
     if (emailErrors.length > 0) {
-      setRsvpStatus({ 
-        loading: false, 
-        message: `Please fix email errors:\n${emailErrors.join('\n')}`, 
-        type: 'error' 
-      });
-      return;
+      return {
+        isValid: false,
+        error: `Please fix email errors:\n${emailErrors.join('\n')}`
+      };
     }
 
-    setRsvpStatus({ loading: true, message: rsvpEvent.price > 0 && !forceData ? 'PREPARING PAYMENT...' : 'REGISTERING...', type: '' });
-
-    const submitData = forceData ? { ...rsvpForm, ...forceData } : rsvpForm;
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/events/${rsvpEvent._id}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitData)
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        if (rsvpEvent.price > 0 && !forceData && !showingPayment) {
-          try {
-            const payInfoRes = await fetch(`${API_BASE_URL}/api/events/${rsvpEvent._id}/payment-info`);
-            const payInfoData = await payInfoRes.json();
-
-            setPaymentInfo(payInfoData);
-            setCurrentRegistrationIndex(data.registrationIndex);
-            setShowingPayment(true);
-            setRsvpStatus({ loading: false, message: '', type: '' });
-          } catch (err) {
-            console.error('Failed to fetch payment info:', err);
-            setRsvpStatus({ loading: false, message: 'Registration successful! Please contact admin for payment.', type: 'success' });
-            setTimeout(() => setRsvpEvent(null), 3000);
-          }
-        } else {
-          setRsvpStatus({ loading: false, message: data.message || 'Registration Successful!', type: 'success' });
-          setTimeout(() => {
-            setRsvpEvent(null);
-            setShowingPayment(false);
-            setRsvpStatus({ loading: false, message: '', type: '' });
-            setRsvpForm({
-              teamName: '',
-              country: 'India',
-              institutionName: '',
-              department: '',
-              yearOfStudy: '',
-              members: [{
-                name: '',
-                email: '',
-                phone: '',
-                college: '',
-                idNumber: '',
-                department: '',
-                year: '',
-                age: '',
-                state: '',
-                city: '',
-                idCardFile: ''
-              }],
-              couponCode: '',
-              appliedCoupon: null,
-              paid: false,
-              paymentId: ''
-            });
-            fetchEvents();
-          }, 2500);
+    // Required fields validation
+    const requiredFields = ['name', 'email', 'phone'];
+    for (const member of rsvpForm.members) {
+      for (const field of requiredFields) {
+        if (!member[field] || member[field].trim() === '') {
+          return {
+            isValid: false,
+            error: `Please fill in all required fields for all members`
+          };
         }
-      } else {
-        setRsvpStatus({ loading: false, message: data.message, type: 'error' });
       }
-    } catch (err) {
-      console.error('Registration error:', err);
-      setRsvpStatus({
-        loading: false,
-        message: err.message || 'Failed to register. Please check your connection and try again.',
-        type: 'error'
-      });
     }
+
+    // Team size validation
+    const minSize = rsvpEvent.registrationType === 'Solo' ? 1
+      : (rsvpEvent.registrationType === 'Duo' ? 2
+        : (rsvpEvent.minTeamSize || 1));
+    
+    if (rsvpForm.members.length < minSize) {
+      return {
+        isValid: false,
+        error: `Please add ${minSize - rsvpForm.members.length} more member(s)`
+      };
+    }
+
+    return { isValid: true };
+  };
+
+  // Initiate payment flow
+  const initiatePaymentFlow = async (registrationData) => {
+    try {
+      const payInfoRes = await fetch(`${API_BASE_URL}/api/events/${rsvpEvent._id}/payment-info`);
+      
+      if (!payInfoRes.ok) {
+        throw new Error('Failed to fetch payment information');
+      }
+
+      const payInfoData = await payInfoRes.json();
+
+      setPaymentInfo(payInfoData);
+      setCurrentRegistrationIndex(registrationData.registrationIndex);
+      
+      setRegistrationFlow(prev => ({
+        ...prev,
+        step: 'payment',
+        isSubmitting: false,
+        canSubmit: false
+      }));
+      
+      setShowingPayment(true);
+
+    } catch (err) {
+      console.error('Failed to initiate payment flow:', err);
+      setRegistrationFlow(prev => ({
+        ...prev,
+        step: 'success',
+        isSubmitting: false,
+        canSubmit: false,
+        success: 'Registration successful! Please contact admin for payment instructions.'
+      }));
+      
+      setTimeout(() => {
+        resetRegistrationFlow();
+      }, 3000);
+    }
+  };
+
+  // Handle successful registration
+  const handleRegistrationSuccess = (data) => {
+    setRegistrationFlow(prev => ({
+      ...prev,
+      step: 'success',
+      isSubmitting: false,
+      canSubmit: false,
+      success: data.message || 'Registration successful!'
+    }));
+
+    setTimeout(() => {
+      resetRegistrationFlow();
+      fetchEvents(); // Refresh events data
+    }, 2500);
+  };
+
+  // Reset registration flow
+  const resetRegistrationFlow = () => {
+    setRsvpEvent(null);
+    setShowingPayment(false);
+    setPaymentInfo(null);
+    setCurrentRegistrationIndex(null);
+    setRegistrationFlow({
+      step: 'form',
+      isSubmitting: false,
+      canSubmit: true,
+      error: null,
+      success: null
+    });
+  };
+
+  // Handle payment completion
+  const handlePaymentComplete = () => {
+    setShowingPayment(false);
+    setRegistrationFlow(prev => ({
+      ...prev,
+      step: 'success',
+      success: 'Payment submitted for verification!'
+    }));
+    
+    setTimeout(() => {
+      resetRegistrationFlow();
+    }, 3000);
+  };
+
+  // Handle payment cancellation
+  const handlePaymentCancel = () => {
+    setShowingPayment(false);
+    setRegistrationFlow(prev => ({
+      ...prev,
+      step: 'form',
+      isSubmitting: false,
+      canSubmit: true,
+      error: 'Payment cancelled. You can try again.'
+    }));
   };
 
   const addMember = () => {
@@ -789,7 +925,10 @@ const Events = () => {
                 className="relative glass-card p-8 max-w-2xl w-full"
                 onClick={(e) => e.stopPropagation()}
               >
-                <button onClick={() => setRsvpEvent(null)} className="absolute top-4 right-4 text-white/40 hover:text-white">
+                <button 
+                  onClick={resetRegistrationFlow} 
+                  className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors"
+                >
                   <X />
                 </button>
                 <div className="text-center mb-6">
@@ -1067,21 +1206,34 @@ const Events = () => {
                   </div>
                 </div>
 
-                {rsvpStatus.message ? (
-                  <div className={`p-6 rounded-2xl text-center mb-6 ${rsvpStatus.type === 'success' ? 'bg-green-500/10 border border-green-500/50 text-green-400' : 'bg-red-500/10 border border-red-500/50 text-red-400'}`}>
-                    <div className="text-lg font-bold mb-2">{rsvpStatus.type === 'success' ? 'Success!' : 'Oops!'}</div>
-                    {rsvpStatus.message}
+                {/* Processing State */}
+                {registrationFlow.step === 'processing' && (
+                  <div className="p-8 text-center">
+                    <div className="w-16 h-16 border-4 border-vortex-blue/30 border-t-vortex-blue rounded-full animate-spin mx-auto mb-4"></div>
+                    <h3 className="text-xl font-bold text-white mb-2">Processing Registration</h3>
+                    <p className="text-gray-400">Please wait while we process your registration...</p>
                   </div>
-                ) : (
-                  <form onSubmit={async (e) => {
-                    e.preventDefault();
-                    // For paid events, trigger the payment flow directly
-                    if (rsvpEvent.price > 0 && !rsvpForm.paid && (rsvpEvent.capacity > 0 && rsvpEvent.registrationCount < rsvpEvent.capacity)) {
-                      handleRsvpSubmit(e);
-                      return;
-                    }
-                    handleRsvpSubmit(e);
-                  }} className="space-y-6 max-h-[60vh] overflow-y-auto px-2 custom-scrollbar">
+                )}
+
+                {/* Status Display */}
+                {(registrationFlow.error || registrationFlow.success) && (
+                  <div className={`p-6 rounded-2xl text-center mb-6 ${
+                    registrationFlow.success 
+                      ? 'bg-green-500/10 border border-green-500/50 text-green-400' 
+                      : 'bg-red-500/10 border border-red-500/50 text-red-400'
+                  }`}>
+                    <div className="text-lg font-bold mb-2">
+                      {registrationFlow.success ? 'Success!' : 'Error'}
+                    </div>
+                    <div className="whitespace-pre-line">
+                      {registrationFlow.success || registrationFlow.error}
+                    </div>
+                  </div>
+                )}
+
+                {/* Registration Form */}
+                {registrationFlow.step === 'form' && !showingPayment && (
+                  <form onSubmit={handleRsvpSubmit} className="space-y-6 max-h-[60vh] overflow-y-auto px-2 custom-scrollbar">
 
                     {/* Waitlist Alert */}
                     {rsvpEvent.capacity > 0 && rsvpEvent.registrationCount >= rsvpEvent.capacity && (
@@ -1513,18 +1665,32 @@ const Events = () => {
                                 
                                 <button
                                   type="submit" 
-                                  disabled={rsvpStatus.loading || emailIssues.length > 0}
+                                  disabled={registrationFlow.isSubmitting || !registrationFlow.canSubmit || emailIssues.length > 0}
                                   className={`w-full py-5 rounded-2xl ${
-                                    emailIssues.length > 0 
+                                    emailIssues.length > 0 || !registrationFlow.canSubmit
                                       ? 'bg-gray-500 cursor-not-allowed' 
                                       : rsvpEvent.capacity > 0 && rsvpEvent.registrations?.length >= rsvpEvent.capacity 
                                         ? 'bg-vortex-orange' 
                                         : 'bg-vortex-blue'
                                   } text-black font-black uppercase tracking-[0.2em] shadow-2xl hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-3 border-t-2 border-white/20`}
                                 >
-                                  {rsvpStatus.loading ? 'INITIATING...' : emailIssues.length > 0 ? 'FIX EMAIL ERRORS FIRST' : (
+                                  {registrationFlow.isSubmitting ? (
                                     <>
-                                      {rsvpEvent.capacity > 0 && rsvpEvent.registrationCount >= rsvpEvent.capacity ? 'JOIN WAITLIST' : (rsvpEvent.price > 0 ? `PROCEED TO PAYMENT (₹${rsvpEvent.price})` : 'CONFIRM REGISTRATION')}
+                                      <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                      {registrationFlow.step === 'processing' ? 'PROCESSING...' : 'PLEASE WAIT...'}
+                                    </>
+                                  ) : emailIssues.length > 0 ? (
+                                    'FIX EMAIL ERRORS FIRST'
+                                  ) : !registrationFlow.canSubmit ? (
+                                    'PLEASE WAIT...'
+                                  ) : (
+                                    <>
+                                      {rsvpEvent.capacity > 0 && rsvpEvent.registrationCount >= rsvpEvent.capacity 
+                                        ? 'JOIN WAITLIST' 
+                                        : rsvpEvent.price > 0 
+                                          ? `PROCEED TO PAYMENT (₹${rsvpEvent.price})` 
+                                          : 'CONFIRM REGISTRATION'
+                                      }
                                       <ArrowRight size={20} />
                                     </>
                                   )}
@@ -1543,7 +1709,6 @@ const Events = () => {
                             );
                           }
                         })()}
-                    
                     {showingPayment && (
                       <PaymentFlow
                         eventId={rsvpEvent._id}
@@ -1551,12 +1716,8 @@ const Events = () => {
                         amount={rsvpEvent.price}
                         paymentInfo={paymentInfo}
                         userEmail={rsvpForm.members[0].email}
-                        onComplete={() => {
-                          setShowingPayment(false);
-                          setRsvpStatus({ loading: false, message: 'Payment submitted for verification!', type: 'success' });
-                          setTimeout(() => setRsvpEvent(null), 3000);
-                        }}
-                        onCancel={() => setShowingPayment(false)}
+                        onComplete={handlePaymentComplete}
+                        onCancel={handlePaymentCancel}
                       />
                     )}
                   </form>

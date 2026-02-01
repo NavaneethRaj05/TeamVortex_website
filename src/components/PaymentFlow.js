@@ -38,6 +38,8 @@ const PaymentFlow = ({
     const [screenshotPreview, setScreenshotPreview] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const [submitAttempts, setSubmitAttempts] = useState(0);
+    const [canSubmit, setCanSubmit] = useState(true);
     const fileInputRef = useRef(null);
 
     // Form fields for proof upload
@@ -82,6 +84,13 @@ const PaymentFlow = ({
     };
 
     const handleSubmitProof = async () => {
+        // Prevent multiple submissions
+        if (isSubmitting || !canSubmit) {
+            console.log('Payment proof submission already in progress or blocked');
+            return;
+        }
+
+        // Validate required fields
         if (!screenshot) {
             setError('Please upload a payment screenshot');
             return;
@@ -91,8 +100,17 @@ const PaymentFlow = ({
             return;
         }
 
+        // Check submission attempts (prevent spam)
+        if (submitAttempts >= 3) {
+            setError('Too many submission attempts. Please refresh and try again.');
+            setCanSubmit(false);
+            return;
+        }
+
         setIsSubmitting(true);
+        setCanSubmit(false);
         setError('');
+        setSubmitAttempts(prev => prev + 1);
 
         try {
             console.log('Submitting payment proof to:', `${API_BASE_URL}/api/events/${eventId}/submit-payment-proof`);
@@ -145,7 +163,10 @@ const PaymentFlow = ({
                 throw new Error(data.message || `Server error: ${response.status} ${response.statusText}`);
             }
 
-            setStep(3); // Move to confirmation
+            // Success - move to confirmation step
+            setStep(3);
+            setCanSubmit(false); // Prevent further submissions
+
         } catch (err) {
             console.error('Payment proof submission error:', err);
             
@@ -155,6 +176,13 @@ const PaymentFlow = ({
                 setError('Network error. Please check your internet connection and ensure the server is running.');
             } else {
                 setError(err.message || 'Failed to submit payment proof. Please try again.');
+            }
+            
+            // Re-enable submission after error (with attempt limit)
+            if (submitAttempts < 3) {
+                setTimeout(() => {
+                    setCanSubmit(true);
+                }, 2000); // 2 second cooldown
             }
         } finally {
             setIsSubmitting(false);
@@ -520,7 +548,7 @@ const PaymentFlow = ({
                 </button>
                 <button
                     onClick={handleSubmitProof}
-                    disabled={isSubmitting || !screenshot || !proofData.utrNumber}
+                    disabled={isSubmitting || !canSubmit || !screenshot || !proofData.utrNumber}
                     className="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold hover:from-purple-600 hover:to-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                     {isSubmitting ? (
@@ -528,8 +556,10 @@ const PaymentFlow = ({
                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             Submitting...
                         </>
+                    ) : !canSubmit ? (
+                        'Please Wait...'
                     ) : (
-                        <>Submit Proof</>
+                        'Submit Proof'
                     )}
                 </button>
             </div>
