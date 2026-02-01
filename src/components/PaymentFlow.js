@@ -95,6 +95,13 @@ const PaymentFlow = ({
         setError('');
 
         try {
+            console.log('Submitting payment proof to:', `${API_BASE_URL}/api/events/${eventId}/submit-payment-proof`);
+            console.log('API_BASE_URL:', API_BASE_URL);
+            console.log('Event ID:', eventId);
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+            
             const response = await fetch(`${API_BASE_URL}/api/events/${eventId}/submit-payment-proof`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -106,18 +113,49 @@ const PaymentFlow = ({
                     amountPaid: parseFloat(proofData.amountPaid) || amount,
                     paidFrom: proofData.paidFrom,
                     userNotes: proofData.userNotes
-                })
+                }),
+                signal: controller.signal
             });
 
-            const data = await response.json();
+            clearTimeout(timeoutId);
+            
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            let data;
+            
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                // If not JSON, get text response for debugging
+                const textResponse = await response.text();
+                console.error('Non-JSON response:', textResponse);
+                
+                // Check if it's an HTML error page
+                if (textResponse.includes('<!DOCTYPE') || textResponse.includes('<html>')) {
+                    throw new Error('Server is not responding properly. Please check if the backend is running and try again.');
+                } else {
+                    throw new Error(`Server returned unexpected response: ${textResponse.substring(0, 100)}...`);
+                }
+            }
 
             if (!response.ok) {
-                throw new Error(data.message || 'Failed to submit payment proof');
+                throw new Error(data.message || `Server error: ${response.status} ${response.statusText}`);
             }
 
             setStep(3); // Move to confirmation
         } catch (err) {
-            setError(err.message);
+            console.error('Payment proof submission error:', err);
+            
+            if (err.name === 'AbortError') {
+                setError('Request timed out. Please check your internet connection and try again.');
+            } else if (err.message.includes('Failed to fetch')) {
+                setError('Network error. Please check your internet connection and ensure the server is running.');
+            } else {
+                setError(err.message || 'Failed to submit payment proof. Please try again.');
+            }
         } finally {
             setIsSubmitting(false);
         }
