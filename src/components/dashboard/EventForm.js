@@ -161,24 +161,6 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                 <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
                                     <input
                                         type="checkbox"
-                                        checked={newEvent.requireIdProof || false}
-                                        onChange={e => setNewEvent({ ...newEvent, requireIdProof: e.target.checked })}
-                                        className="accent-blue-400"
-                                    />
-                                    ID Proof Required
-                                </label>
-                                <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={newEvent.requireAddressProof || false}
-                                        onChange={e => setNewEvent({ ...newEvent, requireAddressProof: e.target.checked })}
-                                        className="accent-blue-400"
-                                    />
-                                    Address Verification
-                                </label>
-                                <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
-                                    <input
-                                        type="checkbox"
                                         checked={newEvent.requirePhoneVerification || false}
                                         onChange={e => setNewEvent({ ...newEvent, requirePhoneVerification: e.target.checked })}
                                         className="accent-blue-400"
@@ -319,7 +301,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                         <div className="space-y-2">
                             <label className="text-[9px] text-white/40 uppercase ml-1 block">Required Documents</label>
                             <div className="grid grid-cols-2 gap-2">
-                                {['College ID', 'Registration Screenshot'].map(doc => (
+                                {['Registration Screenshot', 'College ID Proof'].map(doc => (
                                     <label key={doc} className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
                                         <input
                                             type="checkbox"
@@ -604,49 +586,6 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                     <div>
                         <label className="text-[10px] text-white/40 uppercase font-black tracking-widest ml-1 mb-2 block">Tell the story</label>
                         <textarea className="input-glass p-4 rounded-xl w-full h-40 resize-none" placeholder="Enter event details, prerequisites, and what to expect..." value={newEvent.description} onChange={e => setNewEvent({ ...newEvent, description: e.target.value })} required />
-                    </div>
-
-                    {/* Event Images & Gallery */}
-                    <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
-                        <label className="text-[10px] text-cyan-400 uppercase font-black tracking-widest block">📸 Event Gallery</label>
-                        
-                        {/* Image URLs */}
-                        <div className="space-y-2">
-                            <label className="text-[9px] text-white/40 uppercase ml-1 block">Image URLs (comma separated)</label>
-                            <textarea 
-                                className="input-glass p-3 rounded-lg w-full h-20 resize-none text-xs" 
-                                placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
-                                value={Array.isArray(newEvent.images) ? newEvent.images.join(', ') : newEvent.images}
-                                onChange={e => setNewEvent({ ...newEvent, images: e.target.value })}
-                            />
-                        </div>
-
-                        {/* Google Drive Link for Past Events */}
-                        <div className="space-y-2">
-                            <label className="text-[9px] text-white/40 uppercase ml-1 block">Google Drive Gallery Link (for past events)</label>
-                            <input 
-                                className="input-glass p-3 rounded-lg w-full text-xs" 
-                                placeholder="https://drive.google.com/drive/folders/..."
-                                value={newEvent.galleryDriveLink || ''}
-                                onChange={e => setNewEvent({ ...newEvent, galleryDriveLink: e.target.value })}
-                            />
-                            <div className="text-[8px] text-white/30 px-1">Share Google Drive folder link for event photos (make sure it's publicly accessible)</div>
-                        </div>
-
-                        {/* Event Status for Gallery */}
-                        <div className="space-y-2">
-                            <label className="text-[9px] text-white/40 uppercase ml-1 block">Event Status</label>
-                            <select 
-                                className="input-glass p-3 rounded-lg w-full bg-[#1a1a1a] text-white outline-none cursor-pointer text-xs"
-                                value={newEvent.status || 'published'}
-                                onChange={e => setNewEvent({ ...newEvent, status: e.target.value })}
-                            >
-                                <option value="draft">Draft</option>
-                                <option value="published">Published (Upcoming)</option>
-                                <option value="completed">Completed (Past Event)</option>
-                            </select>
-                            <div className="text-[8px] text-white/30 px-1">Set to "Completed" to show in Past Events Gallery section</div>
-                        </div>
                     </div>
 
                     <div className="p-4 bg-gradient-to-br from-green-500/10 rounded-xl border border-green-500/20 space-y-4">

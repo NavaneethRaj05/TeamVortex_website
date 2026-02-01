@@ -203,6 +203,9 @@ const eventSchema = new mongoose.Schema({
     enableQrCheckin: { type: Boolean, default: false },
     certificateTemplate: { type: String }, // URL to certificate template
 
+    // Priority for Sorting
+    priority: { type: Number, default: 0 },
+
     // Registrations & Waitlist
     registrations: [registrationSchema],
     waitlist: [registrationSchema],

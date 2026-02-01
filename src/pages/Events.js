@@ -44,8 +44,42 @@ const Events = () => {
   const [feedbackEvent, setFeedbackEvent] = useState(null);
   const [feedbackForm, setFeedbackForm] = useState({ studentId: '', name: '', rating: 5, comment: '' });
 
+  // Dynamic PRAYOG content state
+  const [prayogContent, setPrayogContent] = useState({
+    title: 'PRAYOG 1.0',
+    date: 'March 25, 2025',
+    venue: 'Navkis College of Engineering',
+    description1: 'Prayog 1.0 was a flagship technical event organized by Team Vortex at Navkis College of Engineering, Hassan, held on 25th March 2025. Designed to foster innovation, collaboration, and tech-oriented problem-solving, Prayog 1.0 showcased the club\'s commitment to hands-on learning and student engagement through its four key sub-events.',
+    description2: 'The event drew over 150 participants, reflecting strong interest across disciplines. Prayog 1.0 not only provided a platform for skill development and networking but also celebrated the diversity and enthusiasm of the tech community at Navkis College of Engineering. The success and energetic response to Prayog 1.0 have laid a strong foundation for it to become a recurring highlight in the annual calendar of Team Vortex.',
+    participantCount: '150+',
+    galleryDriveLink: '',
+    images: ''
+  });
+
   useEffect(() => {
     fetchEvents();
+
+    // Load PRAYOG content from localStorage
+    const savedContent = localStorage.getItem('prayogContent');
+    if (savedContent) {
+      try {
+        const parsed = JSON.parse(savedContent);
+        setPrayogContent(prev => ({ ...prev, ...parsed }));
+      } catch (error) {
+        console.error('Error loading PRAYOG content:', error);
+      }
+    }
+
+    // Listen for content updates from dashboard
+    const handleContentUpdate = (event) => {
+      setPrayogContent(prev => ({ ...prev, ...event.detail }));
+    };
+
+    window.addEventListener('prayogContentUpdated', handleContentUpdate);
+
+    return () => {
+      window.removeEventListener('prayogContentUpdated', handleContentUpdate);
+    };
   }, []);
 
   useEffect(() => {
@@ -111,13 +145,13 @@ const Events = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData)
       });
-      
+
       // Check if response is JSON
       const contentType = res.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         throw new Error('Server returned non-JSON response. Please check your connection and try again.');
       }
-      
+
       const data = await res.json();
       if (res.ok) {
         // If it's a paid event and we haven't shown the payment flow yet
@@ -175,10 +209,10 @@ const Events = () => {
       }
     } catch (err) {
       console.error('Registration error:', err);
-      setRsvpStatus({ 
-        loading: false, 
-        message: err.message || 'Failed to register. Please check your connection and try again.', 
-        type: 'error' 
+      setRsvpStatus({
+        loading: false,
+        message: err.message || 'Failed to register. Please check your connection and try again.',
+        type: 'error'
       });
     }
   };
@@ -334,7 +368,13 @@ const Events = () => {
     }
 
     return now > eventEnd;
-  }).sort((a, b) => new Date(b.date) - new Date(a.date));
+  }).sort((a, b) => {
+    // Sort by Priority (descending) first, then Date (descending)
+    if ((b.priority || 0) !== (a.priority || 0)) {
+      return (b.priority || 0) - (a.priority || 0);
+    }
+    return new Date(b.date) - new Date(a.date);
+  });
 
 
   const nextSlide = () => {
@@ -407,23 +447,103 @@ const Events = () => {
               >
 
                 <h2 className="text-5xl md:text-7xl font-orbitron font-bold mb-4 tracking-wider">
-                  <span className="gradient-text">PRAYOG 1.0</span>
+                  <span className="gradient-text">{prayogContent.title}</span>
                 </h2>
                 <div className="text-lg text-white/60 mb-8 flex flex-col md:flex-row items-center justify-center gap-2">
-                  <span className="px-3 py-1 glass-card rounded-full text-sm font-medium">March 25, 2025</span>
-                  <span className="px-3 py-1 glass-card rounded-full text-sm font-medium">Navkis College of Engineering</span>
+                  <span className="px-3 py-1 glass-card rounded-full text-sm font-medium">{prayogContent.date}</span>
+                  <span className="px-3 py-1 glass-card rounded-full text-sm font-medium">{prayogContent.venue}</span>
                 </div>
                 <div className="text-lg text-white/80 max-w-4xl mx-auto leading-relaxed space-y-6 text-justify">
                   <p>
-                    Prayog 1.0 was a flagship technical event organized by Team Vortex at Navkis College of Engineering, Hassan, held on 25th March 2025. Designed to foster innovation, collaboration, and tech-oriented problem-solving, Prayog 1.0 showcased the club's commitment to hands-on learning and student engagement through its four key sub-events.
+                    {prayogContent.description1}
                   </p>
                   <p>
-                    The event drew over 150 participants, reflecting strong interest across disciplines. Prayog 1.0 not only provided a platform for skill development and networking but also celebrated the diversity and enthusiasm of the tech community at Navkis College of Engineering. The success and energetic response to Prayog 1.0 have laid a strong foundation for it to become a recurring highlight in the annual calendar of Team Vortex.
+                    {prayogContent.description2}
                   </p>
                 </div>
               </motion.div>
             </div>
           </motion.div>
+
+          {/* PRAYOG Gallery Section */}
+          {(prayogContent.galleryDriveLink || prayogContent.images) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mb-12"
+            >
+              <h3 className="text-2xl font-display font-bold text-center mb-8">
+                <span className="gradient-text">Event Gallery</span>
+              </h3>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                {/* Drive Gallery Button */}
+                {prayogContent.galleryDriveLink && (
+                  <button
+                    onClick={() => window.open(prayogContent.galleryDriveLink, '_blank')}
+                    className="glass-button text-green-400 border border-green-400/30 hover:bg-green-400 hover:text-black transition-all inline-flex items-center justify-center px-8 py-3 rounded-xl font-bold"
+                  >
+                    📁 View Drive Gallery
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </button>
+                )}
+
+                {/* Photo Gallery Button */}
+                {prayogContent.images && prayogContent.images.trim() && (
+                  <button
+                    onClick={() => {
+                      const imageUrls = prayogContent.images.split(',').map(img => img.trim()).filter(img => img);
+                      if (imageUrls.length > 0) {
+                        setSelectedEventGallery({
+                          title: prayogContent.title,
+                          images: imageUrls
+                        });
+                      }
+                    }}
+                    className="glass-button text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black transition-all inline-flex items-center justify-center px-8 py-3 rounded-xl font-bold"
+                  >
+                    📸 View Photo Gallery
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </button>
+                )}
+              </div>
+
+              {/* Preview Images Grid (if images available) */}
+              {prayogContent.images && prayogContent.images.trim() && (
+                <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                  {prayogContent.images.split(',').map(img => img.trim()).filter(img => img).slice(0, 4).map((img, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.1 * idx }}
+                      className="aspect-square rounded-xl overflow-hidden glass-card group cursor-pointer"
+                      onClick={() => {
+                        const imageUrls = prayogContent.images.split(',').map(img => img.trim()).filter(img => img);
+                        setSelectedEventGallery({
+                          title: prayogContent.title,
+                          images: imageUrls
+                        });
+                      }}
+                    >
+                      <img
+                        src={img}
+                        alt={`${prayogContent.title} preview ${idx + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">View Gallery</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
 
           {/* Sub-Events Grid */}
           <motion.div
@@ -1154,7 +1274,7 @@ const Events = () => {
 
                                     <div className="pt-2">
                                       <div className="space-y-2">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Upload ID Card / Document</label>
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-white/40 ml-1">Upload Document</label>
                                         <input
                                           type="file"
                                           accept="image/*,.pdf"
@@ -1168,13 +1288,13 @@ const Events = () => {
                                               const fileName = file.name.toLowerCase();
                                               const fileExtension = fileName.split('.').pop();
                                               const validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-                                              
+
                                               if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
                                                 alert('❌ Invalid file type!\n\nPlease upload only:\n• Image files: JPG, JPEG, PNG, WebP\n• Document files: PDF\n\nCurrent file: ' + file.name);
                                                 e.target.value = '';
                                                 return;
                                               }
-                                              
+
                                               // Validate file size (max 2MB)
                                               if (file.size > 2 * 1024 * 1024) {
                                                 const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
@@ -1182,14 +1302,14 @@ const Events = () => {
                                                 e.target.value = '';
                                                 return;
                                               }
-                                              
+
                                               // Validate minimum file size (prevent empty files)
                                               if (file.size < 1024) {
                                                 alert('❌ File too small!\n\nThe selected file appears to be empty or corrupted. Please choose a valid document.');
                                                 e.target.value = '';
                                                 return;
                                               }
-                                              
+
                                               // Success - store the file name
                                               updateMember(idx, 'idCardFile', file.name);
                                               console.log('✅ File uploaded successfully:', file.name, `(${(file.size / 1024).toFixed(1)}KB)`);
@@ -1202,15 +1322,11 @@ const Events = () => {
                                           className="w-full py-4 border-2 border-dashed border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/40 hover:border-vortex-blue/30 hover:text-vortex-blue transition-all flex flex-col items-center gap-1 group/upload"
                                         >
                                           <div className="flex items-center gap-2">
-                                            <Mail size={16} className="group-hover/upload:scale-110 transition-transform" /> 
-                                            {member.idCardFile ? 'CHANGE DOCUMENT' : 'UPLOAD ID CARD'}
+                                            <Mail size={16} className="group-hover/upload:scale-110 transition-transform" />
+                                            {member.idCardFile ? 'CHANGE DOCUMENT' : 'UPLOAD DOCUMENT'}
                                           </div>
                                           <span className="text-[8px] font-medium text-white/20">
-                                            {member.idCardFile ? `Selected: ${member.idCardFile}` : (
-                                              rsvpEvent.eligibility?.requiredDocs?.length > 0
-                                                ? `Required: ${rsvpEvent.eligibility.requiredDocs.join(', ')}`
-                                                : 'Formats: JPG, PNG, PDF (Max 2MB)'
-                                            )}
+                                            {member.idCardFile ? `Selected: ${member.idCardFile}` : 'Required: Registration Screenshot or College ID Proof (JPG, PNG, PDF - Max 2MB)'}
                                           </span>
                                         </button>
                                       </div>
@@ -1427,7 +1543,7 @@ const Events = () => {
                                   <ArrowRight className="h-4 w-4 ml-2" />
                                 </button>
                               )}
-                              
+
                               {/* Drive Gallery Button - Show if drive link available */}
                               {event.galleryDriveLink && (
                                 <button
@@ -1438,7 +1554,7 @@ const Events = () => {
                                   <ArrowRight className="h-4 w-4 ml-2" />
                                 </button>
                               )}
-                              
+
                               <button
                                 onClick={() => setFeedbackEvent(event)}
                                 className="glass-button text-purple-400 border border-purple-400/30 hover:bg-purple-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"

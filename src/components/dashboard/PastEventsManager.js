@@ -24,6 +24,9 @@ const PastEventsManager = () => {
     category: 'Technical',
     eventType: 'Inter-College',
     price: 0,
+    eventType: 'Inter-College',
+    price: 0,
+    priority: 0,
     capacity: 0,
     organizer: {
       name: '',
@@ -40,23 +43,30 @@ const PastEventsManager = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/events`);
       const data = await res.json();
-      
+
       // Filter for completed events or events in the past
       const now = new Date();
       const past = data.filter(event => {
         if (event.status === 'completed') return true;
-        
+
         const eventDate = new Date(event.date);
         const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
-        
+
         if (event.endTime) {
           const [h, m] = event.endTime.split(':');
           eventEnd.setHours(parseInt(h), parseInt(m), 0);
         }
-        
+
         return now > eventEnd;
-      }).sort((a, b) => new Date(b.date) - new Date(a.date));
-      
+        return now > eventEnd;
+      }).sort((a, b) => {
+        // Sort by Priority (descending) first, then Date (descending)
+        if ((b.priority || 0) !== (a.priority || 0)) {
+          return (b.priority || 0) - (a.priority || 0);
+        }
+        return new Date(b.date) - new Date(a.date);
+      });
+
       setPastEvents(past);
       setLoading(false);
     } catch (err) {
@@ -85,6 +95,7 @@ const PastEventsManager = () => {
       category: event.category || 'Technical',
       eventType: event.eventType || 'Inter-College',
       price: event.price || 0,
+      priority: event.priority || 0,
       capacity: event.capacity || 0,
       organizer: {
         name: event.organizer?.name || '',
@@ -103,11 +114,12 @@ const PastEventsManager = () => {
         startTime: editForm.startTime,
         endTime: editForm.endTime,
         galleryDriveLink: editForm.galleryDriveLink,
-        images: editForm.images,
+        images: typeof editForm.images === 'string' ? editForm.images.split(',').map(url => url.trim()).filter(url => url.length > 0) : [],
         status: editForm.status,
         category: editForm.category,
         eventType: editForm.eventType,
         price: parseFloat(editForm.price) || 0,
+        priority: parseInt(editForm.priority) || 0,
         capacity: parseInt(editForm.capacity) || 0,
         organizer: editForm.organizer
       };
@@ -158,7 +170,7 @@ const PastEventsManager = () => {
     setEditForm({
       title: '', description: '', date: '', location: '', startTime: '', endTime: '',
       galleryDriveLink: '', images: '', status: 'completed', category: 'Technical',
-      eventType: 'Inter-College', price: 0, capacity: 0, organizer: { name: '', email: '' }
+      eventType: 'Inter-College', price: 0, priority: 0, capacity: 0, organizer: { name: '', email: '' }
     });
   };
 
@@ -212,10 +224,10 @@ const PastEventsManager = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-white/60 mb-3">
                     <div className="flex items-center">
                       <Calendar className="w-4 h-4 mr-2 text-vortex-blue" />
-                      {new Date(event.date).toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
+                      {new Date(event.date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
                       })}
                     </div>
                     <div className="flex items-center">
@@ -229,13 +241,17 @@ const PastEventsManager = () => {
                   </div>
                   <p className="text-white/70 text-sm mb-3 line-clamp-2">{event.description}</p>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                      event.status === 'completed' 
-                        ? 'bg-green-500/20 text-green-400' 
-                        : 'bg-orange-500/20 text-orange-400'
-                    }`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${event.status === 'completed'
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'bg-orange-500/20 text-orange-400'
+                      }`}>
                       {event.status === 'completed' ? 'Completed' : 'Past Event'}
                     </span>
+                    {event.priority > 0 && (
+                      <span className="px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">
+                        Top Priority ({event.priority})
+                      </span>
+                    )}
                     <span className="px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400">
                       {event.eventType}
                     </span>
@@ -255,7 +271,7 @@ const PastEventsManager = () => {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="flex gap-2 ml-4">
                   {event.status !== 'completed' && (
                     <button
@@ -296,22 +312,20 @@ const PastEventsManager = () => {
                   <div className="flex bg-white/5 p-1 rounded-lg">
                     <button
                       onClick={() => setEditMode('info')}
-                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                        editMode === 'info' 
-                          ? 'bg-blue-500 text-white' 
-                          : 'text-white/70 hover:text-white'
-                      }`}
+                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${editMode === 'info'
+                        ? 'bg-blue-500 text-white'
+                        : 'text-white/70 hover:text-white'
+                        }`}
                     >
                       <Info className="w-4 h-4 inline mr-2" />
                       Event Information
                     </button>
                     <button
                       onClick={() => setEditMode('gallery')}
-                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                        editMode === 'gallery' 
-                          ? 'bg-vortex-blue text-black' 
-                          : 'text-white/70 hover:text-white'
-                      }`}
+                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${editMode === 'gallery'
+                        ? 'bg-vortex-blue text-black'
+                        : 'text-white/70 hover:text-white'
+                        }`}
                     >
                       <Image className="w-4 h-4 inline mr-2" />
                       Gallery & Media
@@ -458,6 +472,24 @@ const PastEventsManager = () => {
                         </div>
                       </div>
 
+                      <div>
+                        <label className="text-xs text-white/60 uppercase tracking-wider block mb-2">
+                          Display Priority (Higher = Show First)
+                        </label>
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="number"
+                            min="0"
+                            className="w-full bg-white/10 border border-white/20 rounded-lg p-3 text-white focus:border-blue-400 outline-none"
+                            value={editForm.priority}
+                            onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })}
+                          />
+                          <div className="text-xs text-white/40">
+                            0 = Default. Set to 10, 20 etc. to highlight specific events.
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Organizer Information */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -468,9 +500,9 @@ const PastEventsManager = () => {
                             type="text"
                             className="w-full bg-white/10 border border-white/20 rounded-lg p-3 text-white focus:border-blue-400 outline-none"
                             value={editForm.organizer.name}
-                            onChange={(e) => setEditForm({ 
-                              ...editForm, 
-                              organizer: { ...editForm.organizer, name: e.target.value } 
+                            onChange={(e) => setEditForm({
+                              ...editForm,
+                              organizer: { ...editForm.organizer, name: e.target.value }
                             })}
                           />
                         </div>
@@ -482,9 +514,9 @@ const PastEventsManager = () => {
                             type="email"
                             className="w-full bg-white/10 border border-white/20 rounded-lg p-3 text-white focus:border-blue-400 outline-none"
                             value={editForm.organizer.email}
-                            onChange={(e) => setEditForm({ 
-                              ...editForm, 
-                              organizer: { ...editForm.organizer, email: e.target.value } 
+                            onChange={(e) => setEditForm({
+                              ...editForm,
+                              organizer: { ...editForm.organizer, email: e.target.value }
                             })}
                           />
                         </div>
@@ -521,7 +553,7 @@ const PastEventsManager = () => {
                           onChange={(e) => setEditForm({ ...editForm, galleryDriveLink: e.target.value })}
                         />
                       </div>
-                      
+
                       <div>
                         <label className="text-xs text-white/60 uppercase tracking-wider block mb-2">
                           Image URLs (comma separated)
@@ -564,9 +596,9 @@ const PastEventsManager = () => {
                         <span className="text-xs text-white/60 uppercase tracking-wider">Drive Gallery</span>
                       </div>
                       {event.galleryDriveLink ? (
-                        <a 
-                          href={event.galleryDriveLink} 
-                          target="_blank" 
+                        <a
+                          href={event.galleryDriveLink}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-green-400 hover:text-green-300 transition-colors truncate block"
                         >
@@ -576,7 +608,7 @@ const PastEventsManager = () => {
                         <span className="text-sm text-white/40">Not configured</span>
                       )}
                     </div>
-                    
+
                     <div className="p-3 bg-white/5 rounded-lg">
                       <div className="flex items-center gap-2 mb-1">
                         <Image className="w-4 h-4 text-blue-400" />

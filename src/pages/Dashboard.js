@@ -16,6 +16,7 @@ import AnalyticsDashboard from '../components/dashboard/AnalyticsDashboard';
 import RegistrationViewer from '../components/dashboard/RegistrationViewer';
 import PaymentVerificationPanel from '../components/dashboard/PaymentVerificationPanel';
 import PastEventsManager from '../components/dashboard/PastEventsManager';
+import ContentManager from '../components/dashboard/ContentManager';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -486,17 +487,20 @@ const Dashboard = () => {
                         <p className="text-white/60">Manage Events, Team, Club, and Content</p>
                     </div>
                     <div className="flex bg-white/5 p-1 rounded-xl overflow-x-auto scrollbar-hide max-w-full">
-                        {['events', 'past-events', 'payments', 'analytics', 'team', 'sponsors', 'settings'].map(tab => (
+                        {['events', 'past-events', 'content', 'payments', 'analytics', 'team', 'sponsors', 'settings'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
                                 className={`px-4 sm:px-6 py-2 rounded-lg font-medium capitalize transition-all whitespace-nowrap ${activeTab === tab ? 'bg-vortex-blue text-black shadow-lg' : 'text-white/70 hover:text-white'}`}
                             >
-                                {tab === 'past-events' ? 'Past Events' : tab}
+                                {tab === 'past-events' ? 'Past Events' : tab === 'content' ? 'PRAYOG Content' : tab}
                             </button>
                         ))}
                     </div>
                 </div>
+
+                {/* --- CONTENT TAB --- */}
+                {activeTab === 'content' && <ContentManager />}
 
                 {/* --- PAST EVENTS TAB --- */}
                 {activeTab === 'past-events' && <PastEventsManager />}
