@@ -12,7 +12,7 @@ router.get('/lightweight', async (req, res) => {
         res.set('Cache-Control', 'public, max-age=600'); // Cache for 10 minutes
         
         const events = await Event.aggregate([
-            { $sort: { date: 1 } },
+            { $sort: { priority: -1, date: 1 } }, // Sort by priority (descending) then date (ascending)
             {
                 $project: {
                     title: 1,
@@ -61,7 +61,7 @@ router.get('/', async (req, res) => {
         
         // Exclude registrations, waitlist and feedback from list view to reduce payload size
         const events = await Event.aggregate([
-            { $sort: { date: 1 } },
+            { $sort: { priority: -1, date: 1 } }, // Sort by priority (descending) then date (ascending)
             {
                 $project: {
                     title: 1,

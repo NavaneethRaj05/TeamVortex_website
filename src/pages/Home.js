@@ -9,6 +9,7 @@ import API_BASE_URL from '../apiConfig';
 const Home = () => {
 
   const [events, setEvents] = useState([]);
+  const [pastEvents, setPastEvents] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
   const [prayogEvent, setPrayogEvent] = useState(null);
 
@@ -25,14 +26,47 @@ const Home = () => {
       const prayog = data.find(e => (e.title || '').trim().toLowerCase() === 'prayog 1.0');
       setPrayogEvent(prayog || null);
 
+      const now = new Date();
+
+      // Filter upcoming events
       const upcoming = data.filter(e => {
         if (e.status === 'draft' || e.status === 'completed') return false;
         const eventDate = new Date(e.date);
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        return eventDate >= now;
+        const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
+        
+        if (e.endTime) {
+          const [h, m] = e.endTime.split(':');
+          eventEnd.setHours(parseInt(h), parseInt(m), 0);
+        }
+        
+        return now <= eventEnd;
       });
       setEvents(upcoming);
+
+      // Filter past events (automatic detection) - excluding PRAYOG as it's shown separately
+      const past = data.filter(e => {
+        if (e.status === 'draft') return false;
+        if ((e.title || '').trim().toLowerCase() === 'prayog 1.0') return false; // Exclude PRAYOG
+        if (e.status === 'completed') return true;
+
+        const eventDate = new Date(e.date);
+        const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
+
+        if (e.endTime) {
+          const [h, m] = e.endTime.split(':');
+          eventEnd.setHours(parseInt(h), parseInt(m), 0);
+        }
+
+        return now > eventEnd;
+      }).sort((a, b) => {
+        // Sort by Priority (descending) first, then Date (descending)
+        if ((b.priority || 0) !== (a.priority || 0)) {
+          return (b.priority || 0) - (a.priority || 0);
+        }
+        return new Date(b.date) - new Date(a.date);
+      }).slice(0, 4); // Limit to 4 most recent/priority past events for home page
+
+      setPastEvents(past);
 
       // Check session storage to show popup only once per session
       const popupShown = sessionStorage.getItem('upcomingEventsPopupShown');
@@ -47,14 +81,45 @@ const Home = () => {
         const data = await res.json();
         const prayog = data.find(e => (e.title || '').trim().toLowerCase() === 'prayog 1.0');
         setPrayogEvent(prayog || null);
+        
+        const now = new Date();
+        
         const upcoming = data.filter(e => {
           if (e.status === 'draft' || e.status === 'completed') return false;
           const eventDate = new Date(e.date);
-          const now = new Date();
-          now.setHours(0, 0, 0, 0);
-          return eventDate >= now;
+          const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
+          
+          if (e.endTime) {
+            const [h, m] = e.endTime.split(':');
+            eventEnd.setHours(parseInt(h), parseInt(m), 0);
+          }
+          
+          return now <= eventEnd;
         });
         setEvents(upcoming);
+
+        const past = data.filter(e => {
+          if (e.status === 'draft') return false;
+          if ((e.title || '').trim().toLowerCase() === 'prayog 1.0') return false;
+          if (e.status === 'completed') return true;
+
+          const eventDate = new Date(e.date);
+          const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
+
+          if (e.endTime) {
+            const [h, m] = e.endTime.split(':');
+            eventEnd.setHours(parseInt(h), parseInt(m), 0);
+          }
+
+          return now > eventEnd;
+        }).sort((a, b) => {
+          if ((b.priority || 0) !== (a.priority || 0)) {
+            return (b.priority || 0) - (a.priority || 0);
+          }
+          return new Date(b.date) - new Date(a.date);
+        }).slice(0, 4);
+
+        setPastEvents(past);
       } catch (fallbackErr) {
         console.error('Error fetching events (fallback):', fallbackErr);
       }
@@ -232,56 +297,249 @@ const Home = () => {
 
       <section className="py-24 px-4 relative z-10">
         <div className="max-w-6xl mx-auto">
-          <div className="glass-card overflow-hidden bg-white/5 border border-white/10">
-            <div className="p-10">
-              <div className="text-center mb-8">
-                <h2 className="text-4xl md:text-6xl font-orbitron font-bold mb-4 tracking-wider">
-                  <span className="gradient-text">{prayogDisplay.title}</span>
-                </h2>
-                <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-white/60">
-                  <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">
-                    {prayogDisplay.date}
-                  </span>
-                  <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">
-                    {prayogDisplay.venue}
-                  </span>
-                </div>
-              </div>
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h2 className="text-4xl md:text-6xl font-orbitron font-bold mb-4 tracking-wider">
+              <span className="gradient-text">EVENTS GALLERY</span>
+            </h2>
+            <p className="text-white/60 text-lg max-w-2xl mx-auto">
+              Explore our memories and past events. A showcase of our journey, potential, and the milestones we've achieved together.
+            </p>
+          </div>
 
-              <div className="text-white/80 max-w-4xl mx-auto leading-relaxed space-y-4 text-justify">
-                <p>{prayogDisplay.description1}</p>
-                <p>{prayogDisplay.description2}</p>
-              </div>
-
-              {prayogSubEvents.length > 0 && (
-                <div className="mt-10">
-                  <h3 className="text-xl font-bold text-white/80 mb-4 text-center">Sub-Events</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {prayogSubEvents.map((subEvent, index) => {
-                      const IconComponent = getIconComponent(subEvent.icon);
-                      return (
-                        <div
-                          key={`home-prayog-subevent-${subEvent.title || index}`}
-                          className="p-4 bg-white/5 rounded-xl border border-white/10 text-left"
-                        >
-                          <div className={`w-10 h-10 bg-gradient-to-br ${subEvent.color || 'from-blue-500 to-purple-500'} rounded-xl flex items-center justify-center mb-3`}>
-                            <IconComponent className="h-5 w-5 text-white" />
-                          </div>
-                          <div className="text-sm font-semibold text-white">{subEvent.title}</div>
-                          {subEvent.duration && (
-                            <div className="text-xs text-white/50 mt-1">{subEvent.duration}</div>
-                          )}
-                          {subEvent.participants && (
-                            <div className="text-[11px] text-white/40 mt-1">{subEvent.participants}</div>
-                          )}
-                        </div>
-                      );
-                    })}
+          {/* PRAYOG 1.0 - Featured Event */}
+          {prayogEvent && (
+            <div className="glass-card overflow-hidden bg-white/5 border border-white/10 mb-12">
+              <div className="p-10">
+                <div className="text-center mb-8">
+                  <h3 className="text-3xl md:text-4xl font-orbitron font-bold mb-4 tracking-wider">
+                    <span className="gradient-text">{prayogDisplay.title}</span>
+                  </h3>
+                  <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-white/60">
+                    <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">
+                      {prayogDisplay.date}
+                    </span>
+                    <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">
+                      {prayogDisplay.venue}
+                    </span>
+                    {prayogEvent.priority > 0 && (
+                      <span className="px-4 py-2 rounded-full bg-yellow-500/20 text-yellow-400 text-sm font-bold">
+                        Priority {prayogEvent.priority}
+                      </span>
+                    )}
                   </div>
                 </div>
-              )}
+
+                <div className="text-white/80 max-w-4xl mx-auto leading-relaxed space-y-4 text-justify">
+                  <p>{prayogDisplay.description1}</p>
+                  <p>{prayogDisplay.description2}</p>
+                </div>
+
+                {/* Gallery Links for PRAYOG */}
+                {(prayogDisplay.images?.length > 0 || prayogDisplay.galleryDriveLink) && (
+                  <div className="mt-8 flex flex-wrap gap-4 justify-center">
+                    {prayogDisplay.images?.length > 0 && (
+                      <button className="glass-button text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2">
+                        📸 View Photos ({prayogDisplay.images.length})
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </button>
+                    )}
+                    {prayogDisplay.galleryDriveLink && (
+                      <button
+                        onClick={() => window.open(prayogDisplay.galleryDriveLink, '_blank')}
+                        className="glass-button text-green-400 border border-green-400/30 hover:bg-green-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"
+                      >
+                        📁 Drive Gallery
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {prayogSubEvents.length > 0 && (
+                  <div className="mt-10">
+                    <h4 className="text-xl font-bold text-white/80 mb-4 text-center">Sub-Events</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {prayogSubEvents.map((subEvent, index) => {
+                        const IconComponent = getIconComponent(subEvent.icon);
+                        return (
+                          <div
+                            key={`home-prayog-subevent-${subEvent.title || index}`}
+                            className="p-4 bg-white/5 rounded-xl border border-white/10 text-left"
+                          >
+                            <div className={`w-10 h-10 bg-gradient-to-br ${subEvent.color || 'from-blue-500 to-purple-500'} rounded-xl flex items-center justify-center mb-3`}>
+                              <IconComponent className="h-5 w-5 text-white" />
+                            </div>
+                            <div className="text-sm font-semibold text-white">{subEvent.title}</div>
+                            {subEvent.duration && (
+                              <div className="text-xs text-white/50 mt-1">{subEvent.duration}</div>
+                            )}
+                            {subEvent.participants && (
+                              <div className="text-[11px] text-white/40 mt-1">{subEvent.participants}</div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Other Past Events - Automatically displayed when date finishes */}
+          {pastEvents.length > 0 && (
+            <div className="space-y-8">
+              <div className="text-center">
+                <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">Other Past Events</h3>
+                <p className="text-white/60">Automatically displayed when event dates finish</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {pastEvents.map((event, index) => {
+                  const gradientConfigs = [
+                    'from-purple-500 to-pink-500',
+                    'from-blue-500 to-cyan-500', 
+                    'from-green-500 to-emerald-500',
+                    'from-orange-500 to-red-500'
+                  ];
+                  
+                  const gradientClass = gradientConfigs[index % gradientConfigs.length];
+                  
+                  return (
+                    <div key={event._id} className="glass-card overflow-hidden bg-white/5 border border-white/10">
+                      <div className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h4 className="text-xl font-bold text-white mb-2">{event.title}</h4>
+                            <div className="flex items-center gap-4 text-sm text-white/60">
+                              <div className="flex items-center">
+                                <Calendar className="w-4 h-4 mr-2 text-vortex-blue" />
+                                {new Date(event.date).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                              </div>
+                              {event.location && (
+                                <div className="flex items-center">
+                                  <Globe className="w-4 h-4 mr-2 text-green-400" />
+                                  {event.location}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {event.priority > 0 && (
+                            <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-bold rounded-full">
+                              Priority {event.priority}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Event Image or Gradient */}
+                        <div className="h-32 mb-4 rounded-lg overflow-hidden">
+                          {event.images && event.images.length > 0 ? (
+                            <img 
+                              src={event.images[0]} 
+                              alt={event.title} 
+                              className="w-full h-full object-cover" 
+                            />
+                          ) : (
+                            <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center`}>
+                              <Calendar className="h-8 w-8 text-white/30" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Event Details */}
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-1 rounded-full text-xs bg-vortex-blue/20 text-vortex-blue">
+                              {event.eventType}
+                            </span>
+                            <span className="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">
+                              {event.category}
+                            </span>
+                          </div>
+                          {event.registrationCount > 0 && (
+                            <div className="flex items-center text-white/60 text-xs">
+                              <Users className="w-3 h-3 mr-1" />
+                              {event.registrationCount} participants
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Sub-Events Preview */}
+                        {event.subEvents && event.subEvents.length > 0 && (
+                          <div className="mb-4">
+                            <div className="text-xs text-white/40 mb-2">Sub-Events ({event.subEvents.length})</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              {event.subEvents.slice(0, 4).map((subEvent, idx) => {
+                                const IconComponent = getIconComponent(subEvent.icon);
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-2 p-2 bg-white/5 rounded text-xs text-white/70"
+                                  >
+                                    <div className={`w-6 h-6 bg-gradient-to-br ${subEvent.color || 'from-blue-500 to-purple-500'} rounded flex items-center justify-center`}>
+                                      <IconComponent className="w-3 h-3 text-white" />
+                                    </div>
+                                    <span className="truncate">{subEvent.title}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {event.subEvents.length > 4 && (
+                              <div className="text-xs text-white/50 mt-2 text-center">
+                                +{event.subEvents.length - 4} more sub-events
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Gallery Links */}
+                        <div className="flex gap-2">
+                          {event.images && event.images.length > 0 && (
+                            <button className="flex-1 px-3 py-2 bg-vortex-blue/20 text-vortex-blue border border-vortex-blue/30 rounded-lg text-xs font-medium hover:bg-vortex-blue/30 transition-colors">
+                              📸 Photos ({event.images.length})
+                            </button>
+                          )}
+                          {event.galleryDriveLink && (
+                            <button 
+                              onClick={() => window.open(event.galleryDriveLink, '_blank')}
+                              className="flex-1 px-3 py-2 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/30 transition-colors"
+                            >
+                              📁 Drive
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* View All Past Events Link */}
+              <div className="text-center mt-8">
+                <Link 
+                  to="/events" 
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all"
+                >
+                  View All Past Events
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* No Past Events Message */}
+          {!prayogEvent && pastEvents.length === 0 && (
+            <div className="glass-card p-12 text-center">
+              <Calendar className="w-16 h-16 text-white/20 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-white mb-2">No Past Events Yet</h3>
+              <p className="text-white/60">Events will automatically appear here once their date/time has passed.</p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -416,6 +674,164 @@ const Home = () => {
           </motion.div>
         </div>
       </section>
+
+      {/* Past Events Gallery */}
+      {pastEvents.length > 0 && (
+        <section className="py-20 px-4 bg-black/40">
+          <div className="max-w-7xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mb-16 text-center"
+            >
+              <h2 className="text-4xl md:text-5xl font-bold font-display mb-4">Our <span className="gradient-text">Event Legacy</span></h2>
+              <p className="text-white/60 max-w-2xl mx-auto">Celebrating our journey through memorable events and achievements.</p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {pastEvents.map((event, index) => {
+                const gradientConfigs = [
+                  'from-purple-500 to-pink-500',
+                  'from-blue-500 to-cyan-500', 
+                  'from-green-500 to-emerald-500',
+                  'from-orange-500 to-red-500',
+                  'from-indigo-500 to-purple-500',
+                  'from-teal-500 to-blue-500'
+                ];
+                
+                const gradientClass = gradientConfigs[index % gradientConfigs.length];
+                
+                return (
+                  <motion.div
+                    key={event._id}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                    className="glass-card overflow-hidden group hover:scale-105 transition-transform duration-300"
+                  >
+                    <div className="h-48 overflow-hidden relative">
+                      {event.images && event.images.length > 0 ? (
+                        <img 
+                          src={event.images[0]} 
+                          alt={event.title} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                        />
+                      ) : (
+                        <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center`}>
+                          <Calendar className="h-16 w-16 text-white/20" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/40" />
+                      
+                      {/* Priority Badge */}
+                      {event.priority > 0 && (
+                        <div className="absolute top-4 right-4">
+                          <div className="px-3 py-1 bg-yellow-500/90 text-black text-xs font-bold rounded-full">
+                            Priority {event.priority}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Event Title Overlay */}
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <h3 className="text-xl font-bold text-white mb-2">{event.title}</h3>
+                        <div className="flex items-center text-white/80 text-sm">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          {new Date(event.date).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-1 rounded-full text-xs bg-vortex-blue/20 text-vortex-blue">
+                            {event.eventType}
+                          </span>
+                          <span className="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">
+                            {event.category}
+                          </span>
+                        </div>
+                        {event.registrationCount > 0 && (
+                          <div className="flex items-center text-white/60 text-xs">
+                            <Users className="w-3 h-3 mr-1" />
+                            {event.registrationCount}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Sub-Events Preview */}
+                      {event.subEvents && event.subEvents.length > 0 && (
+                        <div className="mb-4">
+                          <div className="text-xs text-white/40 mb-2">Sub-Events ({event.subEvents.length})</div>
+                          <div className="flex flex-wrap gap-1">
+                            {event.subEvents.slice(0, 3).map((subEvent, idx) => {
+                              const IconComponent = getIconComponent(subEvent.icon);
+                              return (
+                                <div
+                                  key={idx}
+                                  className="flex items-center gap-1 px-2 py-1 bg-white/5 rounded text-xs text-white/70"
+                                >
+                                  <IconComponent className="w-3 h-3" />
+                                  {subEvent.title}
+                                </div>
+                              );
+                            })}
+                            {event.subEvents.length > 3 && (
+                              <div className="px-2 py-1 bg-white/5 rounded text-xs text-white/50">
+                                +{event.subEvents.length - 3} more
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Gallery Links */}
+                      <div className="flex gap-2">
+                        {event.images && event.images.length > 0 && (
+                          <button className="flex-1 px-3 py-2 bg-vortex-blue/20 text-vortex-blue border border-vortex-blue/30 rounded-lg text-xs font-medium hover:bg-vortex-blue/30 transition-colors">
+                            📸 Photos ({event.images.length})
+                          </button>
+                        )}
+                        {event.galleryDriveLink && (
+                          <button 
+                            onClick={() => window.open(event.galleryDriveLink, '_blank')}
+                            className="flex-1 px-3 py-2 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/30 transition-colors"
+                          >
+                            📁 Drive
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* View All Past Events Link */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="text-center mt-12"
+            >
+              <Link 
+                to="/events" 
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all"
+              >
+                View All Past Events
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       <AnimatePresence>
         {showPopup && (

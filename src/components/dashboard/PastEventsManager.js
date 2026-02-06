@@ -35,6 +35,7 @@ const PastEventsManager = () => {
     }
   });
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [selectedEvents, setSelectedEvents] = useState([]);
 
   useEffect(() => {
     fetchPastEvents();
@@ -51,26 +52,34 @@ const PastEventsManager = () => {
       const prayogNeedsSubEvents = prayog && (!prayog.subEvents || prayog.subEvents.length === 0);
       setPrayogMissing(!prayog || prayogNeedsSubEvents);
 
-      // Filter for completed events or events in the past
+      // Automatically filter for past events based on date
+      // Events are considered "past" if:
+      // 1. Status is explicitly set to 'completed', OR
+      // 2. Event date + end time has passed (automatic detection)
       const now = new Date();
       const past = data.filter(event => {
+        // Skip draft events
         if (event.status === 'draft') return false;
+        
+        // Include explicitly completed events
         if (event.status === 'completed') return true;
 
+        // Auto-detect past events based on date/time
         const eventDate = new Date(event.date);
         const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
 
+        // If event has end time, use that for more precise detection
         if (event.endTime) {
           const [h, m] = event.endTime.split(':');
           eventEnd.setHours(parseInt(h), parseInt(m), 0);
         }
 
+        // Event is past if current time is after event end time
         return now > eventEnd;
       }).sort((a, b) => {
         // Sort by Priority (descending) first, then Date (descending)
         if ((b.priority || 0) !== (a.priority || 0)) {
           return (b.priority || 0) - (a.priority || 0);
-
         }
         return new Date(b.date) - new Date(a.date);
       });
@@ -80,6 +89,64 @@ const PastEventsManager = () => {
     } catch (err) {
       console.error('Error fetching past events:', err);
       setLoading(false);
+    }
+  };
+
+  const toggleEventSelection = (eventId) => {
+    setSelectedEvents(prev => 
+      prev.includes(eventId) 
+        ? prev.filter(id => id !== eventId)
+        : [...prev, eventId]
+    );
+  };
+
+  const selectAllEvents = () => {
+    setSelectedEvents(pastEvents.map(e => e._id));
+  };
+
+  const clearSelection = () => {
+    setSelectedEvents([]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedEvents.length === 0) return;
+    
+    if (!window.confirm(`Are you sure you want to delete ${selectedEvents.length} events? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await Promise.all(selectedEvents.map(eventId => 
+        fetch(`${API_BASE_URL}/api/events/${eventId}`, { method: 'DELETE' })
+      ));
+      
+      await fetchPastEvents();
+      setSelectedEvents([]);
+      alert(`${selectedEvents.length} events deleted successfully!`);
+    } catch (err) {
+      console.error('Bulk delete error:', err);
+      alert('Error deleting events');
+    }
+  };
+
+  const handleBulkPriorityUpdate = async (newPriority) => {
+    if (selectedEvents.length === 0) return;
+
+    try {
+      await Promise.all(selectedEvents.map(eventId => 
+        fetch(`${API_BASE_URL}/api/events/${eventId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ priority: parseInt(newPriority) || 0 })
+        })
+      ));
+      
+      await fetchPastEvents();
+      setSelectedEvents([]);
+      alert(`Priority updated for ${selectedEvents.length} events!`);
+    } catch (err) {
+      console.error('Bulk priority update error:', err);
+      alert('Error updating priorities');
     }
   };
 
@@ -323,9 +390,48 @@ const PastEventsManager = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Past Events Management</h2>
         <div className="text-sm text-white/60">
-          {pastEvents.length} past events • Full CRUD Operations
+          {pastEvents.length} past events • Auto-detected by date • Full CRUD Operations
         </div>
       </div>
+
+      {/* Bulk Actions */}
+      {selectedEvents.length > 0 && (
+        <div className="glass-card p-4 border border-blue-500/30 bg-blue-500/5">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <span className="text-blue-400 font-bold">
+                {selectedEvents.length} event{selectedEvents.length > 1 ? 's' : ''} selected
+              </span>
+              <button
+                onClick={clearSelection}
+                className="text-white/60 hover:text-white text-sm underline"
+              >
+                Clear selection
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                onChange={(e) => e.target.value && handleBulkPriorityUpdate(e.target.value)}
+                className="bg-white/10 border border-white/20 rounded-lg p-2 text-white text-sm"
+                defaultValue=""
+              >
+                <option value="" disabled>Set Priority</option>
+                <option value="0">Priority 0 (Default)</option>
+                <option value="5">Priority 5 (Medium)</option>
+                <option value="10">Priority 10 (High)</option>
+                <option value="15">Priority 15 (Very High)</option>
+              </select>
+              <button
+                onClick={handleBulkDelete}
+                className="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Selected
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {prayogMissing && (
         <div className="glass-card p-6 border border-yellow-500/30 bg-yellow-500/5">
