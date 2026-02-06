@@ -27,3 +27,10 @@ Thumbs.db
 Project_Features_Detailed.pdf
 Project_Features.md
 gen_pdf.js
+
+# Replit
+.replit.nix
+.cache
+.config
+.upm
+replit.nix

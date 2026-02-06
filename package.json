@@ -39,6 +39,7 @@
     "watch": "node change-server.js",
     "start:server": "cd server && node server.js",
     "production": "npm run build && cross-env NODE_ENV=production npm run start:server",
+    "replit": "npm run build && cd server && node server.js",
     "install-all": "npm install && cd server && npm install",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

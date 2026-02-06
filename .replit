@@ -1,0 +1,12 @@
+run = "npm run replit"
+entrypoint = "server/server.js"
+
+[nix]
+channel = "stable-22_11"
+
+[deployment]
+run = ["sh", "-c", "npm run replit"]
+deploymentTarget = "cloudrun"
+
+[env]
+NODE_ENV = "production"
