@@ -116,16 +116,30 @@ const PastEventsManager = () => {
     }
 
     try {
-      await Promise.all(selectedEvents.map(eventId => 
-        fetch(`${API_BASE_URL}/api/events/${eventId}`, { method: 'DELETE' })
-      ));
+      const results = await Promise.allSettled(
+        selectedEvents.map(eventId => 
+          fetch(`${API_BASE_URL}/api/events/${eventId}`, { 
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+          })
+        )
+      );
+      
+      const successful = results.filter(r => r.status === 'fulfilled' && r.value.ok).length;
+      const failed = results.length - successful;
       
       await fetchPastEvents();
       setSelectedEvents([]);
-      alert(`${selectedEvents.length} events deleted successfully!`);
+      
+      if (failed === 0) {
+        alert(`${successful} events deleted successfully!`);
+      } else {
+        alert(`${successful} events deleted, ${failed} failed. Please check console for details.`);
+        console.error('Failed deletions:', results.filter(r => r.status === 'rejected' || !r.value.ok));
+      }
     } catch (err) {
       console.error('Bulk delete error:', err);
-      alert('Error deleting events');
+      alert(`Error deleting events: ${err.message || 'Network error'}`);
     }
   };
 
@@ -308,19 +322,24 @@ const PastEventsManager = () => {
   const handleDelete = async (eventId) => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
       if (res.ok) {
-        fetchPastEvents();
+        await fetchPastEvents();
         setDeleteConfirm(null);
         alert('Event deleted successfully!');
       } else {
-        alert('Failed to delete event');
+        const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('Delete failed:', errorData);
+        alert(`Failed to delete event: ${errorData.message || 'Server error'}`);
       }
     } catch (err) {
       console.error('Error deleting event:', err);
-      alert('Error deleting event');
+      alert(`Error deleting event: ${err.message || 'Network error. Please check if server is running.'}`);
     }
   };
 

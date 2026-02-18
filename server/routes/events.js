@@ -289,13 +289,22 @@ router.post('/:id/feedback', async (req, res) => {
 // @desc    Delete an event
 router.delete('/:id', async (req, res) => {
     try {
+        console.log(`Attempting to delete event with ID: ${req.params.id}`);
+        
         const event = await Event.findById(req.params.id);
-        if (!event) return res.status(404).json({ message: 'Event not found' });
+        if (!event) {
+            console.log(`Event not found: ${req.params.id}`);
+            return res.status(404).json({ message: 'Event not found' });
+        }
 
+        console.log(`Deleting event: ${event.title}`);
         await event.deleteOne();
-        res.json({ message: 'Event removed' });
+        
+        console.log(`Event deleted successfully: ${req.params.id}`);
+        res.json({ message: 'Event removed', eventId: req.params.id });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error('Error deleting event:', err);
+        res.status(500).json({ message: err.message || 'Failed to delete event' });
     }
 });
 
