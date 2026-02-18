@@ -36,14 +36,11 @@ const Contests = () => {
 
   const fetchEvents = async () => {
     try {
-      console.log('🔄 Fetching events from API...');
       const res = await fetch(`${API_BASE_URL}/api/events`);
       const data = await res.json();
-      console.log('📊 Raw API response:', data);
 
       // Filter upcoming events and sort by date
       const now = new Date();
-      console.log('🕐 Current date for filtering:', now);
 
       const upcoming = data.filter(e => {
         if (e.status === 'draft' || e.status === 'completed') return false;
@@ -57,15 +54,13 @@ const Contests = () => {
         }
 
         const isUpcoming = now <= eventEnd;
-        console.log(`📅 Event: ${e.title}, Date: ${eventDate}, Is Upcoming: ${isUpcoming}`);
         return isUpcoming;
       }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-      console.log('🔮 Filtered upcoming events:', upcoming);
       setEvents(upcoming);
       setLoading(false);
     } catch (err) {
-      console.error('❌ Error fetching events:', err);
+      console.error('Error fetching events:', err);
       setLoading(false);
     }
   };

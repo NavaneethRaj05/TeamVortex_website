@@ -62,7 +62,6 @@ const SignIn = () => {
       }
 
       // Success
-      console.log('Login Success:', data);
       localStorage.setItem('user', JSON.stringify(data.user));
 
       // Handle Remember Me
