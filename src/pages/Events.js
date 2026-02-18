@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X, AlertCircle, Mail, Plus, CreditCard } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
 import PaymentFlow from '../components/PaymentFlow';
+import MultiEventRegistration from '../components/MultiEventRegistration';
 
 const Events = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -101,6 +102,7 @@ const Events = () => {
   const [feedbackEvent, setFeedbackEvent] = useState(null);
   const [feedbackForm, setFeedbackForm] = useState({ studentId: '', name: '', rating: 5, comment: '' });
   const [emailValidation, setEmailValidation] = useState({});
+  const [showMultiEventReg, setShowMultiEventReg] = useState(false);
 
   useEffect(() => {
     if (!rsvpEvent) {
@@ -309,10 +311,10 @@ const Events = () => {
 
   const now = new Date();
 
-  const displayableEvents = events.filter(e => e.status !== 'draft');
+  const displayableEvents = events.filter(e => e && e.status !== 'draft');
 
   const prayogEvent = useMemo(() => {
-    return displayableEvents.find(e => (e.title || '').trim().toLowerCase() === 'prayog 1.0');
+    return displayableEvents.find(e => e && e.title && e.title.trim().toLowerCase() === 'prayog 1.0');
   }, [displayableEvents]);
 
   const prayogDisplay = useMemo(() => {
@@ -346,31 +348,61 @@ const Events = () => {
   }, [prayogEvent, prayogSubEventsFallback]);
 
   const upcomingEvents = displayableEvents.filter(e => {
-    if (e.status === 'completed') return false;
+    if (!e || e.status === 'completed') return false;
 
-    const eventDate = new Date(e.date);
-    const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
+    try {
+      const eventDate = new Date(e.date);
+      
+      // Check if date is valid
+      if (isNaN(eventDate.getTime())) {
+        console.warn('Invalid date for event:', e.title, e.date);
+        return false;
+      }
+      
+      const eventEnd = new Date(eventDate);
+      eventEnd.setHours(23, 59, 59, 999); // Default to end of day
 
-    if (e.endTime) {
-      const [h, m] = e.endTime.split(':');
-      eventEnd.setHours(parseInt(h), parseInt(m), 0);
+      if (e.endTime) {
+        const [h, m] = e.endTime.split(':').map(num => parseInt(num, 10));
+        if (!isNaN(h) && !isNaN(m)) {
+          eventEnd.setHours(h, m, 0, 0);
+        }
+      }
+
+      return now <= eventEnd;
+    } catch (err) {
+      console.error('Error processing event date:', e.title, err);
+      return false;
     }
-
-    return now <= eventEnd;
   }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const pastEvents = displayableEvents.filter(e => {
-    if (e.status === 'completed') return true;
+    if (!e || e.status === 'completed') return true;
 
-    const eventDate = new Date(e.date);
-    const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
+    try {
+      const eventDate = new Date(e.date);
+      
+      // Check if date is valid
+      if (isNaN(eventDate.getTime())) {
+        console.warn('Invalid date for event:', e.title, e.date);
+        return false;
+      }
+      
+      const eventEnd = new Date(eventDate);
+      eventEnd.setHours(23, 59, 59, 999); // Default to end of day
 
-    if (e.endTime) {
-      const [h, m] = e.endTime.split(':');
-      eventEnd.setHours(parseInt(h), parseInt(m), 0);
+      if (e.endTime) {
+        const [h, m] = e.endTime.split(':').map(num => parseInt(num, 10));
+        if (!isNaN(h) && !isNaN(m)) {
+          eventEnd.setHours(h, m, 0, 0);
+        }
+      }
+
+      return now > eventEnd;
+    } catch (err) {
+      console.error('Error processing event date:', e.title, err);
+      return false;
     }
-
-    return now > eventEnd;
   }).sort((a, b) => {
     if ((b.priority || 0) !== (a.priority || 0)) {
       return (b.priority || 0) - (a.priority || 0);
@@ -777,6 +809,12 @@ const Events = () => {
                   <h3 className="text-xl font-bold text-white/80 mb-4 text-center">Sub-Events</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {prayogSubEvents.map((subEvent, index) => {
+                      // Safety check for subEvent
+                      if (!subEvent || !subEvent.title) {
+                        console.warn('Invalid prayog subEvent data in Events.js:', subEvent);
+                        return null;
+                      }
+                      
                       const IconComponent = getIconComponent(subEvent.icon);
 
                       return (
@@ -821,6 +859,12 @@ const Events = () => {
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
             >
               {upcomingEvents.map((event, eventIndex) => {
+                // Safety check
+                if (!event || !event._id || !event.title) {
+                  console.warn('Invalid event data:', event);
+                  return null;
+                }
+                
                 // Define different gradient backgrounds for each card
                 const gradientConfigs = [
                   'from-green-400 to-cyan-400',
@@ -877,6 +921,12 @@ const Events = () => {
                         <h4 className="text-sm font-bold text-white/80 mb-3">Sub-Events</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                           {event.subEvents.map((subEvent, index) => {
+                            // Safety check for subEvent
+                            if (!subEvent || !subEvent.title) {
+                              console.warn('Invalid subEvent data in Events.js upcoming events:', subEvent);
+                              return null;
+                            }
+                            
                             const IconComponent = getIconComponent(subEvent.icon);
                             
                             return (
@@ -897,12 +947,29 @@ const Events = () => {
                       </div>
                     )}
 
-                    <button
-                      onClick={() => setRsvpEvent(event)}
-                      className="w-full glass-button bg-vortex-blue text-white font-bold py-3"
-                    >
-                      Register Now
-                    </button>
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => setRsvpEvent(event)}
+                        className="w-full glass-button bg-vortex-blue text-white font-bold py-3"
+                      >
+                        Register Now
+                      </button>
+                      
+                      {/* Multi-Event Registration Button - Show if event has sub-events */}
+                      {event.subEvents && event.subEvents.length > 1 && (
+                        <button
+                          onClick={() => {
+                            setRsvpEvent(event);
+                            setShowMultiEventReg(true);
+                          }}
+                          className="w-full glass-button bg-gradient-to-r from-vortex-blue to-vortex-orange text-white font-bold py-3 flex items-center justify-center gap-2"
+                        >
+                          <CreditCard className="w-4 h-4" />
+                          Register for Multiple Events
+                          <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">Save up to 25%</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -1801,7 +1868,14 @@ const Events = () => {
                   className="flex transition-transform duration-500 ease-in-out"
                   style={{ transform: `translateX(-${currentSlide * 100}%)` }}
                 >
-                  {pastEvents.map((event, index) => (
+                  {pastEvents.map((event, index) => {
+                    // Safety check
+                    if (!event || !event._id || !event.title) {
+                      console.warn('Invalid past event data:', event);
+                      return null;
+                    }
+                    
+                    return (
                     <div key={event._id} className="w-full flex-shrink-0">
                       <div className="glass-card mx-2 overflow-hidden bg-white/5 border border-white/10 group">
                         <div className="md:flex">
@@ -1873,7 +1947,8 @@ const Events = () => {
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -2038,6 +2113,24 @@ const Events = () => {
               )}
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Multi-Event Registration Modal */}
+      <AnimatePresence>
+        {showMultiEventReg && rsvpEvent && rsvpEvent.subEvents && rsvpEvent.subEvents.length > 1 && (
+          <MultiEventRegistration
+            event={rsvpEvent}
+            onClose={() => {
+              setShowMultiEventReg(false);
+              setRsvpEvent(null);
+            }}
+            onSuccess={() => {
+              setShowMultiEventReg(false);
+              setRsvpEvent(null);
+              fetchEvents(); // Refresh events data
+            }}
+          />
         )}
       </AnimatePresence>
     </div>

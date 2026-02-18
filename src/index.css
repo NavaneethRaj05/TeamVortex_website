@@ -10,9 +10,66 @@
     position: relative;
     overflow-x: hidden;
   }
+  
+  /* Accessibility: Focus Indicators */
+  *:focus-visible {
+    outline: 2px solid #00D4FF;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  
+  /* Remove default focus for mouse users */
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
 }
 
 @layer components {
+  
+  /* Accessibility: Skip Navigation Link */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+  
+  .sr-only:focus,
+  .sr-only:active {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+    width: auto;
+    height: auto;
+    padding: 1rem 2rem;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    background-color: #00D4FF;
+    color: #000;
+    font-weight: bold;
+    text-decoration: none;
+    border-radius: 0 0 0.5rem 0;
+  }
+  
+  /* Accessibility: Reduced Motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 
   /* Enhanced Glassmorphism */
   .glass-card {
@@ -73,6 +130,12 @@
     box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
     transform: scale(1.02);
   }
+  
+  /* Accessibility: Focus state for buttons */
+  .glass-button:focus-visible {
+    outline: 3px solid #00D4FF;
+    outline-offset: 3px;
+  }
 
   /* Navigation */
   .glass-nav {
@@ -98,6 +161,13 @@
   .input-glass {
     @apply glass-card border border-white/20 bg-white/5 text-white placeholder-white/50 focus:outline-none focus:border-vortex-blue focus:bg-white/10 transition-all duration-300;
     backdrop-filter: blur(20px);
+  }
+  
+  /* Accessibility: Enhanced focus for inputs */
+  .input-glass:focus-visible {
+    outline: 2px solid #00D4FF;
+    outline-offset: 2px;
+    border-color: #00D4FF;
   }
 
   /* Hide number input spinners */
@@ -169,4 +239,33 @@
 
 .floating-element {
   animation: float 6s ease-in-out infinite;
+}
+
+/* Accessibility: High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .glass-card,
+  .bento-card,
+  .glass-button {
+    border-width: 2px;
+    border-color: #00D4FF;
+  }
+  
+  .text-white\/60,
+  .text-white\/70 {
+    color: #ffffff !important;
+  }
+}
+
+/* Accessibility: Loading Skeleton Animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

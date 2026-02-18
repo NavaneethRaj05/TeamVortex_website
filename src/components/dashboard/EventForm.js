@@ -2,6 +2,11 @@ import React from 'react';
 import { Plus, X, Calendar, Clock, MapPin, Mail, Users, Edit2, Trash2 } from 'lucide-react';
 
 const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editingEventId }) => {
+    // Safety check: Ensure newEvent exists with default values
+    if (!newEvent) {
+        console.error('EventForm: newEvent is undefined');
+        return null;
+    }
 
     const generateGCalLink = () => {
         if (!newEvent.title || !newEvent.date || !newEvent.startTime) {
@@ -843,14 +848,21 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                         
                         {/* Sub-Events List View */}
                         <div className="space-y-3">
-                            {newEvent.subEvents?.map((subEvent, index) => (
+                            {newEvent.subEvents?.map((subEvent, index) => {
+                                // Safety check for subEvent
+                                if (!subEvent) {
+                                    console.warn('Invalid subEvent in EventForm:', subEvent);
+                                    return null;
+                                }
+                                
+                                return (
                                 <div key={`subevent-${index}-${subEvent.title || 'new'}`} className="bg-black/20 p-3 rounded-lg border border-white/5 space-y-3">
                                     <div className="flex justify-between items-start">
                                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <input
                                                 className="input-glass p-2 rounded text-xs"
                                                 placeholder="Sub-Event Title *"
-                                                value={subEvent.title}
+                                                value={subEvent.title || ''}
                                                 required
                                                 onChange={e => {
                                                     const subEvents = newEvent.subEvents.map((se, i) => 
@@ -862,7 +874,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                             <input
                                                 className="input-glass p-2 rounded text-xs"
                                                 placeholder="Duration (e.g., Full Day, 2 Hours)"
-                                                value={subEvent.duration}
+                                                value={subEvent.duration || ''}
                                                 onChange={e => {
                                                     const subEvents = newEvent.subEvents.map((se, i) => 
                                                         i === index ? { ...se, duration: e.target.value } : se
@@ -873,7 +885,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                             <input
                                                 className="input-glass p-2 rounded text-xs"
                                                 placeholder="Participants (e.g., Multiple Teams, Solo)"
-                                                value={subEvent.participants}
+                                                value={subEvent.participants || ''}
                                                 onChange={e => {
                                                     const subEvents = newEvent.subEvents.map((se, i) => 
                                                         i === index ? { ...se, participants: e.target.value } : se
@@ -883,7 +895,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                             />
                                             <select
                                                 className="input-glass p-2 rounded text-xs bg-[#1a1a1a]"
-                                                value={subEvent.icon}
+                                                value={subEvent.icon || 'Calendar'}
                                                 onChange={e => {
                                                     const subEvents = newEvent.subEvents.map((se, i) => 
                                                         i === index ? { ...se, icon: e.target.value } : se
@@ -920,7 +932,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                     <textarea
                                         className="input-glass p-2 rounded text-xs w-full h-16 resize-none"
                                         placeholder="Brief description of the sub-event *"
-                                        value={subEvent.description}
+                                        value={subEvent.description || ''}
                                         required
                                         onChange={e => {
                                             const subEvents = newEvent.subEvents.map((se, i) => 
@@ -933,7 +945,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                     <textarea
                                         className="input-glass p-2 rounded text-xs w-full h-20 resize-none"
                                         placeholder="Detailed information about the sub-event"
-                                        value={subEvent.details}
+                                        value={subEvent.details || ''}
                                         onChange={e => {
                                             const subEvents = newEvent.subEvents.map((se, i) => 
                                                 i === index ? { ...se, details: e.target.value } : se
@@ -944,7 +956,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                     
                                     <select
                                         className="input-glass p-2 rounded text-xs bg-[#1a1a1a] w-full"
-                                        value={subEvent.color}
+                                        value={subEvent.color || 'from-blue-500 to-purple-500'}
                                         onChange={e => {
                                             const subEvents = newEvent.subEvents.map((se, i) => 
                                                 i === index ? { ...se, color: e.target.value } : se
@@ -984,7 +996,8 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                         </div>
                                     )}
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                         
                         {(!newEvent.subEvents || newEvent.subEvents.length === 0) && (

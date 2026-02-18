@@ -3,6 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users } from 'lucide-react';
 
 const RegistrationViewer = React.memo(({ viewingRegistrations, setViewingRegistrations, onExport, onExportPDF }) => {
+    // Safety check
+    if (!viewingRegistrations) {
+        return null;
+    }
+    
     return (
         <AnimatePresence>
             {viewingRegistrations && (
@@ -22,7 +27,7 @@ const RegistrationViewer = React.memo(({ viewingRegistrations, setViewingRegistr
                     >
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                             <div>
-                                <h2 className="text-xl sm:text-2xl font-bold text-white line-clamp-1">{viewingRegistrations.title}</h2>
+                                <h2 className="text-xl sm:text-2xl font-bold text-white line-clamp-1">{viewingRegistrations.title || 'Event'}</h2>
                                 <div className="flex gap-4 text-sm">
                                     <p className="text-vortex-blue font-bold">{viewingRegistrations.registrations?.length || 0} Registered Players</p>
                                 </div>

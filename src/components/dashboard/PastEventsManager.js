@@ -52,12 +52,25 @@ const PastEventsManager = () => {
       const prayogNeedsSubEvents = prayog && (!prayog.subEvents || prayog.subEvents.length === 0);
       setPrayogMissing(!prayog || prayogNeedsSubEvents);
 
+      // If PRAYOG doesn't exist at all, create it automatically (silently)
+      if (!prayog) {
+        console.log('PRAYOG 1.0 not found in database. Creating automatically...');
+        await handleCreatePrayog(true); // true = silent mode
+        return; // Will refetch after creation
+      }
+
       // Automatically filter for past events based on date
       // Events are considered "past" if:
       // 1. Status is explicitly set to 'completed', OR
       // 2. Event date + end time has passed (automatic detection)
       const now = new Date();
       const past = data.filter(event => {
+        // IMPORTANT: Only show events that have a valid _id (exist in database)
+        if (!event._id) {
+          console.warn('Skipping event without _id:', event.title);
+          return false;
+        }
+        
         // Skip draft events
         if (event.status === 'draft') return false;
         
@@ -65,17 +78,33 @@ const PastEventsManager = () => {
         if (event.status === 'completed') return true;
 
         // Auto-detect past events based on date/time
-        const eventDate = new Date(event.date);
-        const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
+        try {
+          const eventDate = new Date(event.date);
+          
+          // Check if date is valid
+          if (isNaN(eventDate.getTime())) {
+            console.warn('Invalid date for event:', event.title, event.date);
+            return false;
+          }
+          
+          // Create end time for the event
+          const eventEnd = new Date(eventDate);
+          eventEnd.setHours(23, 59, 59, 999); // Default to end of day
 
-        // If event has end time, use that for more precise detection
-        if (event.endTime) {
-          const [h, m] = event.endTime.split(':');
-          eventEnd.setHours(parseInt(h), parseInt(m), 0);
+          // If event has end time, use that for more precise detection
+          if (event.endTime) {
+            const [h, m] = event.endTime.split(':').map(num => parseInt(num, 10));
+            if (!isNaN(h) && !isNaN(m)) {
+              eventEnd.setHours(h, m, 0, 0);
+            }
+          }
+
+          // Event is past if current time is after event end time
+          return now > eventEnd;
+        } catch (err) {
+          console.error('Error processing event date:', event.title, err);
+          return false;
         }
-
-        // Event is past if current time is after event end time
-        return now > eventEnd;
       }).sort((a, b) => {
         // Sort by Priority (descending) first, then Date (descending)
         if ((b.priority || 0) !== (a.priority || 0)) {
@@ -164,7 +193,7 @@ const PastEventsManager = () => {
     }
   };
 
-  const handleCreatePrayog = async () => {
+  const handleCreatePrayog = async (silent = false) => {
     try {
       const payload = {
         title: 'PRAYOG 1.0',
@@ -237,11 +266,17 @@ const PastEventsManager = () => {
         throw new Error(err?.message || 'Failed to create PRAYOG 1.0');
       }
 
+      console.log('PRAYOG 1.0 created successfully in database');
       await fetchPastEvents();
-      alert('PRAYOG 1.0 created! You can now edit its info, sub-events, and gallery.');
+      
+      if (!silent) {
+        alert('PRAYOG 1.0 created! You can now edit its info, sub-events, and gallery.');
+      }
     } catch (err) {
       console.error('Error creating PRAYOG 1.0:', err);
-      alert(err.message || 'Failed to create PRAYOG 1.0');
+      if (!silent) {
+        alert(err.message || 'Failed to create PRAYOG 1.0');
+      }
     }
   };
 
@@ -320,6 +355,13 @@ const PastEventsManager = () => {
   };
 
   const handleDelete = async (eventId) => {
+    // Validate event ID
+    if (!eventId || eventId === 'undefined' || eventId === 'null') {
+      alert('Invalid event ID. This event may not exist in the database.');
+      setDeleteConfirm(null);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
         method: 'DELETE',
@@ -335,11 +377,18 @@ const PastEventsManager = () => {
       } else {
         const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
         console.error('Delete failed:', errorData);
-        alert(`Failed to delete event: ${errorData.message || 'Server error'}`);
+        
+        if (res.status === 404) {
+          alert('Event not found in database. It may have already been deleted or never created.');
+        } else {
+          alert(`Failed to delete event: ${errorData.message || 'Server error'}`);
+        }
+        setDeleteConfirm(null);
       }
     } catch (err) {
       console.error('Error deleting event:', err);
       alert(`Error deleting event: ${err.message || 'Network error. Please check if server is running.'}`);
+      setDeleteConfirm(null);
     }
   };
 
@@ -410,6 +459,20 @@ const PastEventsManager = () => {
         <h2 className="text-2xl font-bold text-white">Past Events Management</h2>
         <div className="text-sm text-white/60">
           {pastEvents.length} past events • Auto-detected by date • Full CRUD Operations
+        </div>
+      </div>
+
+      {/* Automatic Detection Info Banner */}
+      <div className="glass-card p-4 border border-blue-500/30 bg-blue-500/5">
+        <div className="flex items-start gap-3">
+          <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <div className="text-blue-400 font-bold mb-1">Automatic Past Event Detection</div>
+            <div className="text-white/70 text-sm">
+              Events automatically appear here when their date/time passes. They also appear in the public Events page for users. 
+              No manual action needed - the system detects past events based on date and time.
+            </div>
+          </div>
         </div>
       </div>
 

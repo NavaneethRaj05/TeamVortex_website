@@ -24,17 +24,64 @@ const registrationSchema = new mongoose.Schema({
     department: { type: String },
     yearOfStudy: { type: String },
     members: [participantSchema],
-    paid: { type: Boolean, default: false },
-    paymentId: { type: String },
+    paid: { type: Boolean, default: false }, // Legacy field
+    paymentId: { type: String }, // Legacy field
     registeredAt: { type: Date, default: Date.now },
-    // Payment Verification Fields
+    
+    // NEW: Enhanced Payment Tracking
     paymentStatus: {
         type: String,
-        enum: ['pending', 'submitted', 'verified', 'rejected'],
+        enum: ['none', 'partial', 'full_paid', 'overpaid', 'refunded'],
+        default: 'none'
+    },
+    
+    registrationStatus: {
+        type: String,
+        enum: ['pending', 'confirmed', 'waitlist', 'cancelled'],
         default: 'pending'
     },
+    
+    // Payment History (Array for tracking all payments including partial)
+    payments: [{
+        razorpayOrderId: { type: String, required: true },
+        razorpayPaymentId: { type: String },
+        razorpaySignature: { type: String },
+        amount: { type: Number, required: true },
+        currency: { type: String, default: 'INR' },
+        method: { type: String }, // upi, card, netbanking, wallet
+        status: { type: String, default: 'created' }, // created, captured, failed, refunded
+        timestamp: { type: Date, default: Date.now },
+        refundId: { type: String },
+        refundAmount: { type: Number },
+        refundReason: { type: String },
+        notes: { type: String }
+    }],
+    
+    // Payment Summary
+    totalAmount: { type: Number, default: 0 }, // Total registration fee
+    amountPaid: { type: Number, default: 0 }, // Sum of all successful payments
+    amountDue: { type: Number, default: 0 }, // Remaining balance
+    
+    // Partial Payment Tracking
+    partialPaymentDeadline: { type: Date },
+    partialPaymentReminders: [{
+        sentAt: { type: Date },
+        method: { type: String } // email, sms
+    }],
+    
+    // Admin Actions Audit Trail
+    adminActions: [{
+        action: { type: String }, // waive, cancel, refund, message, verify
+        performedBy: { type: String },
+        reason: { type: String },
+        amount: { type: Number },
+        timestamp: { type: Date, default: Date.now },
+        notes: { type: String }
+    }],
+    
+    // Legacy Payment Verification Fields (for manual uploads)
     paymentProof: {
-        screenshotData: { type: String },  // Base64 encoded image
+        screenshotData: { type: String },
         utrNumber: { type: String },
         transactionDate: { type: Date },
         amountPaid: { type: Number },
@@ -44,7 +91,17 @@ const registrationSchema = new mongoose.Schema({
     },
     verifiedAt: { type: Date },
     verifiedBy: { type: String },
-    rejectionReason: { type: String }
+    rejectionReason: { type: String },
+    
+    // Multi-Event Registration Fields
+    multiEventGroupId: { type: String },
+    selectedSubEvents: [{ type: String }],
+    pricing: {
+        subtotal: { type: Number, default: 0 },
+        multiEventDiscount: { type: Number, default: 0 },
+        couponDiscount: { type: Number, default: 0 },
+        total: { type: Number, default: 0 }
+    }
 });
 
 const eventSchema = new mongoose.Schema({
@@ -233,6 +290,7 @@ const eventSchema = new mongoose.Schema({
 
     // Dynamic Sub-Events
     subEvents: [{
+        id: { type: String }, // Unique identifier for sub-event
         title: { type: String, required: true },
         description: { type: String, required: true },
         details: { type: String },
@@ -240,6 +298,7 @@ const eventSchema = new mongoose.Schema({
         color: { type: String, default: 'from-blue-500 to-purple-500' },
         duration: { type: String },
         participants: { type: String },
+        price: { type: Number, default: 0 }, // Price for this sub-event
         images: [{ type: String }]
     }]
 });
@@ -257,5 +316,6 @@ eventSchema.index({ 'subEvents.title': 1 }); // Index for sub-event queries
 eventSchema.index({ priority: -1, date: 1 }); // Index for priority-based sorting
 eventSchema.index({ registrationOpens: 1, registrationCloses: 1 }); // Index for registration timing
 eventSchema.index({ createdAt: -1 }); // Index for recent events
+eventSchema.index({ 'registrations.multiEventGroupId': 1 }); // Index for multi-event registrations
 
 module.exports = mongoose.model('Event', eventSchema);

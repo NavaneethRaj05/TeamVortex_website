@@ -23,14 +23,14 @@ const Home = () => {
       const res = await fetch(`${API_BASE_URL}/api/events/lightweight`);
       const data = await res.json();
 
-      const prayog = data.find(e => (e.title || '').trim().toLowerCase() === 'prayog 1.0');
+      const prayog = data.find(e => e && e.title && e.title.trim().toLowerCase() === 'prayog 1.0');
       setPrayogEvent(prayog || null);
 
       const now = new Date();
 
       // Filter upcoming events
       const upcoming = data.filter(e => {
-        if (e.status === 'draft' || e.status === 'completed') return false;
+        if (!e || e.status === 'draft' || e.status === 'completed') return false;
         const eventDate = new Date(e.date);
         const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
         
@@ -45,8 +45,8 @@ const Home = () => {
 
       // Filter past events (automatic detection) - excluding PRAYOG as it's shown separately
       const past = data.filter(e => {
-        if (e.status === 'draft') return false;
-        if ((e.title || '').trim().toLowerCase() === 'prayog 1.0') return false; // Exclude PRAYOG
+        if (!e || e.status === 'draft') return false;
+        if (e.title && e.title.trim().toLowerCase() === 'prayog 1.0') return false; // Exclude PRAYOG
         if (e.status === 'completed') return true;
 
         const eventDate = new Date(e.date);
@@ -79,13 +79,13 @@ const Home = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/events`);
         const data = await res.json();
-        const prayog = data.find(e => (e.title || '').trim().toLowerCase() === 'prayog 1.0');
+        const prayog = data.find(e => e && e.title && e.title.trim().toLowerCase() === 'prayog 1.0');
         setPrayogEvent(prayog || null);
         
         const now = new Date();
         
         const upcoming = data.filter(e => {
-          if (e.status === 'draft' || e.status === 'completed') return false;
+          if (!e || e.status === 'draft' || e.status === 'completed') return false;
           const eventDate = new Date(e.date);
           const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
           
@@ -99,8 +99,8 @@ const Home = () => {
         setEvents(upcoming);
 
         const past = data.filter(e => {
-          if (e.status === 'draft') return false;
-          if ((e.title || '').trim().toLowerCase() === 'prayog 1.0') return false;
+          if (!e || e.status === 'draft') return false;
+          if (e.title && e.title.trim().toLowerCase() === 'prayog 1.0') return false;
           if (e.status === 'completed') return true;
 
           const eventDate = new Date(e.date);
@@ -361,6 +361,12 @@ const Home = () => {
                     <h4 className="text-xl font-bold text-white/80 mb-4 text-center">Sub-Events</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       {prayogSubEvents.map((subEvent, index) => {
+                        // Safety check for subEvent
+                        if (!subEvent || !subEvent.title) {
+                          console.warn('Invalid prayog subEvent data:', subEvent);
+                          return null;
+                        }
+                        
                         const IconComponent = getIconComponent(subEvent.icon);
                         return (
                           <div
@@ -397,6 +403,12 @@ const Home = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {pastEvents.map((event, index) => {
+                  // Safety check
+                  if (!event || !event._id || !event.title) {
+                    console.warn('Invalid past event data in Home.js:', event);
+                    return null;
+                  }
+                  
                   const gradientConfigs = [
                     'from-purple-500 to-pink-500',
                     'from-blue-500 to-cyan-500', 
@@ -475,6 +487,12 @@ const Home = () => {
                             <div className="text-xs text-white/40 mb-2">Sub-Events ({event.subEvents.length})</div>
                             <div className="grid grid-cols-2 gap-2">
                               {event.subEvents.slice(0, 4).map((subEvent, idx) => {
+                                // Safety check for subEvent
+                                if (!subEvent || !subEvent.title) {
+                                  console.warn('Invalid subEvent data in Other Past Events:', subEvent);
+                                  return null;
+                                }
+                                
                                 const IconComponent = getIconComponent(subEvent.icon);
                                 return (
                                   <div
@@ -691,6 +709,12 @@ const Home = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {pastEvents.map((event, index) => {
+                // Safety check
+                if (!event || !event._id || !event.title) {
+                  console.warn('Invalid past event data in Home.js (Event Legacy section):', event);
+                  return null;
+                }
+                
                 const gradientConfigs = [
                   'from-purple-500 to-pink-500',
                   'from-blue-500 to-cyan-500', 
@@ -772,6 +796,12 @@ const Home = () => {
                           <div className="text-xs text-white/40 mb-2">Sub-Events ({event.subEvents.length})</div>
                           <div className="flex flex-wrap gap-1">
                             {event.subEvents.slice(0, 3).map((subEvent, idx) => {
+                              // Safety check for subEvent
+                              if (!subEvent || !subEvent.title) {
+                                console.warn('Invalid subEvent data in Event Legacy:', subEvent);
+                                return null;
+                              }
+                              
                               const IconComponent = getIconComponent(subEvent.icon);
                               return (
                                 <div

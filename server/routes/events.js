@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
 const PaymentLog = require('../models/PaymentLog');
-const { sendEmail } = require('../utils/emailService');
+const { sendNotification } = require('../utils/notificationService');
 
 // @route   GET /api/events/lightweight
 // @desc    Get lightweight events data for fast loading (minimal fields)
@@ -189,6 +189,142 @@ router.post('/', async (req, res) => {
     }
 });
 
+// @route   POST /api/events/:id/register-multiple
+// @desc    Register for multiple sub-events in a single transaction
+router.post('/:id/register-multiple', async (req, res) => {
+    const { selectedSubEvents, teamName, country, institutionName, department, yearOfStudy, members, pricing, couponCode, appliedCoupon } = req.body;
+
+    if (!selectedSubEvents || !Array.isArray(selectedSubEvents) || selectedSubEvents.length === 0) {
+        return res.status(400).json({ message: 'At least one sub-event must be selected' });
+    }
+
+    if (!members || !Array.isArray(members) || members.length === 0) {
+        return res.status(400).json({ message: 'At least one participant is required' });
+    }
+
+    // Basic validation for the first member
+    const primaryMember = members[0];
+    if (!primaryMember.name || !primaryMember.email) {
+        return res.status(400).json({ message: 'Primary member name and email are required' });
+    }
+
+    try {
+        const event = await Event.findById(req.params.id);
+        if (!event) return res.status(404).json({ message: 'Event not found' });
+
+        if (!event.subEvents || event.subEvents.length === 0) {
+            return res.status(400).json({ message: 'This event does not have sub-events' });
+        }
+
+        // Generate a unique group ID for this multi-event registration
+        const multiEventGroupId = `multi_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Check if any member is already registered
+        const allEmails = members.map(m => m.email.toLowerCase());
+        const allIds = members.map(m => m.idNumber).filter(id => id);
+
+        const isRegistered = event.registrations.some(reg =>
+            reg.members.some(m => allEmails.includes(m.email.toLowerCase()) || (m.idNumber && allIds.includes(m.idNumber)))
+        );
+
+        if (isRegistered) {
+            return res.status(400).json({ message: 'One or more members are already registered for this event' });
+        }
+
+        // Calculate total price (server-side validation)
+        const subtotal = selectedSubEvents.reduce((sum, subEventId) => {
+            const subEvent = event.subEvents.find(se => se.id === subEventId || se.title === subEventId);
+            return sum + (subEvent?.price || 0);
+        }, 0);
+
+        let multiEventDiscount = 0;
+        const eventCount = selectedSubEvents.length;
+        
+        if (eventCount >= 4) {
+            multiEventDiscount = subtotal * 0.25;
+        } else if (eventCount >= 3) {
+            multiEventDiscount = subtotal * 0.20;
+        } else if (eventCount >= 2) {
+            multiEventDiscount = subtotal * 0.10;
+        }
+
+        const totalAmount = Math.max(0, subtotal - multiEventDiscount);
+
+        // Create registration object
+        const registration = {
+            teamName: teamName || '',
+            country: country || 'India',
+            institutionName: institutionName || '',
+            department: department || '',
+            yearOfStudy: yearOfStudy || '',
+            members,
+            paid: totalAmount === 0, // Free if total is 0
+            paymentId: '',
+            paymentStatus: totalAmount > 0 ? 'pending' : 'verified',
+            registeredAt: new Date(),
+            multiEventGroupId: multiEventGroupId,
+            selectedSubEvents: selectedSubEvents,
+            pricing: {
+                subtotal: subtotal,
+                multiEventDiscount: multiEventDiscount,
+                couponDiscount: 0,
+                total: totalAmount
+            }
+        };
+
+        // Add to registrations
+        event.registrations.push(registration);
+        await event.save();
+
+        // Send confirmation via email and WhatsApp
+        try {
+            const subEventTitles = selectedSubEvents.map(subEventId => {
+                const subEvent = event.subEvents.find(se => se.id === subEventId || se.title === subEventId);
+                return subEvent?.title || subEventId;
+            });
+
+            const notificationData = {
+                name: primaryMember.name,
+                eventTitle: event.title,
+                teamName: teamName,
+                date: new Date(event.date).toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                }),
+                time: `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`,
+                location: event.location,
+                amount: totalAmount,
+                savings: multiEventDiscount,
+                paymentPending: totalAmount > 0,
+                isMultiEvent: true,
+                selectedEvents: subEventTitles
+            };
+
+            await sendNotification(
+                ['email'],
+                { email: primaryMember.email },
+                'registrationConfirmation',
+                notificationData
+            );
+        } catch (notifErr) {
+            console.error('Notification Error:', notifErr);
+        }
+
+        res.json({
+            message: 'Multi-event registration successful!',
+            multiEventGroupId: multiEventGroupId,
+            selectedSubEvents: selectedSubEvents,
+            pricing: registration.pricing,
+            status: 'success'
+        });
+    } catch (err) {
+        console.error('Multi-Event Registration Error:', err);
+        res.status(500).json({ message: 'Server error during multi-event registration' });
+    }
+});
+
 // @route   POST /api/events/:id/register
 // @desc    Register a student/team for an event (Atomic & Robust)
 router.post('/:id/register', async (req, res) => {
@@ -247,15 +383,34 @@ router.post('/:id/register', async (req, res) => {
         event.registrations.push(registration);
         await event.save();
 
-        // Send confirmation email to primary member
+        // Send confirmation via email and WhatsApp
         try {
-            await sendEmail(
-                primaryMember.email,
-                `Registration Confirmed: ${event.title}`,
-                `Hi ${primaryMember.name},\n\nYour ${teamName ? `team "${teamName}"` : 'registration'} has been successfully confirmed for ${event.title}. We look forward to seeing you there!\n\n${paid ? `Payment Reference: ${paymentId}\n` : ''}Date: ${new Date(event.date).toLocaleDateString()}\nTime: ${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}\nLocation: ${event.location}\n\nBest regards,\nTeam Vortex`
+            const notificationData = {
+                name: primaryMember.name,
+                eventTitle: event.title,
+                teamName: teamName,
+                date: new Date(event.date).toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                }),
+                time: `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`,
+                location: event.location,
+                amount: event.price,
+                paymentPending: event.price > 0 && !paid,
+                isMultiEvent: false,
+                selectedEvents: []
+            };
+
+            await sendNotification(
+                ['email'],
+                { email: primaryMember.email },
+                'registrationConfirmation',
+                notificationData
             );
-        } catch (mailErr) {
-            console.error('Mail Error:', mailErr);
+        } catch (notifErr) {
+            console.error('Notification Error:', notifErr);
         }
 
         res.json({
@@ -533,15 +688,31 @@ router.post('/:id/verify-payment/:regIndex', async (req, res) => {
                 ipAddress: req.ip
             });
 
-            // Send approval email
+            // Send approval notification via email and WhatsApp
             try {
-                await sendEmail(
-                    primaryMember.email,
-                    `Payment Verified: ${event.title}`,
-                    `Hi ${primaryMember.name},\n\nGreat news! Your payment for ${event.title} has been verified.\n\nYour registration is now confirmed! We look forward to seeing you there.\n\nDate: ${new Date(event.date).toLocaleDateString()}\nTime: ${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}\nLocation: ${event.location}\n\nBest regards,\nTeam Vortex`
+                const notificationData = {
+                    name: primaryMember.name,
+                    eventTitle: event.title,
+                    amount: registration.paymentProof?.amountPaid || event.price,
+                    utrNumber: registration.paymentProof?.utrNumber,
+                    date: new Date(event.date).toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    }),
+                    time: `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`,
+                    location: event.location
+                };
+
+                await sendNotification(
+                    ['email'],
+                    { email: primaryMember.email },
+                    'paymentApproved',
+                    notificationData
                 );
-            } catch (mailErr) {
-                console.error('Approval Mail Error:', mailErr);
+            } catch (notifErr) {
+                console.error('Notification Error:', notifErr);
             }
         } else {
             registration.paymentStatus = 'rejected';
@@ -561,15 +732,22 @@ router.post('/:id/verify-payment/:regIndex', async (req, res) => {
                 ipAddress: req.ip
             });
 
-            // Send rejection email
+            // Send rejection notification via email and WhatsApp
             try {
-                await sendEmail(
-                    primaryMember.email,
-                    `Payment Issue: ${event.title}`,
-                    `Hi ${primaryMember.name},\n\nUnfortunately, we could not verify your payment for ${event.title}.\n\nReason: ${rejectionReason || 'Payment verification failed'}\n\nPlease ensure your payment was successful and submit a new payment proof. If you believe this is an error, please contact us.\n\nBest regards,\nTeam Vortex`
+                const notificationData = {
+                    name: primaryMember.name,
+                    eventTitle: event.title,
+                    reason: rejectionReason || 'Payment verification failed'
+                };
+
+                await sendNotification(
+                    ['email'],
+                    { email: primaryMember.email },
+                    'paymentRejected',
+                    notificationData
                 );
-            } catch (mailErr) {
-                console.error('Rejection Mail Error:', mailErr);
+            } catch (notifErr) {
+                console.error('Notification Error:', notifErr);
             }
         }
 

@@ -422,11 +422,11 @@ const Dashboard = () => {
 
                         {showEventForm && (
                             <EventForm
-                                onClose={() => { setShowEventForm(false); setEditingEventId(null); }}
+                                newEvent={newEvent}
+                                setNewEvent={setNewEvent}
                                 onSubmit={handleSaveEvent}
-                                initialData={newEvent}
-                                setEventData={setNewEvent}
-                                isEditing={!!editingEventId}
+                                onCancel={() => { setShowEventForm(false); setEditingEventId(null); }}
+                                editingEventId={editingEventId}
                             />
                         )}
 
