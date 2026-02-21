@@ -324,13 +324,16 @@ const Contests = () => {
         </motion.div>
 
         {loading ? (
-          <div className="text-center text-white/50 text-xl">Loading upcoming events...</div>
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-vortex-blue mb-4"></div>
+            <p className="text-white/50 text-lg">Loading upcoming events...</p>
+          </div>
         ) : (
           <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8"
           >
             {events.length > 0 ? (
               events.map((event, index) => (
