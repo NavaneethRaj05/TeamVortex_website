@@ -15,6 +15,7 @@ const FeedbackViewer = ({ event, onClose }) => {
     if (event && event._id) {
       fetchFeedback();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event]);
 
   const fetchFeedback = async () => {

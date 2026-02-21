@@ -41,6 +41,7 @@ const PastEventsManager = () => {
 
   useEffect(() => {
     fetchPastEvents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchPastEvents = async () => {
@@ -121,18 +122,6 @@ const PastEventsManager = () => {
       console.error('Error fetching past events:', err);
       setLoading(false);
     }
-  };
-
-  const toggleEventSelection = (eventId) => {
-    setSelectedEvents(prev => 
-      prev.includes(eventId) 
-        ? prev.filter(id => id !== eventId)
-        : [...prev, eventId]
-    );
-  };
-
-  const selectAllEvents = () => {
-    setSelectedEvents(pastEvents.map(e => e._id));
   };
 
   const clearSelection = () => {

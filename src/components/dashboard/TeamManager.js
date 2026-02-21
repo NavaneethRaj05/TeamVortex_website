@@ -1,6 +1,5 @@
 import React from 'react';
 import { Plus, X, Edit2, Trash2, Linkedin, Instagram, Mail } from 'lucide-react';
-import StatsCard from './StatsCard';
 
 const TeamManager = React.memo(({
     teamMembers,

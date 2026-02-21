@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     CheckCircle, XCircle, Clock, AlertCircle, Eye, X,
-    Search, Filter, ChevronDown, CreditCard, User, Calendar,
-    Mail, Phone, ExternalLink, RefreshCw, Download, FileText
+    Search, CreditCard, User,
+    Mail, RefreshCw, FileText
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -36,6 +36,7 @@ const PaymentVerificationPanel = ({ selectedEventId = null }) => {
     // Fetch all events
     useEffect(() => {
         fetchEvents();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Fetch pending payments when event changes
@@ -44,6 +45,7 @@ const PaymentVerificationPanel = ({ selectedEventId = null }) => {
             fetchPendingPayments();
             fetchPaymentLogs();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentEvent]);
 
     const fetchPaymentLogs = async () => {

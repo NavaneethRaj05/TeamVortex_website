@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
-    Users, Calendar, Activity, Plus, Edit2, Trash2, Mail, MapPin, CreditCard, FileText, Menu, X, LayoutDashboard, TrendingUp, Award, Settings
+    Users, Calendar, Activity, Plus, Edit2, Trash2, Mail, MapPin, CreditCard, Menu, X, LayoutDashboard, TrendingUp, Award, Settings
 } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
 import { generateAdminReportPDF, downloadPDF } from '../utils/pdfGenerator';
@@ -179,27 +179,6 @@ const Dashboard = () => {
     // Individual fetch functions
     const fetchEvents = async () => { try { const res = await fetch(`${API_BASE_URL}/api/events`); setEvents(await res.json()); } catch (err) { console.error(err); } };
     const fetchTeam = async () => { try { const res = await fetch(`${API_BASE_URL}/api/team`); setTeamMembers(await res.json()); } catch (err) { console.error(err); } };
-    const fetchSettings = async () => { 
-        try { 
-            const res = await fetch(`${API_BASE_URL}/api/settings`); 
-            const data = await res.json();
-            
-            // Merge fetched data with defaults (fetched data takes priority)
-            const mergedSettings = {
-                ...defaultSettings,
-                ...data,
-                stats: {
-                    ...defaultSettings.stats,
-                    ...(data.stats || {})
-                }
-            };
-            
-            setClubSettings(mergedSettings);
-        } catch (err) { 
-            console.error('Failed to fetch settings:', err); 
-            // Keep default values already set in state
-        } 
-    };
     const fetchSponsors = async () => { try { const res = await fetch(`${API_BASE_URL}/api/sponsors`); setSponsors(await res.json()); } catch (err) { console.error(err); } };
 
     // --- Event Handlers ---

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, X, Calendar, Clock, MapPin, Mail, Users, Edit2, Trash2 } from 'lucide-react';
+import { Plus, X, Calendar } from 'lucide-react';
 
 const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editingEventId }) => {
     // Safety check: Ensure newEvent exists with default values

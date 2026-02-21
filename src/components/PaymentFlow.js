@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    QrCode, Copy, Check, Upload, X, ArrowRight, ArrowLeft,
+    QrCode, Copy, Check, X, ArrowRight, ArrowLeft,
     Phone, Building2, Wallet, Clock, AlertCircle, CheckCircle,
     Image as ImageIcon, CreditCard, Banknote
 } from 'lucide-react';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, X, Edit2, Trash2, ExternalLink, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, ExternalLink, ToggleLeft, ToggleRight } from 'lucide-react';
 
 const SponsorManager = React.memo(({
     sponsors,

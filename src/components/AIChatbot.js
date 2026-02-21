@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, X, Send, Bot, User, Loader, Sparkles } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, User, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import API_BASE_URL from '../apiConfig';
 
@@ -8,47 +8,46 @@ const AIChatbot = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [chatbotData, setChatbotData] = useState(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     // Load chatbot data and initial greeting
+    const fetchChatbotData = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/chatbot/data`);
+        const data = await res.json();
+        
+        // Add welcome message
+        if (messages.length === 0) {
+          setMessages([{
+            id: Date.now(),
+            text: data.welcomeMessage || "Hi! I'm VortexBot. How can I help you today?",
+            sender: 'bot',
+            timestamp: new Date()
+          }]);
+        }
+      } catch (err) {
+        console.error('Error fetching chatbot data:', err);
+        // Fallback welcome message
+        if (messages.length === 0) {
+          setMessages([{
+            id: Date.now(),
+            text: "Hi! I'm VortexBot. How can I help you today?",
+            sender: 'bot',
+            timestamp: new Date()
+          }]);
+        }
+      }
+    };
+    
     fetchChatbotData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     // Scroll to bottom when messages change
     scrollToBottom();
   }, [messages]);
-
-  const fetchChatbotData = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/chatbot/data`);
-      const data = await res.json();
-      setChatbotData(data);
-      
-      // Add welcome message
-      if (messages.length === 0) {
-        setMessages([{
-          id: Date.now(),
-          text: data.welcomeMessage || "Hi! I'm VortexBot. How can I help you today?",
-          sender: 'bot',
-          timestamp: new Date()
-        }]);
-      }
-    } catch (err) {
-      console.error('Error fetching chatbot data:', err);
-      // Fallback welcome message
-      if (messages.length === 0) {
-        setMessages([{
-          id: Date.now(),
-          text: "Hi! I'm VortexBot. How can I help you today?",
-          sender: 'bot',
-          timestamp: new Date()
-        }]);
-      }
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

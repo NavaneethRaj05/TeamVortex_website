@@ -81,6 +81,7 @@ const MultiEventRegistration = ({ event, onClose, onSuccess }) => {
   // Calculate pricing whenever selection changes
   useEffect(() => {
     calculatePricing();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSubEvents, formData.appliedCoupon]);
 
   const calculatePricing = () => {
@@ -224,7 +225,7 @@ const MultiEventRegistration = ({ event, onClose, onSuccess }) => {
         throw new Error(errorData.message || `Server error: ${res.status}`);
       }
 
-      const data = await res.json();
+      await res.json();
       
       setStep('success');
       setIsSubmitting(false);

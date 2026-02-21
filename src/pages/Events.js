@@ -10,12 +10,10 @@ const Events = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedSubEvent, setSelectedSubEvent] = useState(null);
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [selectedEventGallery, setSelectedEventGallery] = useState(null);
   const [rsvpEvent, setRsvpEvent] = useState(null);
   const [activeInfoTab, setActiveInfoTab] = useState('details');
   const [showingPayment, setShowingPayment] = useState(false);
-  const [currentRegistrationIndex, setCurrentRegistrationIndex] = useState(null);
   const [paymentInfo, setPaymentInfo] = useState(null);
   const prayogFallback = useMemo(() => ({
     title: 'PRAYOG 1.0',
@@ -100,7 +98,7 @@ const Events = () => {
     paid: false,
     paymentId: ''
   });
-  const [rsvpStatus, setRsvpStatus] = useState({ loading: false, message: '', type: '' });
+
   const [feedbackEvent, setFeedbackEvent] = useState(null);
   const [feedbackForm, setFeedbackForm] = useState({ studentId: '', name: '', rating: 5, comment: '' });
   const [emailValidation, setEmailValidation] = useState({});
@@ -141,10 +139,8 @@ const Events = () => {
         paymentId: ''
       });
       setActiveInfoTab('details');
-      setRsvpStatus({ loading: false, message: '', type: '' });
       setShowingPayment(false);
       setPaymentInfo(null);
-      setCurrentRegistrationIndex(null);
     }
   }, [rsvpEvent]);
 
@@ -158,7 +154,6 @@ const Events = () => {
       .then(res => res.json())
       .then(data => {
         setEvents(data);
-        setLoading(false);
       })
       .catch(err => {
         console.error('Error fetching events:', err);
@@ -167,11 +162,9 @@ const Events = () => {
           .then(res => res.json())
           .then(data => {
             setEvents(data);
-            setLoading(false);
           })
           .catch(fallbackErr => {
             console.error('Error fetching events (fallback):', fallbackErr);
-            setLoading(false);
           });
       });
   };
@@ -239,10 +232,6 @@ const Events = () => {
     const eduDomains = ['.edu', '.ac.', '.edu.', 'college', 'university', 'institute', 'school'];
     const isEduDomain = eduDomains.some(edu => domainLower.includes(edu));
     
-    // Check for common personal email providers
-    const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'protonmail.com'];
-    const isPersonalDomain = personalDomains.includes(domainLower);
-
     // Validate domain exists (basic check)
     if (!domainLower.includes('.') || domainLower.endsWith('.') || domainLower.startsWith('.')) {
       validationResult.errors.push('Invalid domain format');
@@ -576,7 +565,6 @@ const Events = () => {
       const payInfoData = await payInfoRes.json();
 
       setPaymentInfo(payInfoData);
-      setCurrentRegistrationIndex(registrationData.registrationIndex);
       
       setRegistrationFlow(prev => ({
         ...prev,
@@ -653,7 +641,6 @@ const Events = () => {
     setRsvpEvent(null);
     setShowingPayment(false);
     setPaymentInfo(null);
-    setCurrentRegistrationIndex(null);
     setRegistrationFlow({
       step: 'form',
       isSubmitting: false,
@@ -739,29 +726,6 @@ const Events = () => {
       }
     } catch (err) {
       alert('Failed to submit feedback');
-    }
-  };
-
-  const addToCalendar = (event) => {
-    if (!event.date || !event.startTime) {
-      alert('Event date and time information is incomplete');
-      return;
-    }
-
-    try {
-      const startDateTime = new Date(`${event.date.split('T')[0]}T${event.startTime}`);
-      const endDateTime = event.endTime
-        ? new Date(`${event.date.split('T')[0]}T${event.endTime}`)
-        : new Date(startDateTime.getTime() + 2 * 60 * 60 * 1000); // Default 2 hours
-
-      const start = startDateTime.toISOString().replace(/-|:|\.\d\d\d/g, "");
-      const end = endDateTime.toISOString().replace(/-|:|\.\d\d\d/g, "");
-
-      const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.location)}&dates=${start}/${end}`;
-      window.open(url, '_blank');
-    } catch (error) {
-      console.error('Error creating calendar link:', error);
-      alert('Error creating calendar link. Please check event details.');
     }
   };
 
@@ -2170,7 +2134,7 @@ const Events = () => {
                     <div className="grid grid-cols-2 gap-4">
                       {selectedSubEvent.images.map((img, index) => (
                         <div key={index} className="aspect-video rounded-xl overflow-hidden">
-                          <img src={img} alt={`${selectedSubEvent.title} photo ${index + 1}`} className="w-full h-full object-cover" />
+                          <img src={img} alt={`${selectedSubEvent.title} ${index + 1}`} className="w-full h-full object-cover" />
                         </div>
                       ))}
                     </div>

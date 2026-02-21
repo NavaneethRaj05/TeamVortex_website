@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import App from './App';
 
 // Mock ParticleBackground to avoid canvas issues in tests
@@ -17,15 +17,14 @@ jest.mock('./components/FloatingTrophy', () => {
 
 describe('App Component', () => {
   test('renders without crashing', () => {
-    const { container } = render(<App />);
-    expect(container).toBeTruthy();
-    expect(container.firstChild).toBeTruthy();
+    render(<App />);
+    // Use screen queries instead of container
+    expect(screen.getByTestId('particle-background')).toBeInTheDocument();
   });
 
   test('renders navigation', () => {
-    const { container } = render(<App />);
+    render(<App />);
     // Basic smoke test - just ensure app renders with content
-    expect(container.firstChild).toBeTruthy();
-    expect(container.querySelector('div')).toBeTruthy();
+    expect(screen.getByTestId('particle-background')).toBeInTheDocument();
   });
 });
