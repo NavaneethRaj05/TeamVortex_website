@@ -164,16 +164,26 @@ const PaymentFlow = ({
             }
 
             // Success - move to confirmation step
+            console.log('✅ Payment proof submitted successfully');
             setStep(3);
             setCanSubmit(false); // Prevent further submissions
 
         } catch (err) {
             console.error('Payment proof submission error:', err);
             
+            // Handle specific error cases
             if (err.name === 'AbortError') {
                 setError('Request timed out. Please check your internet connection and try again.');
             } else if (err.message.includes('Failed to fetch')) {
                 setError('Network error. Please check your internet connection and ensure the server is running.');
+            } else if (err.message.includes('already verified')) {
+                setError('Your payment has already been verified. No further action needed.');
+                setCanSubmit(false); // Permanently disable submission
+            } else if (err.message.includes('already submitted')) {
+                setError('Your payment proof is already submitted and pending verification. Please wait for admin approval.');
+                setCanSubmit(false); // Permanently disable submission
+            } else if (err.message.includes('UTR number has already been used')) {
+                setError('This UTR/Transaction ID has already been used. Please check your transaction details or contact support.');
             } else {
                 setError(err.message || 'Failed to submit payment proof. Please try again.');
             }
@@ -415,9 +425,25 @@ const PaymentFlow = ({
                 <p className="text-gray-400">Upload screenshot and enter transaction details</p>
             </div>
 
+            {/* Important Notice */}
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-blue-200">
+                        <p className="font-bold mb-1">Important:</p>
+                        <ul className="list-disc list-inside space-y-1 text-blue-200/80">
+                            <li>Submit payment proof only once</li>
+                            <li>Verification takes 24-48 hours</li>
+                            <li>You'll receive email confirmation</li>
+                            <li>Do not submit duplicate proofs</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
             {error && (
                 <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3 flex items-center gap-2">
-                    <AlertCircle size={18} className="text-red-400" />
+                    <AlertCircle size={18} className="text-red-400 flex-shrink-0" />
                     <span className="text-red-200 text-sm">{error}</span>
                 </div>
             )}

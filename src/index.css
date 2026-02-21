@@ -311,6 +311,311 @@
   animation: pulse-glow 3s ease-in-out infinite;
 }
 
+/* ========================================
+   UNIQUE CHATBOT ANIMATIONS (NOT USED ELSEWHERE)
+   ======================================== */
+
+/* Rotating Conic Gradient Background */
+@keyframes rotate-gradient {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.bg-gradient-conic-animated {
+  background: conic-gradient(
+    from 0deg,
+    #06b6d4,
+    #3b82f6,
+    #8b5cf6,
+    #06b6d4
+  );
+  animation: rotate-gradient 4s linear infinite;
+}
+
+/* Radial Glow Effect */
+.bg-gradient-radial-glow {
+  background: radial-gradient(
+    circle,
+    rgba(6, 182, 212, 0.4) 0%,
+    rgba(59, 130, 246, 0.3) 50%,
+    rgba(139, 92, 246, 0.2) 100%
+  );
+}
+
+/* Slow Ping Animation */
+@keyframes ping-slow {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.animate-ping-slow {
+  animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Subtle Bounce for Icon */
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2s ease-in-out infinite;
+}
+
+/* Orbiting Particles */
+@keyframes orbit-1 {
+  0% {
+    transform: rotate(0deg) translateX(30px) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translateX(30px) rotate(-360deg);
+  }
+}
+
+@keyframes orbit-2 {
+  0% {
+    transform: rotate(120deg) translateX(30px) rotate(-120deg);
+  }
+  100% {
+    transform: rotate(480deg) translateX(30px) rotate(-480deg);
+  }
+}
+
+@keyframes orbit-3 {
+  0% {
+    transform: rotate(240deg) translateX(30px) rotate(-240deg);
+  }
+  100% {
+    transform: rotate(600deg) translateX(30px) rotate(-600deg);
+  }
+}
+
+.animate-orbit-1 {
+  animation: orbit-1 3s linear infinite;
+}
+
+.animate-orbit-2 {
+  animation: orbit-2 3s linear infinite;
+}
+
+.animate-orbit-3 {
+  animation: orbit-3 3s linear infinite;
+}
+
+/* Glow Shadows for Particles */
+.shadow-glow-cyan {
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.8), 0 0 20px rgba(6, 182, 212, 0.4);
+}
+
+.shadow-glow-purple {
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 20px rgba(139, 92, 246, 0.4);
+}
+
+.shadow-glow-blue {
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+.shadow-glow-green {
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.8), 0 0 20px rgba(74, 222, 128, 0.4);
+}
+
+/* Pulse Glow Animation */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Slow Spin for Bot Icon */
+@keyframes spin-slow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+/* Animated Gradient Background */
+@keyframes gradient-animated {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.bg-gradient-animated {
+  background: linear-gradient(
+    90deg,
+    #06b6d4,
+    #3b82f6,
+    #8b5cf6,
+    #06b6d4
+  );
+  background-size: 200% 200%;
+  animation: gradient-animated 4s ease infinite;
+}
+
+/* Wave Animation for Header */
+@keyframes wave-animated {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.bg-wave-animated {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: wave-animated 3s ease-in-out infinite;
+}
+
+/* Floating Particles */
+.particle-float {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.particle-1 {
+  top: 20%;
+  left: 20%;
+  animation: float-particle-1 4s ease-in-out infinite;
+}
+
+.particle-2 {
+  top: 60%;
+  left: 70%;
+  animation: float-particle-2 5s ease-in-out infinite;
+}
+
+.particle-3 {
+  top: 40%;
+  left: 50%;
+  animation: float-particle-3 6s ease-in-out infinite;
+}
+
+@keyframes float-particle-1 {
+  0%, 100% {
+    transform: translate(0, 0);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(20px, -20px);
+    opacity: 0.8;
+  }
+}
+
+@keyframes float-particle-2 {
+  0%, 100% {
+    transform: translate(0, 0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate(-15px, 15px);
+    opacity: 0.9;
+  }
+}
+
+@keyframes float-particle-3 {
+  0%, 100% {
+    transform: translate(0, 0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(10px, -25px);
+    opacity: 0.7;
+  }
+}
+
+/* Shimmer Effect for Border */
+@keyframes shimmer-border {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer-border 3s ease-in-out infinite;
+}
+
+/* Grid Pattern Background */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(6, 182, 212, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 182, 212, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Unique Chatbot Button Styling */
+.chatbot-button-unique {
+  position: relative;
+  overflow: visible;
+}
+
+.chatbot-button-unique::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #06b6d4, #3b82f6, #8b5cf6);
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: -1;
+  filter: blur(10px);
+}
+
+.chatbot-button-unique:hover::before {
+  opacity: 0.6;
+}
+
 /* Gradient Text Animation */
 @keyframes gradient-shift {
   0% {
@@ -793,6 +1098,216 @@ textarea:focus-visible {
   .glass-card:hover {
     box-shadow: 0 8px 24px rgba(0, 212, 255, 0.15);
   }
+
+  /* ===========================
+     ADMIN DASHBOARD MOBILE OPTIMIZATIONS
+     =========================== */
+
+  /* Dashboard Tab Navigation - Horizontal Scroll */
+  .dashboard-tabs-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .dashboard-tabs-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Dashboard Stats Cards - Stack Vertically */
+  .dashboard-stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* Event Form - Single Column */
+  .event-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Event Card Actions - Full Width */
+  .event-card-actions {
+    width: 100% !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+    padding-top: 0.75rem !important;
+    margin-top: 0.75rem !important;
+    justify-content: flex-end !important;
+  }
+
+  /* Team Cards - Single Column */
+  .team-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+
+  /* Sponsor Cards - Stack Vertically */
+  .sponsor-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sponsor-card {
+    flex-direction: column !important;
+  }
+
+  .sponsor-actions {
+    flex-direction: row !important;
+    width: 100% !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-left: none !important;
+    padding-top: 0.75rem !important;
+    padding-left: 0 !important;
+    margin-top: 0.75rem !important;
+  }
+
+  /* Registration Viewer - Scrollable Table */
+  .registration-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .registration-table {
+    min-width: 600px;
+  }
+
+  .registration-modal {
+    max-height: 95vh !important;
+    margin: 0.5rem !important;
+  }
+
+  .registration-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+  }
+
+  .registration-actions {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+
+  /* Payment Verification - Mobile Layout */
+  .payment-card {
+    flex-direction: column !important;
+  }
+
+  .payment-actions {
+    width: 100% !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+    padding-top: 0.75rem !important;
+    margin-top: 0.75rem !important;
+    justify-content: flex-end !important;
+  }
+
+  .payment-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .payment-modal-content {
+    max-height: 90vh !important;
+    margin: 1rem !important;
+  }
+
+  /* Analytics Dashboard - Smaller Charts */
+  .analytics-chart-container {
+    height: 300px !important;
+  }
+
+  .analytics-stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Settings Manager - Single Column Forms */
+  .settings-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .settings-section {
+    padding: 1rem !important;
+  }
+
+  .settings-textarea {
+    min-height: 100px !important;
+  }
+
+  /* Past Events Manager - Mobile Cards */
+  .past-event-card {
+    padding: 1rem !important;
+  }
+
+  .past-event-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .past-event-actions {
+    width: 100% !important;
+    justify-content: flex-end !important;
+    margin-top: 1rem !important;
+  }
+
+  .past-event-info-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Dashboard Modal - Full Screen on Mobile */
+  .dashboard-modal {
+    margin: 0 !important;
+    max-width: 100% !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+  }
+
+  .dashboard-modal-content {
+    max-height: calc(100vh - 2rem) !important;
+  }
+
+  /* Form Sections - Compact */
+  .form-section-collapsible {
+    padding: 0.75rem !important;
+  }
+
+  .form-section-header {
+    font-size: 0.75rem !important;
+  }
+
+  .form-grid-2,
+  .form-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Bulk Actions Bar - Stack Vertically */
+  .bulk-actions-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .bulk-actions-buttons {
+    width: 100% !important;
+    flex-direction: column !important;
+  }
+
+  .bulk-actions-buttons > * {
+    width: 100% !important;
+  }
+
+  /* Dashboard Header - Stack */
+  .dashboard-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+  }
+
+  .dashboard-title {
+    font-size: 1.75rem !important;
+  }
+
+  /* Touch-Friendly Icon Buttons */
+  .dashboard-icon-button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    padding: 0.75rem !important;
+  }
 }
 
 /* Tablet Optimizations (768px - 1024px) */
@@ -837,6 +1352,92 @@ textarea:focus-visible {
   .modal-content {
     max-width: 90%;
     max-height: 90vh;
+  }
+
+  /* ===========================
+     ADMIN DASHBOARD TABLET OPTIMIZATIONS
+     =========================== */
+
+  /* Dashboard Stats - 2 Column Grid */
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1.5rem !important;
+  }
+
+  /* Team Cards - 2 Column Grid */
+  .team-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 2rem !important;
+  }
+
+  /* Event Form - 2 Column for Some Fields */
+  .event-form-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Analytics Stats - 2 Column */
+  .analytics-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Settings Form - 2 Column */
+  .settings-form-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Payment Stats - 3 Column */
+  .payment-stats-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  /* Dashboard Tabs - Better Spacing */
+  .dashboard-tabs-container {
+    padding: 0.5rem;
+  }
+
+  /* Better Touch Targets for Tablet */
+  .dashboard-button,
+  .glass-button {
+    min-height: 48px !important;
+    padding: 0.875rem 1.25rem !important;
+  }
+
+  /* Sponsor Cards - Keep Horizontal Layout */
+  .sponsor-card {
+    flex-direction: row !important;
+  }
+
+  .sponsor-actions {
+    flex-direction: column !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-top: none !important;
+    padding-left: 1rem !important;
+    padding-top: 0 !important;
+  }
+
+  /* Registration Table - Better Spacing */
+  .registration-table {
+    min-width: 700px;
+  }
+
+  /* Analytics Chart - Larger on Tablet */
+  .analytics-chart-container {
+    height: 400px !important;
+  }
+
+  /* Past Events - Better Layout */
+  .past-event-header {
+    flex-direction: row !important;
+    align-items: center !important;
+  }
+
+  .past-event-actions {
+    width: auto !important;
+    margin-top: 0 !important;
+  }
+
+  .past-event-info-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }
 

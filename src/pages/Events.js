@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X, AlertCircle, Mail, Plus, CreditCard } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X, AlertCircle, Mail, Plus, CreditCard, Download } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
 import PaymentFlow from '../components/PaymentFlow';
 import MultiEventRegistration from '../components/MultiEventRegistration';
+import { generateRegistrationPDF, downloadPDF } from '../utils/pdfGenerator';
 
 const Events = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -71,7 +72,8 @@ const Events = () => {
     isSubmitting: false,
     canSubmit: true,
     error: null,
-    success: null
+    success: null,
+    registrationData: null // Store registration data for PDF generation
   });
 
   const [rsvpForm, setRsvpForm] = useState({
@@ -608,13 +610,42 @@ const Events = () => {
       step: 'success',
       isSubmitting: false,
       canSubmit: false,
-      success: data.message || 'Registration successful!'
+      success: data.message || 'Registration successful!',
+      registrationData: data.registration || data // Store registration data
     }));
 
-    setTimeout(() => {
-      resetRegistrationFlow();
-      fetchEvents(); // Refresh events data
-    }, 2500);
+    // Don't auto-close - let user download PDF first
+    // setTimeout(() => {
+    //   resetRegistrationFlow();
+    //   fetchEvents(); // Refresh events data
+    // }, 2500);
+  };
+
+  // Handle PDF download
+  const handleDownloadPDF = () => {
+    try {
+      if (!registrationFlow.registrationData || !rsvpEvent) {
+        alert('Unable to generate PDF. Please try again.');
+        return;
+      }
+
+      const doc = generateRegistrationPDF(registrationFlow.registrationData, rsvpEvent);
+      const filename = `TeamVortex_${rsvpEvent.title.replace(/\s+/g, '_')}_Registration.pdf`;
+      const success = downloadPDF(doc, filename);
+
+      if (success) {
+        // Show success message
+        setTimeout(() => {
+          resetRegistrationFlow();
+          fetchEvents();
+        }, 1000);
+      } else {
+        alert('Failed to download PDF. Please try again.');
+      }
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      alert('Failed to generate PDF. Please contact support.');
+    }
   };
 
   // Reset registration flow
@@ -913,6 +944,13 @@ const Events = () => {
                         <MapPin className="h-4 w-4 mr-2 text-vortex-blue" />
                         {event.location}
                       </div>
+                      {event.faqs && event.faqs.length > 0 && (
+                        <div className="flex items-center">
+                          <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-1 rounded-full border border-cyan-500/30 font-medium">
+                            ❓ {event.faqs.length} FAQ{event.faqs.length > 1 ? 's' : ''} Available
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Sub-Events Display */}
@@ -1019,14 +1057,14 @@ const Events = () => {
                 {/* Event Information Tabs */}
                 <div className="mb-6">
                   <div className="flex bg-white/5 p-1 rounded-xl overflow-x-auto scrollbar-hide">
-                    {['details', 'fees', 'rules', 'prizes'].map(tab => (
+                    {['details', 'fees', 'rules', 'prizes', 'faq'].map(tab => (
                       <button
                         key={tab}
                         onClick={() => setActiveInfoTab(tab)}
                         className={`px-4 py-2 rounded-lg font-medium capitalize transition-all whitespace-nowrap text-xs ${activeInfoTab === tab ? 'bg-vortex-blue text-black shadow-lg' : 'text-white/70 hover:text-white'
                           }`}
                       >
-                        {tab === 'details' ? 'Event Info' : tab}
+                        {tab === 'details' ? 'Event Info' : tab === 'faq' ? 'FAQ' : tab}
                       </button>
                     ))}
                   </div>
@@ -1270,6 +1308,61 @@ const Events = () => {
                         </div>
                       </div>
                     )}
+
+                    {activeInfoTab === 'faq' && (
+                      <div className="space-y-4">
+                        {rsvpEvent.faqs?.length > 0 ? (
+                          <div>
+                            <span className="text-white/40 uppercase tracking-wider text-xs block mb-3">Frequently Asked Questions</span>
+                            <div className="space-y-3">
+                              {rsvpEvent.faqs.map((faq, idx) => (
+                                <div key={idx} className="p-4 bg-white/5 rounded-lg border border-white/10 hover:border-vortex-blue/30 transition-all">
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-6 h-6 rounded-full bg-vortex-blue/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                      <span className="text-vortex-blue text-xs font-bold">Q</span>
+                                    </div>
+                                    <div className="flex-1">
+                                      <div className="text-white font-medium text-sm mb-2">{faq.question}</div>
+                                      <div className="flex items-start gap-3">
+                                        <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                                          <span className="text-green-400 text-xs font-bold">A</span>
+                                        </div>
+                                        <div className="text-white/70 text-xs leading-relaxed flex-1">{faq.answer}</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-8">
+                            <div className="text-white/20 text-4xl mb-2">❓</div>
+                            <div className="text-white/40 text-sm">No FAQs available yet</div>
+                            <div className="text-white/30 text-xs mt-2">Check back later or contact the organizers</div>
+                          </div>
+                        )}
+
+                        {/* Contact Organizer */}
+                        {rsvpEvent.organizer?.email && (
+                          <div className="pt-3 border-t border-white/10">
+                            <span className="text-white/40 uppercase tracking-wider text-xs block mb-2">Still have questions?</span>
+                            <div className="p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-500/20">
+                              <div className="text-white text-xs mb-1">Contact the organizer:</div>
+                              <a 
+                                href={`mailto:${rsvpEvent.organizer.email}`}
+                                className="text-vortex-blue text-sm font-medium hover:underline"
+                              >
+                                {rsvpEvent.organizer.email}
+                              </a>
+                              {rsvpEvent.organizer.name && (
+                                <div className="text-white/50 text-xs mt-1">{rsvpEvent.organizer.name}</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1292,9 +1385,34 @@ const Events = () => {
                     <div className="text-lg font-bold mb-2">
                       {registrationFlow.success ? 'Success!' : 'Error'}
                     </div>
-                    <div className="whitespace-pre-line">
+                    <div className="whitespace-pre-line mb-4">
                       {registrationFlow.success || registrationFlow.error}
                     </div>
+                    
+                    {/* PDF Download Button */}
+                    {registrationFlow.success && registrationFlow.registrationData && (
+                      <div className="space-y-3">
+                        <button
+                          onClick={handleDownloadPDF}
+                          className="inline-flex items-center gap-2 bg-gradient-to-r from-vortex-blue to-vortex-orange text-white font-bold py-3 px-6 rounded-xl hover:scale-105 active:scale-95 transition-transform shadow-lg"
+                        >
+                          <Download className="w-5 h-5" />
+                          Download Registration PDF
+                        </button>
+                        <p className="text-xs text-white/60">
+                          Download your registration confirmation with all event details
+                        </p>
+                        <button
+                          onClick={() => {
+                            resetRegistrationFlow();
+                            fetchEvents();
+                          }}
+                          className="text-sm text-white/60 hover:text-white underline"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1936,12 +2054,35 @@ const Events = () => {
                                 </button>
                               )}
 
-                              <button
-                                onClick={() => setFeedbackEvent(event)}
-                                className="glass-button text-purple-400 border border-purple-400/30 hover:bg-purple-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"
-                              >
-                                💬 Feedback
-                              </button>
+                              {/* Feedback Button - Only show if event has ended */}
+                              {(() => {
+                                try {
+                                  const eventDate = new Date(event.date);
+                                  const eventEnd = new Date(eventDate);
+                                  eventEnd.setHours(23, 59, 59, 999);
+                                  
+                                  if (event.endTime) {
+                                    const [h, m] = event.endTime.split(':').map(num => parseInt(num, 10));
+                                    if (!isNaN(h) && !isNaN(m)) {
+                                      eventEnd.setHours(h, m, 0, 0);
+                                    }
+                                  }
+                                  
+                                  const hasEnded = now > eventEnd;
+                                  
+                                  return hasEnded ? (
+                                    <button
+                                      onClick={() => setFeedbackEvent(event)}
+                                      className="glass-button text-purple-400 border border-purple-400/30 hover:bg-purple-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"
+                                    >
+                                      💬 Feedback
+                                    </button>
+                                  ) : null;
+                                } catch (err) {
+                                  console.error('Error checking event end time:', err);
+                                  return null;
+                                }
+                              })()}
                             </div>
                           </div>
                         </div>

@@ -600,8 +600,25 @@ router.post('/:id/submit-payment-proof', async (req, res) => {
 
         const registration = event.registrations[regIndex];
 
+        // Check if payment is already verified
         if (registration.paymentStatus === 'verified') {
-            return res.status(400).json({ message: 'Payment already verified' });
+            return res.status(400).json({ message: 'Payment already verified. No further action needed.' });
+        }
+
+        // Check if payment proof is already submitted and pending verification
+        if (registration.paymentStatus === 'submitted') {
+            return res.status(400).json({ message: 'Payment proof already submitted. Please wait for admin verification.' });
+        }
+
+        // Check for duplicate UTR number across all registrations in this event
+        const duplicateUTR = event.registrations.some((reg, idx) => 
+            idx !== regIndex && 
+            reg.paymentProof?.utrNumber === utrNumber &&
+            reg.paymentStatus !== 'rejected'
+        );
+
+        if (duplicateUTR) {
+            return res.status(400).json({ message: 'This UTR number has already been used for another registration. Please check your transaction details.' });
         }
 
         // Update payment proof

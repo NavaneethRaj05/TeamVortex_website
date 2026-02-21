@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Image, ExternalLink, Trash2, Plus, Save, X, Eye, MapPin, Clock, Users, Info } from 'lucide-react';
+import { Calendar, Image, ExternalLink, Trash2, Plus, Save, X, Eye, MapPin, Clock, Users, Info, MessageSquare } from 'lucide-react';
 import API_BASE_URL from '../../apiConfig';
+import FeedbackViewer from './FeedbackViewer';
 
 const PastEventsManager = () => {
   const [pastEvents, setPastEvents] = useState([]);
@@ -36,6 +37,7 @@ const PastEventsManager = () => {
   });
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [selectedEvents, setSelectedEvents] = useState([]);
+  const [viewingFeedback, setViewingFeedback] = useState(null);
 
   useEffect(() => {
     fetchPastEvents();
@@ -612,6 +614,13 @@ const PastEventsManager = () => {
                     </button>
                   )}
                   <button
+                    onClick={() => setViewingFeedback(event)}
+                    className="p-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors"
+                    title="View Feedback"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                  </button>
+                  <button
                     onClick={() => handleEdit(event, 'info')}
                     className="p-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
                     title="Edit Event Info"
@@ -1116,6 +1125,14 @@ const PastEventsManager = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Feedback Viewer Modal */}
+      {viewingFeedback && (
+        <FeedbackViewer
+          event={viewingFeedback}
+          onClose={() => setViewingFeedback(null)}
+        />
       )}
     </div>
   );

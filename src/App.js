@@ -1,8 +1,20 @@
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import FloatingTrophy from './components/FloatingTrophy';
+import AIChatbot from './components/AIChatbot';
+
+// Wrapper component to conditionally show chatbot
+const ConditionalChatbot = () => {
+  const location = useLocation();
+  const isDashboard = location.pathname === '/dashboard';
+  
+  // Don't show chatbot on dashboard (it's in the hamburger menu there)
+  if (isDashboard) return null;
+  
+  return <AIChatbot />;
+};
 
 // Lazy load pages for better performance
 const Home = lazy(() => import('./pages/Home'));
@@ -47,6 +59,7 @@ function App() {
         </Suspense>
         <Footer />
         <FloatingTrophy />
+        <ConditionalChatbot />
       </div>
     </Router>
   );

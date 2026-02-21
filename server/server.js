@@ -130,6 +130,8 @@ const settingsRoutes = require('./routes/settings');
 const sponsorRoutes = require('./routes/sponsors');
 const analyticsRoutes = require('./routes/analytics');
 const paymentRoutes = require('./routes/payments');
+const chatbotRoutes = require('./routes/chatbot');
+const clubStatsRoutes = require('./routes/clubStats');
 
 // Start Event Scheduler for automated notifications
 const { startScheduler } = require('./utils/eventScheduler');
@@ -144,6 +146,8 @@ apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/sponsors', sponsorRoutes);
 apiRouter.use('/analytics', analyticsRoutes);
 apiRouter.use('/payments', paymentRoutes);
+apiRouter.use('/chatbot', chatbotRoutes);
+apiRouter.use('/club-stats', clubStatsRoutes);
 
 // Mount the router on both paths to support local dev and Netlify functions
 app.use('/api', apiRouter);

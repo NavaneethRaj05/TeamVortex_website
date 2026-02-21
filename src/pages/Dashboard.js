@@ -2,11 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
-    Users, Calendar, Activity, Plus, Edit2, Trash2, Mail, MapPin, CreditCard, FileText
+    Users, Calendar, Activity, Plus, Edit2, Trash2, Mail, MapPin, CreditCard, FileText, Menu, X, LayoutDashboard, TrendingUp, Award, Settings
 } from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import API_BASE_URL from '../apiConfig';
+import { generateAdminReportPDF, downloadPDF } from '../utils/pdfGenerator';
 import EventForm from '../components/dashboard/EventForm';
 import StatsCard from '../components/dashboard/StatsCard';
 import TeamManager from '../components/dashboard/TeamManager';
@@ -16,11 +15,13 @@ import AnalyticsDashboard from '../components/dashboard/AnalyticsDashboard';
 import RegistrationViewer from '../components/dashboard/RegistrationViewer';
 import PaymentVerificationPanel from '../components/dashboard/PaymentVerificationPanel';
 import PastEventsManager from '../components/dashboard/PastEventsManager';
+import ChatbotManager from '../components/dashboard/ChatbotManager';
 
 const Dashboard = () => {
     const navigate = useNavigate();
     const [user] = useState(JSON.parse(localStorage.getItem('user')));
-    const [activeTab, setActiveTab] = useState('contests'); // contests | events | team | settings | sponsors
+    const [activeTab, setActiveTab] = useState('overview'); // overview | contests | events | team | settings | sponsors | payments | analytics
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     // Data States
     const [events, setEvents] = useState([]);
@@ -343,23 +344,17 @@ const Dashboard = () => {
     };
 
     const exportToPDF = (event) => {
-        if (!event.registrations || event.registrations.length === 0) { alert('No registrations to export'); return; }
-        const doc = new jsPDF();
-        doc.setFontSize(20); doc.setTextColor(33, 150, 243); doc.text('TEAM VORTEX - REGISTRATION REPORT', 14, 22);
-        doc.setFontSize(12); doc.setTextColor(100);
-        doc.text(`Event: ${event.title}`, 14, 32); doc.text(`Date: ${new Date(event.date).toLocaleDateString()}`, 14, 38);
-        doc.text(`Total Registrations: ${event.registrations.length}`, 14, 44); doc.text(`Exported On: ${new Date().toLocaleString()}`, 14, 50);
-
-        const tableColumn = ["Team/Lead", "Email", "Phone", "Participants", "Payment"];
-        const tableRows = [];
-        event.registrations.forEach(r => {
-            tableRows.push([
-                r.teamName || r.members[0]?.name || 'N/A', r.members[0]?.email || 'N/A', r.members[0]?.phone || 'N/A', r.members?.length || 0, r.paid ? 'PAID' : (r.paymentStatus || 'PENDING')
-            ]);
-        });
-
-        autoTable(doc, { head: [tableColumn], body: tableRows, startY: 60, theme: 'grid', headStyles: { fillColor: [33, 150, 243], textColor: 255 }, alternateRowStyles: { fillColor: [245, 245, 245] }, margin: { top: 60 } });
-        doc.save(`${event.title.replace(/\s+/g, '_')}_Registrations.pdf`);
+        try {
+            const doc = generateAdminReportPDF(event);
+            const filename = `${event.title.replace(/\s+/g, '_')}_Registrations.pdf`;
+            const success = downloadPDF(doc, filename);
+            
+            if (!success) {
+                alert('Failed to download PDF. Please try again.');
+            }
+        } catch (error) {
+            alert(error.message || 'Failed to export PDF');
+        }
     };
 
     const exportToCSV = (event) => {
@@ -382,13 +377,15 @@ const Dashboard = () => {
     };
 
     const menuItems = [
-        { id: 'contests', label: 'Contests', icon: Calendar },
-        { id: 'events', label: 'Events', icon: Activity },
+        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+        { id: 'contests', label: 'Contests', icon: Award },
+        { id: 'events', label: 'Past Events', icon: Calendar },
         { id: 'payments', label: 'Payments', icon: CreditCard },
-        { id: 'analytics', label: 'Analytics', icon: Activity },
+        { id: 'analytics', label: 'Analytics', icon: TrendingUp },
+        { id: 'chatbot', label: 'VortexBot', icon: Activity },
         { id: 'team', label: 'Team', icon: Users },
-        { id: 'sponsors', label: 'Sponsors', icon: Users },
-        { id: 'settings', label: 'Settings', icon: FileText }
+        { id: 'sponsors', label: 'Sponsors', icon: Activity },
+        { id: 'settings', label: 'Settings', icon: Settings }
     ];
 
     if (loading) return <div className="min-h-screen pt-24 text-center text-white">Loading Dashboard...</div>;
@@ -405,150 +402,323 @@ const Dashboard = () => {
     });
 
     return (
-        <div className="min-h-screen pt-24 pb-12 px-4 bg-dark-bg">
-            <div className="max-w-7xl mx-auto space-y-8">
-                {/* Header & Tabs */}
-                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
-                    <div>
-                        <h1 className="text-4xl font-display font-bold gradient-text mb-2">Admin Dashboard</h1>
-                        <p className="text-white/60">Manage Events, Team, Club, and Content</p>
-                    </div>
-                    <div className="flex bg-white/5 p-1 rounded-xl overflow-x-auto scrollbar-hide max-w-full">
-                        {menuItems.map(item => (
-                            <button
-                                key={item.id}
-                                onClick={() => setActiveTab(item.id)}
-                                className={`px-4 sm:px-6 py-2 rounded-lg font-medium capitalize transition-all whitespace-nowrap flex items-center gap-2 ${activeTab === item.id ? 'bg-vortex-blue text-black shadow-lg' : 'text-white/70 hover:text-white'}`}
-                            >
-                                <item.icon className="w-4 h-4" />
-                                {item.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+        <div className="min-h-screen bg-dark-bg">
+            {/* Hamburger Menu Button - Mobile Optimized */}
+            <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="fixed top-20 left-4 z-50 p-2.5 sm:p-3 glass-card rounded-xl hover:bg-white/10 active:scale-95 transition-all touch-manipulation"
+                aria-label="Toggle Menu"
+            >
+                {sidebarOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6 text-white" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-white" />}
+            </button>
 
-                {/* --- CONTESTS TAB (Formerly Events) --- */}
-                {activeTab === 'contests' && (
-                    <div className="space-y-6 animate-fade-in">
-                        {/* Stats */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <StatsCard icon={Users} label="Total Members" value={teamMembers.length} color="text-vortex-blue" />
-                            <StatsCard icon={Calendar} label="Active Contests" value={upcomingContests.length} color="text-vortex-orange" />
-                            <StatsCard icon={Activity} label="Registrations" value={upcomingContests.reduce((acc, e) => acc + (e.registrationCount || 0), 0)} color="text-green-400" />
+            {/* Sidebar Overlay */}
+            <AnimatePresence>
+                {sidebarOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setSidebarOpen(false)}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Sidebar - Mobile Optimized */}
+            <AnimatePresence>
+                {sidebarOpen && (
+                    <motion.aside
+                        initial={{ x: -300 }}
+                        animate={{ x: 0 }}
+                        exit={{ x: -300 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                        className="fixed left-0 top-0 h-full w-64 sm:w-72 bg-gradient-to-b from-[#0a1628] to-[#0f1f3a] border-r border-white/10 z-40 overflow-y-auto"
+                    >
+                        {/* Sidebar Header */}
+                        <div className="p-4 sm:p-6 border-b border-white/10">
+                            <h2 className="text-lg sm:text-xl font-bold gradient-text">Team Vortex</h2>
+                            <p className="text-white/60 text-xs sm:text-sm mt-1">Admin Dashboard</p>
                         </div>
 
-                        <div className="flex justify-between items-center bg-white/[0.02] p-4 rounded-2xl border border-white/5">
-                            <div>
-                                <h2 className="text-2xl font-bold text-white">Upcoming Contests</h2>
-                                <p className="text-white/60">Manage your active hackathons and competitions</p>
+                        {/* Navigation Menu - Mobile Optimized */}
+                        <nav className="p-3 sm:p-4 space-y-1.5 sm:space-y-2">
+                            {menuItems.map(item => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => {
+                                        setActiveTab(item.id);
+                                        setSidebarOpen(false);
+                                    }}
+                                    className={`w-full flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all touch-manipulation ${
+                                        activeTab === item.id
+                                            ? 'bg-vortex-blue text-black font-bold shadow-lg'
+                                            : 'text-white/70 active:bg-white/10 sm:hover:bg-white/5 active:text-white sm:hover:text-white'
+                                    }`}
+                                >
+                                    <item.icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                                    <span className="text-sm sm:text-base">{item.label}</span>
+                                </button>
+                            ))}
+                        </nav>
+
+                        {/* User Info - Mobile Optimized */}
+                        <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 border-t border-white/10 bg-black/20">
+                            <div className="flex items-center gap-2.5 sm:gap-3">
+                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-vortex-blue to-vortex-orange flex items-center justify-center flex-shrink-0">
+                                    <span className="text-black font-bold text-xs sm:text-sm">
+                                        {user?.email?.charAt(0).toUpperCase()}
+                                    </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-white text-xs sm:text-sm font-medium truncate">Admin</p>
+                                    <p className="text-white/60 text-[10px] sm:text-xs truncate">{user?.email}</p>
+                                </div>
                             </div>
-                            <button onClick={() => {
-                                setShowEventForm(true);
-                                setEditingEventId(null);
-                                setNewEvent({
-                                    title: '', description: '', date: '', location: '', price: 0, capacity: 50, images: [], registrationType: 'Solo', maxTeamSize: 1, paymentGateway: 'UPI',
-                                    upiId: '', upiQrCode: '', paymentReceiverName: '', offlineMethods: [], bankDetails: { bankName: '', accountName: '', accountNumber: '', ifscCode: '' }, cashDetails: { location: '' },
-                                    offlineInstructions: '', registrationOpens: '', registrationCloses: ''
-                                });
-                            }}
-                                className="glass-button bg-vortex-blue/10 text-vortex-blue border-vortex-blue/20 flex items-center gap-2 text-xs sm:text-sm px-4 py-2 hover:bg-vortex-blue hover:text-black transition-all duration-300">
-                                <Plus size={16} /> <span className="hidden xs:inline">Add Contest</span><span className="xs:hidden">Add</span>
-                            </button>
                         </div>
+                    </motion.aside>
+                )}
+            </AnimatePresence>
 
-                        {showEventForm && (
-                            <EventForm
-                                newEvent={newEvent}
-                                setNewEvent={setNewEvent}
-                                onSubmit={handleSaveEvent}
-                                onCancel={() => { setShowEventForm(false); setEditingEventId(null); }}
-                                editingEventId={editingEventId}
-                            />
-                        )}
+            {/* Main Content */}
+            <div className="pt-24 pb-12 px-4 lg:px-8">
+                <div className="max-w-7xl mx-auto space-y-8">
+                    {/* Page Header */}
+                    <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                            <h1 className="text-3xl md:text-4xl font-display font-bold gradient-text mb-2">
+                                {menuItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
+                            </h1>
+                            <p className="text-white/60">
+                                {activeTab === 'overview' && 'Welcome to your admin dashboard'}
+                                {activeTab === 'contests' && 'Manage upcoming hackathons and competitions'}
+                                {activeTab === 'events' && 'View and manage past events'}
+                                {activeTab === 'payments' && 'Verify and manage payment submissions'}
+                                {activeTab === 'analytics' && 'View event statistics and insights'}
+                                {activeTab === 'chatbot' && 'Manage VortexBot responses and FAQs'}
+                                {activeTab === 'team' && 'Manage team members and roles'}
+                                {activeTab === 'sponsors' && 'Manage sponsors and partnerships'}
+                                {activeTab === 'settings' && 'Configure club settings and preferences'}
+                            </p>
+                        </div>
+                    </div>
 
-                        <div className="grid gap-4">
-                            {upcomingContests.map(event => (
-                                <div key={event._id} className="glass-card p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-vortex-blue/30 transition-all group">
-                                    <div className="space-y-1">
-                                        <h3 className="font-bold text-white text-lg group-hover:text-vortex-blue transition-colors line-clamp-1">{event.title}</h3>
-                                        <div className="text-white/40 text-xs flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                                            <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(event.date).toLocaleDateString()}</span>
-                                            <span className="flex items-center gap-1"><MapPin size={12} /> {event.location}</span>
-                                            <span className="text-vortex-blue flex items-center gap-1 font-bold"><Users size={12} /> {event.registrationCount || 0} Joined</span>
+                    {/* --- OVERVIEW TAB --- */}
+                    {activeTab === 'overview' && (
+                        <div className="space-y-6 animate-fade-in">
+                            {/* Stats Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <StatsCard 
+                                    icon={Users} 
+                                    label="Total Members" 
+                                    value={teamMembers.length} 
+                                    color="text-vortex-blue" 
+                                />
+                                <StatsCard 
+                                    icon={Calendar} 
+                                    label="Active Contests" 
+                                    value={upcomingContests.length} 
+                                    color="text-vortex-orange" 
+                                />
+                                <StatsCard 
+                                    icon={Activity} 
+                                    label="Total Events" 
+                                    value={events.length} 
+                                    color="text-green-400" 
+                                />
+                                <StatsCard 
+                                    icon={Award} 
+                                    label="Registrations" 
+                                    value={upcomingContests.reduce((acc, e) => acc + (e.registrationCount || 0), 0)} 
+                                    color="text-purple-400" 
+                                />
+                            </div>
+
+                            {/* Quick Actions */}
+                            <div className="glass-card p-6">
+                                <h2 className="text-xl font-bold text-white mb-4">Quick Actions</h2>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <button
+                                        onClick={() => {
+                                            setActiveTab('contests');
+                                            setShowEventForm(true);
+                                            setEditingEventId(null);
+                                        }}
+                                        className="glass-button bg-vortex-blue/10 text-vortex-blue border-vortex-blue/20 flex items-center justify-center gap-2 py-4 hover:bg-vortex-blue hover:text-black transition-all"
+                                    >
+                                        <Plus size={20} />
+                                        <span>Add Contest</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('team')}
+                                        className="glass-button bg-purple-500/10 text-purple-400 border-purple-500/20 flex items-center justify-center gap-2 py-4 hover:bg-purple-500 hover:text-white transition-all"
+                                    >
+                                        <Users size={20} />
+                                        <span>Manage Team</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('payments')}
+                                        className="glass-button bg-green-500/10 text-green-400 border-green-500/20 flex items-center justify-center gap-2 py-4 hover:bg-green-500 hover:text-white transition-all"
+                                    >
+                                        <CreditCard size={20} />
+                                        <span>Payments</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('analytics')}
+                                        className="glass-button bg-orange-500/10 text-orange-400 border-orange-500/20 flex items-center justify-center gap-2 py-4 hover:bg-orange-500 hover:text-white transition-all"
+                                    >
+                                        <TrendingUp size={20} />
+                                        <span>Analytics</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Recent Activity */}
+                            <div className="glass-card p-6">
+                                <h2 className="text-xl font-bold text-white mb-4">Recent Contests</h2>
+                                <div className="space-y-3">
+                                    {upcomingContests.slice(0, 5).map(event => (
+                                        <div key={event._id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-vortex-blue to-vortex-orange flex items-center justify-center">
+                                                    <Calendar className="w-5 h-5 text-white" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-white font-medium">{event.title}</p>
+                                                    <p className="text-white/60 text-sm">{new Date(event.date).toLocaleDateString()}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="px-3 py-1 bg-vortex-blue/20 text-vortex-blue rounded-full text-xs font-bold">
+                                                    {event.registrationCount || 0} Registered
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* --- CONTESTS TAB --- */}
+                    {activeTab === 'contests' && (
+                        <div className="space-y-6 animate-fade-in">
+                            <div className="flex justify-between items-center bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">Upcoming Contests</h2>
+                                    <p className="text-white/60">Manage your active hackathons and competitions</p>
+                                </div>
+                                <button onClick={() => {
+                                    setShowEventForm(true);
+                                    setEditingEventId(null);
+                                    setNewEvent({
+                                        title: '', description: '', date: '', location: '', price: 0, capacity: 50, images: [], registrationType: 'Solo', maxTeamSize: 1, paymentGateway: 'UPI',
+                                        upiId: '', upiQrCode: '', paymentReceiverName: '', offlineMethods: [], bankDetails: { bankName: '', accountName: '', accountNumber: '', ifscCode: '' }, cashDetails: { location: '' },
+                                        offlineInstructions: '', registrationOpens: '', registrationCloses: ''
+                                    });
+                                }}
+                                    className="glass-button bg-vortex-blue/10 text-vortex-blue border-vortex-blue/20 flex items-center gap-2 text-xs sm:text-sm px-4 py-2 hover:bg-vortex-blue hover:text-black transition-all duration-300">
+                                    <Plus size={16} /> <span className="hidden xs:inline">Add Contest</span><span className="xs:hidden">Add</span>
+                                </button>
+                            </div>
+
+                            {showEventForm && (
+                                <EventForm
+                                    newEvent={newEvent}
+                                    setNewEvent={setNewEvent}
+                                    onSubmit={handleSaveEvent}
+                                    onCancel={() => { setShowEventForm(false); setEditingEventId(null); }}
+                                    editingEventId={editingEventId}
+                                />
+                            )}
+
+                            <div className="grid gap-4">
+                                {upcomingContests.map(event => (
+                                    <div key={event._id} className="glass-card p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-vortex-blue/30 transition-all group">
+                                        <div className="space-y-1">
+                                            <h3 className="font-bold text-white text-lg group-hover:text-vortex-blue transition-colors line-clamp-1">{event.title}</h3>
+                                            <div className="text-white/40 text-xs flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                                                <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(event.date).toLocaleDateString()}</span>
+                                                <span className="flex items-center gap-1"><MapPin size={12} /> {event.location}</span>
+                                                <span className="text-vortex-blue flex items-center gap-1 font-bold"><Users size={12} /> {event.registrationCount || 0} Joined</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-1 sm:gap-2 w-full sm:w-auto border-t sm:border-t-0 border-white/5 pt-3 sm:pt-0 justify-end">
+                                            <button onClick={() => handleSendReminders(event._id)} className="p-2.5 hover:bg-purple-500/20 rounded-xl text-purple-400 transition-colors" title="Send Reminders"><Mail size={18} /></button>
+                                            <button onClick={() => startViewRegistrations(event._id)} className="p-2.5 hover:bg-green-500/20 rounded-xl text-green-400 transition-colors" title="View Registrations"><Users size={18} /></button>
+                                            <button onClick={() => startEditEvent(event)} className="p-2.5 hover:bg-vortex-blue/20 rounded-xl text-vortex-blue transition-colors"><Edit2 size={18} /></button>
+                                            <button onClick={() => handleDeleteEvent(event._id)} className="p-2.5 hover:bg-red-500/20 rounded-xl text-red-400 transition-colors"><Trash2 size={18} /></button>
                                         </div>
                                     </div>
-                                    <div className="flex gap-1 sm:gap-2 w-full sm:w-auto border-t sm:border-t-0 border-white/5 pt-3 sm:pt-0 justify-end">
-                                        <button onClick={() => handleSendReminders(event._id)} className="p-2.5 hover:bg-purple-500/20 rounded-xl text-purple-400 transition-colors" title="Send Reminders"><Mail size={18} /></button>
-                                        <button onClick={() => startViewRegistrations(event._id)} className="p-2.5 hover:bg-green-500/20 rounded-xl text-green-400 transition-colors" title="View Registrations"><Users size={18} /></button>
-                                        <button onClick={() => startEditEvent(event)} className="p-2.5 hover:bg-vortex-blue/20 rounded-xl text-vortex-blue transition-colors"><Edit2 size={18} /></button>
-                                        <button onClick={() => handleDeleteEvent(event._id)} className="p-2.5 hover:bg-red-500/20 rounded-xl text-red-400 transition-colors"><Trash2 size={18} /></button>
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* --- EVENTS TAB (Formerly Past Events) --- */}
-                {activeTab === 'events' && <PastEventsManager />}
+                    {/* --- EVENTS TAB (Past Events) --- */}
+                    {activeTab === 'events' && <PastEventsManager />}
 
-                {/* --- PAYMENTS TAB --- */}
-                {activeTab === 'payments' && <PaymentVerificationPanel />}
+                    {/* --- PAYMENTS TAB --- */}
+                    {activeTab === 'payments' && <PaymentVerificationPanel />}
 
-                {/* --- ANALYTICS TAB --- */}
-                {activeTab === 'analytics' && <AnalyticsDashboard eventStats={eventStats} />}
+                    {/* --- ANALYTICS TAB --- */}
+                    {activeTab === 'analytics' && <AnalyticsDashboard eventStats={eventStats} />}
 
-                {/* --- TEAM TAB --- */}
-                {activeTab === 'team' && (
-                    <TeamManager
-                        teamMembers={teamMembers}
-                        showTeamForm={showTeamForm}
-                        setShowTeamForm={setShowTeamForm}
-                        editingMemberId={editingMemberId}
-                        setEditingMemberId={setEditingMemberId}
-                        newMember={newMember}
-                        setNewMember={setNewMember}
-                        onSave={handleSaveMember}
-                        onDelete={handleDeleteMember}
-                        onEdit={startEditMember}
+                    {/* --- CHATBOT TAB --- */}
+                    {activeTab === 'chatbot' && <ChatbotManager />}
+
+                    {/* --- TEAM TAB --- */}
+                    {activeTab === 'team' && (
+                        <TeamManager
+                            teamMembers={teamMembers}
+                            showTeamForm={showTeamForm}
+                            setShowTeamForm={setShowTeamForm}
+                            editingMemberId={editingMemberId}
+                            setEditingMemberId={setEditingMemberId}
+                            newMember={newMember}
+                            setNewMember={setNewMember}
+                            onSave={handleSaveMember}
+                            onDelete={handleDeleteMember}
+                            onEdit={startEditMember}
+                        />
+                    )}
+
+                    {/* --- SPONSORS TAB --- */}
+                    {activeTab === 'sponsors' && (
+                        <SponsorManager
+                            sponsors={sponsors}
+                            showSponsorForm={showSponsorForm}
+                            setShowSponsorForm={setShowSponsorForm}
+                            editingSponsorId={editingSponsorId}
+                            setEditingSponsorId={setEditingSponsorId}
+                            newSponsor={newSponsor}
+                            setNewSponsor={setNewSponsor}
+                            onSave={handleSaveSponsor}
+                            onDelete={handleDeleteSponsor}
+                            onEdit={startEditSponsor}
+                            onToggleStatus={handleToggleSponsorStatus}
+                        />
+                    )}
+
+                    {/* --- SETTINGS TAB --- */}
+                    {activeTab === 'settings' && (
+                        <SettingsManager
+                            clubSettings={clubSettings}
+                            setClubSettings={setClubSettings}
+                            onSaveSettings={handleSaveSettings}
+                            onUpdatePassword={handleUpdatePassword}
+                            userEmail={user?.email}
+                        />
+                    )}
+
+                    {/* --- Registrations Modal --- */}
+                    <RegistrationViewer
+                        viewingRegistrations={viewingRegistrations}
+                        setViewingRegistrations={setViewingRegistrations}
+                        onExport={exportToCSV}
+                        onExportPDF={exportToPDF}
                     />
-                )}
-
-                {/* --- SPONSORS TAB --- */}
-                {activeTab === 'sponsors' && (
-                    <SponsorManager
-                        sponsors={sponsors}
-                        showSponsorForm={showSponsorForm}
-                        setShowSponsorForm={setShowSponsorForm}
-                        editingSponsorId={editingSponsorId}
-                        setEditingSponsorId={setEditingSponsorId}
-                        newSponsor={newSponsor}
-                        setNewSponsor={setNewSponsor}
-                        onSave={handleSaveSponsor}
-                        onDelete={handleDeleteSponsor}
-                        onEdit={startEditSponsor}
-                        onToggleStatus={handleToggleSponsorStatus}
-                    />
-                )}
-
-                {/* --- SETTINGS TAB --- */}
-                {activeTab === 'settings' && (
-                    <SettingsManager
-                        clubSettings={clubSettings}
-                        setClubSettings={setClubSettings}
-                        onSaveSettings={handleSaveSettings}
-                        onUpdatePassword={handleUpdatePassword}
-                        userEmail={user?.email}
-                    />
-                )}
-
-                {/* --- Registrations Modal --- */}
-                <RegistrationViewer
-                    viewingRegistrations={viewingRegistrations}
-                    setViewingRegistrations={setViewingRegistrations}
-                    onExport={exportToCSV}
-                    onExportPDF={exportToPDF}
-                />
+                </div>
             </div>
         </div >
     );
