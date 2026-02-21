@@ -133,15 +133,40 @@ router.get('/', async (req, res) => {
 });
 
 // @route   GET /api/events/stats
-// @desc    Get aggregate stats for dashboard (Optimized)
+// @desc    Get aggregate stats for dashboard (Optimized) - Only upcoming events
 router.get('/stats', async (req, res) => {
     try {
-        // Use projection to only fetch lengths where possible or minimal data
-        const events = await Event.find()
-            .select('title registrations waitlist feedback')
+        const now = new Date();
+        
+        // Fetch only upcoming events (not completed or past)
+        const events = await Event.find({
+            $or: [
+                { status: { $in: ['published', 'active'] } },
+                { status: { $exists: false } }
+            ],
+            status: { $ne: 'completed' }
+        })
+            .select('title registrations waitlist feedback date endTime status')
             .lean();
 
-        const stats = events.map(e => ({
+        // Further filter to exclude past events based on date
+        const upcomingEvents = events.filter(e => {
+            try {
+                const eventDate = new Date(e.date);
+                const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
+                
+                if (e.endTime) {
+                    const [h, m] = e.endTime.split(':');
+                    eventEnd.setHours(parseInt(h), parseInt(m), 0);
+                }
+                
+                return now <= eventEnd;
+            } catch (err) {
+                return false;
+            }
+        });
+
+        const stats = upcomingEvents.map(e => ({
             _id: e._id,
             title: e.title,
             registrations: e.registrations?.length || 0,
@@ -149,6 +174,7 @@ router.get('/stats', async (req, res) => {
             feedbackCount: e.feedback?.length || 0,
             avgRating: e.feedback?.length > 0 ? e.feedback.reduce((acc, f) => acc + f.rating, 0) / e.feedback.length : 0
         }));
+        
         res.json(stats);
     } catch (err) {
         res.status(500).json({ message: err.message });

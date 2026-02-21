@@ -12,10 +12,22 @@ const Home = () => {
   const [pastEvents, setPastEvents] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
   const [prayogEvent, setPrayogEvent] = useState(null);
+  const [settings, setSettings] = useState(null);
 
   useEffect(() => {
     fetchEvents();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/settings`);
+      const data = await res.json();
+      setSettings(data);
+    } catch (err) {
+      console.error('Error fetching settings:', err);
+    }
+  };
 
   const fetchEvents = async () => {
     try {
@@ -564,10 +576,10 @@ const Home = () => {
       {/* Stats Section with Counter Effect */}
       <section className="py-20 border-y border-white/5 bg-black/80 backdrop-blur-md z-10 relative">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          <StatItem number="25+" label="Active Members" icon={Users} />
-          <StatItem number="50+" label="Projects Built" icon={Code} />
-          <StatItem number="12" label="Awards Won" icon={Award} />
-          <StatItem number="5" label="Major Events" icon={Globe} />
+          <StatItem number={settings?.stats?.activeMembers || "25+"} label="Active Members" icon={Users} />
+          <StatItem number={settings?.stats?.projectsBuilt || "50+"} label="Projects Built" icon={Code} />
+          <StatItem number={settings?.stats?.awardsWon || "12"} label="Awards Won" icon={Award} />
+          <StatItem number={settings?.stats?.majorEvents || "5"} label="Major Events" icon={Globe} />
         </div>
       </section>
 
@@ -598,10 +610,7 @@ const Home = () => {
                 </div>
                 <h3 className="text-2xl font-bold mb-4">Our Vision</h3>
                 <p className="text-white/70 leading-relaxed">
-                  To cultivate a generation of tech leaders who don't just adapt to the future,
-                  but define it. We aim to be the epicenter of student innovation,
-                  fostering a culture where every idea has the power to spark a revolution
-                  and solve complex global challenges.
+                  {settings?.vision || "To cultivate a generation of tech leaders who don't just adapt to the future, but define it. We aim to be the epicenter of student innovation, fostering a culture where every idea has the power to spark a revolution and solve complex global challenges."}
                 </p>
                 <div className="mt-auto pt-6 flex items-center text-vortex-blue text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
                   Learn how we innovate <ArrowRight className="w-4 h-4 ml-2" />
@@ -627,9 +636,7 @@ const Home = () => {
                 </div>
                 <h4 className="text-2xl font-bold mb-4">Fast Paced</h4>
                 <p className="text-white/70 leading-relaxed">
-                  We move fast, break things, and build them better. Our agile methodology
-                  ensures we stay ahead of technical trends and deliver cutting-edge
-                  solutions in record time.
+                  {settings?.fastPaced || "We move fast, break things, and build them better. Our agile methodology ensures we stay ahead of technical trends and deliver cutting-edge solutions in record time."}
                 </p>
                 <div className="mt-auto pt-6 flex items-center text-vortex-orange text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
                   Our development cycle <ArrowRight className="w-4 h-4 ml-2" />
@@ -655,9 +662,7 @@ const Home = () => {
                 </div>
                 <h4 className="text-2xl font-bold mb-4">Global Impact</h4>
                 <p className="text-white/70 leading-relaxed">
-                  Solving real-world problems with code. From local community tools to
-                  scalable global platforms, our projects are built with the intention
-                  of making a positive, measurable difference in society.
+                  {settings?.globalImpact || "Solving real-world problems with code. From local community tools to scalable global platforms, our projects are built with the intention of making a positive, measurable difference in society."}
                 </p>
                 <div className="mt-auto pt-6 flex items-center text-cyan-400 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
                   See our influence <ArrowRight className="w-4 h-4 ml-2" />
@@ -685,8 +690,7 @@ const Home = () => {
               <Rocket className="w-16 h-16 mx-auto text-white mb-8" />
               <h2 className="text-4xl md:text-5xl font-bold font-display mb-8">Our Mission</h2>
               <p className="text-xl md:text-2xl text-white/80 leading-relaxed">
-                "To bridge the gap between academic theory and industry reality by providing
-                an ecosystem for hands-on learning, mentorship, and competitive excellence."
+                {settings?.mission || '"To bridge the gap between academic theory and industry reality by providing an ecosystem for hands-on learning, mentorship, and competitive excellence."'}
               </p>
             </div>
           </motion.div>

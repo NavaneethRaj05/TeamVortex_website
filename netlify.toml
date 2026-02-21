@@ -1,13 +1,13 @@
 [build]
   command = "npm run build"
   publish = "build"
+  functions = "netlify/functions"
 
-[functions]
-  external_node_modules = ["express", "serverless-http", "mongoose", "cors", "dotenv", "helmet", "xss-clean", "express-rate-limit", "nodemailer"]
-  node_bundler = "esbuild"
-  directory = "netlify/functions"
+[build.environment]
+  NODE_VERSION = "18"
+  CI = "false"
 
-# Redirects
+# Redirect rules
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
@@ -17,95 +17,36 @@
   from = "/*"
   to = "/index.html"
   status = 200
-  force = false
 
-# Security Headers
+# Headers for security
 [[headers]]
   for = "/*"
   [headers.values]
-    # Security Headers
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=()"
-    
-    # Content Security Policy
-    Content-Security-Policy = '''
-      default-src 'self';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com;
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      font-src 'self' https://fonts.gstatic.com;
-      img-src 'self' data: https: blob:;
-      connect-src 'self' https://*.teamvortex.com;
-      frame-ancestors 'none';
-      base-uri 'self';
-      form-action 'self';
-    '''
-    
-    # Cache Control for HTML (no cache)
-    Cache-Control = "public, max-age=0, must-revalidate"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
 
-# Static Assets Caching (JS, CSS, Images)
+# Cache static assets
 [[headers]]
   for = "/static/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+# Plugin for Lighthouse CI
+[[plugins]]
+  package = "@netlify/plugin-lighthouse"
 
-[[headers]]
-  for = "/*.css"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+  [plugins.inputs.thresholds]
+    performance = 0.7
+    accessibility = 0.8
+    best-practices = 0.8
+    seo = 0.8
 
-# Images Caching
-[[headers]]
-  for = "/*.jpg"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+# Build plugins
+[[plugins]]
+  package = "netlify-plugin-cache"
 
-[[headers]]
-  for = "/*.jpeg"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.png"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.webp"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.svg"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# Fonts Caching
-[[headers]]
-  for = "/*.woff"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.woff2"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# Manifest and Service Worker
-[[headers]]
-  for = "/manifest.json"
-  [headers.values]
-    Cache-Control = "public, max-age=86400"
-
-[[headers]]
-  for = "/service-worker.js"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
+  [plugins.inputs]
+    paths = ["node_modules", ".cache"]

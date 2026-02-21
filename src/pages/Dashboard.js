@@ -25,7 +25,23 @@ const Dashboard = () => {
     // Data States
     const [events, setEvents] = useState([]);
     const [teamMembers, setTeamMembers] = useState([]);
-    const [clubSettings, setClubSettings] = useState({});
+    const defaultSettings = {
+        stats: {
+            activeMembers: "25+",
+            projectsBuilt: "50+",
+            awardsWon: "12",
+            majorEvents: "5"
+        },
+        vision: "To cultivate a generation of tech leaders who don't just adapt to the future, but define it. We aim to be the epicenter of student innovation, fostering a culture where every idea has the power to spark a revolution and solve complex global challenges.",
+        fastPaced: "We move fast, break things, and build them better. Our agile methodology ensures we stay ahead of technical trends and deliver cutting-edge solutions in record time.",
+        globalImpact: "Solving real-world problems with code. From local community tools to scalable global platforms, our projects are built with the intention of making a positive, measurable difference in society.",
+        mission: "To bridge the gap between academic theory and industry reality by providing an ecosystem for hands-on learning, mentorship, and competitive excellence.",
+        email: "",
+        phone: "",
+        instagramUrl: "",
+        linkedinUrl: ""
+    };
+    const [clubSettings, setClubSettings] = useState(defaultSettings);
     const [sponsors, setSponsors] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -162,7 +178,27 @@ const Dashboard = () => {
     // Individual fetch functions
     const fetchEvents = async () => { try { const res = await fetch(`${API_BASE_URL}/api/events`); setEvents(await res.json()); } catch (err) { console.error(err); } };
     const fetchTeam = async () => { try { const res = await fetch(`${API_BASE_URL}/api/team`); setTeamMembers(await res.json()); } catch (err) { console.error(err); } };
-    const fetchSettings = async () => { try { const res = await fetch(`${API_BASE_URL}/api/settings`); setClubSettings(await res.json()); } catch (err) { console.error(err); } };
+    const fetchSettings = async () => { 
+        try { 
+            const res = await fetch(`${API_BASE_URL}/api/settings`); 
+            const data = await res.json();
+            
+            // Merge fetched data with defaults (fetched data takes priority)
+            const mergedSettings = {
+                ...defaultSettings,
+                ...data,
+                stats: {
+                    ...defaultSettings.stats,
+                    ...(data.stats || {})
+                }
+            };
+            
+            setClubSettings(mergedSettings);
+        } catch (err) { 
+            console.error('Failed to fetch settings:', err); 
+            // Keep default values already set in state
+        } 
+    };
     const fetchSponsors = async () => { try { const res = await fetch(`${API_BASE_URL}/api/sponsors`); setSponsors(await res.json()); } catch (err) { console.error(err); } };
 
     // --- Event Handlers ---
