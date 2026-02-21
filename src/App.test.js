@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import App from './App';
 
 // Mock ParticleBackground to avoid canvas issues in tests
@@ -15,16 +16,29 @@ jest.mock('./components/FloatingTrophy', () => {
   };
 });
 
+// Mock IntersectionObserver
+global.IntersectionObserver = class IntersectionObserver {
+  constructor() {}
+  disconnect() {}
+  observe() {}
+  takeRecords() {
+    return [];
+  }
+  unobserve() {}
+};
+
 describe('App Component', () => {
   test('renders without crashing', () => {
     render(<App />);
-    // Use screen queries instead of container
-    expect(screen.getByTestId('particle-background')).toBeInTheDocument();
+    // Check if the app renders with basic structure (navigation)
+    expect(screen.getAllByText('TEAM VORTEX')[0]).toBeInTheDocument();
   });
 
   test('renders navigation', () => {
     render(<App />);
-    // Basic smoke test - just ensure app renders with content
-    expect(screen.getByTestId('particle-background')).toBeInTheDocument();
+    // Check if navigation links are present
+    expect(screen.getByText('Home')).toBeInTheDocument();
+    expect(screen.getByText('Team')).toBeInTheDocument();
+    expect(screen.getByText('Events')).toBeInTheDocument();
   });
 });
