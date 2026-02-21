@@ -3,14 +3,13 @@ import App from './App';
 
 describe('App Component', () => {
   test('renders without crashing', () => {
-    render(<App />);
-    expect(document.body).toBeInTheDocument();
+    const { container } = render(<App />);
+    expect(container).toBeInTheDocument();
   });
 
   test('renders navigation', () => {
-    render(<App />);
+    const { container } = render(<App />);
     // Basic smoke test - just ensure app renders
-    const app = document.querySelector('.App');
-    expect(app || document.body).toBeTruthy();
+    expect(container.firstChild).toBeTruthy();
   });
 });

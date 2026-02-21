@@ -4,6 +4,7 @@ import { X, Calendar, MapPin, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const UpcomingEventsPopup = ({ events, onClose }) => {
+    // Don't show popup if no events
     if (!events || events.length === 0) return null;
 
     return (
