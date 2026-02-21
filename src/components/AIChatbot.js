@@ -118,7 +118,7 @@ const AIChatbot = () => {
 
   return (
     <>
-      {/* Chatbot Toggle Button - Unique Animated Design - ALWAYS VISIBLE */}
+      {/* Chatbot Toggle Button - ALWAYS VISIBLE ON ALL DEVICES */}
       <AnimatePresence>
         {!isOpen && (
           <motion.button
@@ -129,23 +129,26 @@ const AIChatbot = () => {
             className="chatbot-button-unique"
             style={{
               position: 'fixed',
-              bottom: '1rem',
-              right: '1rem',
+              bottom: window.innerWidth < 640 ? '1rem' : '1.5rem', // 16px mobile, 24px desktop
+              right: window.innerWidth < 640 ? '1rem' : '1.5rem',
               zIndex: 9999,
-              width: '3.5rem',
-              height: '3.5rem',
+              width: window.innerWidth < 640 ? '3.5rem' : '4rem', // 56px mobile, 64px desktop
+              height: window.innerWidth < 640 ? '3.5rem' : '4rem',
               borderRadius: '50%',
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              transition: 'transform 0.3s ease'
+              transition: 'transform 0.3s ease',
+              touchAction: 'manipulation' // Better touch handling
             }}
             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
             onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
             onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+            onTouchStart={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+            onTouchEnd={(e) => e.currentTarget.style.transform = 'scale(1)'}
             aria-label="Open Chat"
           >
             {/* Animated rotating gradient background */}
@@ -155,22 +158,63 @@ const AIChatbot = () => {
             <div className="absolute inset-0 rounded-full animate-ping-slow opacity-75 bg-gradient-radial-glow"></div>
             
             {/* Inner circle with icon */}
-            <div className="relative z-10 w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 flex items-center justify-center shadow-inner">
-              <MessageCircle className="w-6 h-6 text-white animate-bounce-subtle" />
+            <div style={{
+              position: 'relative',
+              zIndex: 10,
+              width: window.innerWidth < 640 ? '3rem' : '3.5rem',
+              height: window.innerWidth < 640 ? '3rem' : '3.5rem',
+              borderRadius: '50%',
+              background: 'linear-gradient(to bottom right, #22d3ee, #3b82f6, #a855f7)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
+            }}>
+              <MessageCircle style={{
+                width: window.innerWidth < 640 ? '1.5rem' : '1.75rem',
+                height: window.innerWidth < 640 ? '1.5rem' : '1.75rem',
+                color: 'white'
+              }} className="animate-bounce-subtle" />
             </div>
             
             {/* Status indicator */}
-            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white animate-pulse-glow shadow-glow-green"></span>
+            <span style={{
+              position: 'absolute',
+              top: '-0.125rem',
+              right: '-0.125rem',
+              width: window.innerWidth < 640 ? '0.75rem' : '1rem',
+              height: window.innerWidth < 640 ? '0.75rem' : '1rem',
+              backgroundColor: '#4ade80',
+              borderRadius: '50%',
+              border: '2px solid white'
+            }} className="animate-pulse-glow shadow-glow-green"></span>
             
             {/* Tooltip - Hidden on mobile, shown on desktop */}
-            <div className="hidden sm:block absolute bottom-full right-0 mb-2 px-3 py-2 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-lg">
-              Chat with VortexBot AI
-            </div>
+            {window.innerWidth >= 640 && (
+              <div style={{
+                position: 'absolute',
+                bottom: '100%',
+                right: '0',
+                marginBottom: '0.5rem',
+                padding: '0.5rem 0.75rem',
+                background: 'linear-gradient(to right, #06b6d4, #3b82f6, #8b5cf6)',
+                color: 'white',
+                fontSize: '0.875rem',
+                borderRadius: '0.5rem',
+                opacity: 0,
+                transition: 'opacity 0.3s',
+                whiteSpace: 'nowrap',
+                pointerEvents: 'none',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+              }} className="chatbot-tooltip">
+                Chat with VortexBot AI
+              </div>
+            )}
           </motion.button>
         )}
       </AnimatePresence>
 
-      {/* Chatbot Window - ALWAYS ON RIGHT SIDE */}
+      {/* Chatbot Window - RESPONSIVE FOR ALL DEVICES */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -180,13 +224,13 @@ const AIChatbot = () => {
             className="glass-card rounded-2xl shadow-2xl flex flex-col overflow-hidden border-2 border-cyan-500/30"
             style={{
               position: 'fixed',
-              bottom: '1.5rem',
-              right: '1.5rem',
+              bottom: window.innerWidth < 640 ? '1rem' : '1.5rem',
+              right: window.innerWidth < 640 ? '1rem' : '1.5rem',
               zIndex: 9999,
-              width: '90vw',
-              maxWidth: '384px',
-              height: '90vh',
-              maxHeight: '600px',
+              width: window.innerWidth < 640 ? 'calc(100vw - 2rem)' : '384px',
+              maxWidth: window.innerWidth < 640 ? 'calc(100vw - 2rem)' : '384px',
+              height: window.innerWidth < 640 ? 'calc(100vh - 2rem)' : '600px',
+              maxHeight: window.innerWidth < 640 ? 'calc(100vh - 2rem)' : '600px',
               boxShadow: '0 0 40px rgba(6, 182, 212, 0.3), 0 20px 60px rgba(0, 0, 0, 0.5)'
             }}
           >

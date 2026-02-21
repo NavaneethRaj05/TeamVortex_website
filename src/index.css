@@ -623,7 +623,7 @@
 
 /* Unique Chatbot Button Styling */
 .chatbot-button-unique {
-  /* Don't override position - let Tailwind handle it */
+  /* Don't override position - let inline styles handle it */
   overflow: visible;
 }
 
@@ -639,8 +639,31 @@
   filter: blur(10px);
 }
 
-.chatbot-button-unique:hover::before {
-  opacity: 0.6;
+/* Desktop hover effect only */
+@media (min-width: 640px) {
+  .chatbot-button-unique:hover::before {
+    opacity: 0.6;
+  }
+  
+  .chatbot-button-unique:hover .chatbot-tooltip {
+    opacity: 1 !important;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 639px) {
+  .chatbot-button-unique {
+    /* Ensure button is always visible on mobile */
+    position: fixed !important;
+    bottom: 1rem !important;
+    right: 1rem !important;
+    z-index: 9999 !important;
+  }
+  
+  /* Better touch feedback on mobile */
+  .chatbot-button-unique:active {
+    transform: scale(0.95) !important;
+  }
 }
 
 /* Gradient Text Animation */
