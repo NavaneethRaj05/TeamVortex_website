@@ -140,11 +140,6 @@ const AIChatbot = () => {
               <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 text-white animate-bounce-subtle" />
             </div>
             
-            {/* Orbiting particles */}
-            <span className="absolute top-0 right-0 w-2 h-2 bg-cyan-400 rounded-full animate-orbit-1 shadow-glow-cyan"></span>
-            <span className="absolute bottom-0 left-0 w-2 h-2 bg-purple-500 rounded-full animate-orbit-2 shadow-glow-purple"></span>
-            <span className="absolute top-1/2 left-0 w-2 h-2 bg-blue-400 rounded-full animate-orbit-3 shadow-glow-blue"></span>
-            
             {/* Status indicator */}
             <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-400 rounded-full border-2 border-white animate-pulse-glow shadow-glow-green"></span>
             

@@ -380,44 +380,71 @@
   animation: bounce-subtle 2s ease-in-out infinite;
 }
 
-/* Orbiting Particles */
+/* Orbiting Particles - Simplified for fixed positioning */
 @keyframes orbit-1 {
   0% {
-    transform: rotate(0deg) translateX(30px) rotate(0deg);
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(10px, -10px);
+  }
+  50% {
+    transform: translate(0, -20px);
+  }
+  75% {
+    transform: translate(-10px, -10px);
   }
   100% {
-    transform: rotate(360deg) translateX(30px) rotate(-360deg);
+    transform: translate(0, 0);
   }
 }
 
 @keyframes orbit-2 {
   0% {
-    transform: rotate(120deg) translateX(30px) rotate(-120deg);
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-10px, 10px);
+  }
+  50% {
+    transform: translate(-20px, 0);
+  }
+  75% {
+    transform: translate(-10px, -10px);
   }
   100% {
-    transform: rotate(480deg) translateX(30px) rotate(-480deg);
+    transform: translate(0, 0);
   }
 }
 
 @keyframes orbit-3 {
   0% {
-    transform: rotate(240deg) translateX(30px) rotate(-240deg);
+    transform: translate(0, -50%);
+  }
+  25% {
+    transform: translate(-10px, calc(-50% - 10px));
+  }
+  50% {
+    transform: translate(-20px, -50%);
+  }
+  75% {
+    transform: translate(-10px, calc(-50% + 10px));
   }
   100% {
-    transform: rotate(600deg) translateX(30px) rotate(-600deg);
+    transform: translate(0, -50%);
   }
 }
 
 .animate-orbit-1 {
-  animation: orbit-1 3s linear infinite;
+  animation: orbit-1 3s ease-in-out infinite;
 }
 
 .animate-orbit-2 {
-  animation: orbit-2 3s linear infinite;
+  animation: orbit-2 3s ease-in-out infinite;
 }
 
 .animate-orbit-3 {
-  animation: orbit-3 3s linear infinite;
+  animation: orbit-3 3s ease-in-out infinite;
 }
 
 /* Glow Shadows for Particles */
