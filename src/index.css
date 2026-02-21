@@ -1908,3 +1908,515 @@ body {
     border-radius: 0.75rem;
   }
 }
+
+
+/* ========================================
+   COMPREHENSIVE MOBILE OPTIMIZATION FOR ALL PAGES
+   ======================================== */
+
+/* Mobile Base Optimizations */
+@media (max-width: 768px) {
+  
+  /* Prevent horizontal scroll */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  
+  /* Better text rendering on mobile */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  
+  /* Optimize touch targets */
+  button, a, input, select, textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better form inputs on mobile */
+  input, textarea, select {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  
+  /* Improve tap response */
+  * {
+    -webkit-tap-highlight-color: rgba(6, 182, 212, 0.2);
+    touch-action: manipulation;
+  }
+  
+  /* Better spacing for mobile */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Responsive padding */
+  section {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Mobile-friendly cards */
+  .glass-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  /* Better buttons on mobile */
+  .glass-button {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+  }
+  
+  /* Responsive grid */
+  .grid {
+    gap: 1rem;
+  }
+  
+  /* Mobile navigation */
+  nav {
+    padding: 0.75rem 1rem;
+  }
+  
+  /* Better modals on mobile */
+  .modal-content {
+    max-height: 85vh;
+    border-radius: 1.5rem 1.5rem 0 0;
+  }
+  
+  /* Responsive images */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* Better scrollbar on mobile */
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  /* Reduce animation intensity on mobile */
+  .hover-lift:hover {
+    transform: translateY(-4px) scale(1.01);
+  }
+  
+  /* Better touch feedback */
+  button:active, a:active {
+    transform: scale(0.98);
+    transition: transform 0.1s;
+  }
+}
+
+/* ========================================
+   HOME PAGE MOBILE OPTIMIZATION
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Hero section */
+  .hero-section {
+    padding: 3rem 1rem;
+    min-height: 70vh;
+  }
+  
+  /* Hero text */
+  .hero-section h1 {
+    font-size: 2rem !important;
+    line-height: 1.2;
+  }
+  
+  .hero-section p {
+    font-size: 0.95rem;
+    line-height: 1.7;
+  }
+  
+  /* Stats grid */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  /* Feature cards */
+  .feature-card {
+    padding: 1.5rem;
+  }
+}
+
+/* ========================================
+   DASHBOARD MOBILE OPTIMIZATION (ALREADY DONE)
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Dashboard is already optimized with hamburger menu */
+  
+  /* Ensure hamburger button is visible */
+  .hamburger-button {
+    position: fixed !important;
+    top: 5rem !important;
+    left: 1rem !important;
+    z-index: 50 !important;
+  }
+  
+  /* Sidebar full width on mobile */
+  .dashboard-sidebar {
+    width: 80vw !important;
+    max-width: 280px !important;
+  }
+  
+  /* Dashboard content padding */
+  .dashboard-content {
+    padding: 1rem !important;
+  }
+  
+  /* Dashboard cards stack vertically */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ========================================
+   EVENTS PAGE MOBILE OPTIMIZATION
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Event cards */
+  .event-card {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+  }
+  
+  /* Event modal full screen on mobile */
+  .event-modal {
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    border-radius: 0;
+    max-height: 100vh;
+  }
+  
+  /* Event registration form */
+  .event-form {
+    padding: 1rem;
+  }
+  
+  /* Event tabs */
+  .event-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  
+  .event-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Event images */
+  .event-image {
+    height: 200px;
+    object-fit: cover;
+  }
+}
+
+/* ========================================
+   CONTESTS PAGE MOBILE OPTIMIZATION
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Contest cards */
+  .contest-card {
+    padding: 1rem;
+  }
+  
+  /* Leaderboard table */
+  .leaderboard-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .leaderboard-table table {
+    min-width: 500px;
+  }
+  
+  /* Contest filters */
+  .contest-filters {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+/* ========================================
+   TEAM PAGE MOBILE OPTIMIZATION
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Team grid */
+  .team-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem;
+  }
+  
+  /* Team member cards */
+  .team-member-card {
+    padding: 1.5rem;
+  }
+  
+  /* Team member image */
+  .team-member-image {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+/* ========================================
+   SPONSORS PAGE MOBILE OPTIMIZATION
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Sponsor grid */
+  .sponsor-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Sponsor cards */
+  .sponsor-card {
+    padding: 1.5rem;
+  }
+  
+  /* Sponsor logos */
+  .sponsor-logo {
+    max-width: 150px;
+  }
+}
+
+/* ========================================
+   SIGNIN PAGE MOBILE OPTIMIZATION
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Sign in form */
+  .signin-form {
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Form inputs */
+  .signin-input {
+    padding: 0.875rem;
+  }
+  
+  /* Submit button */
+  .signin-button {
+    padding: 1rem;
+    font-size: 1rem;
+  }
+}
+
+/* ========================================
+   NAVBAR MOBILE OPTIMIZATION
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Mobile menu */
+  .mobile-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 10, 10, 0.98);
+    backdrop-filter: blur(20px);
+    z-index: 100;
+  }
+  
+  /* Mobile menu items */
+  .mobile-menu-item {
+    padding: 1rem;
+    font-size: 1.125rem;
+  }
+  
+  /* Hamburger icon */
+  .hamburger-icon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* ========================================
+   FOOTER MOBILE OPTIMIZATION
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Footer */
+  footer {
+    padding: 2rem 1rem;
+  }
+  
+  /* Footer grid */
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  /* Footer links */
+  .footer-links {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  /* Social icons */
+  .social-icons {
+    justify-content: center;
+  }
+}
+
+/* ========================================
+   TABLET OPTIMIZATION (768px - 1024px)
+   ======================================== */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* 2-column grids on tablet */
+  .grid-tablet-2 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  
+  /* Better card sizing */
+  .glass-card {
+    padding: 1.5rem;
+  }
+  
+  /* Hero section */
+  .hero-section {
+    padding: 4rem 2rem;
+  }
+  
+  /* Dashboard stats */
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  /* Team grid */
+  .team-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ========================================
+   LANDSCAPE MOBILE OPTIMIZATION
+   ======================================== */
+
+@media (max-width: 896px) and (orientation: landscape) {
+  /* Reduce vertical padding */
+  section {
+    padding: 1.5rem 1rem;
+  }
+  
+  /* Compact hero */
+  .hero-section {
+    min-height: 50vh;
+    padding: 2rem 1rem;
+  }
+  
+  /* Better modal height */
+  .modal-content {
+    max-height: 80vh;
+  }
+  
+  /* Compact navigation */
+  nav {
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* ========================================
+   SAFE AREA INSETS (NOTCHED DEVICES)
+   ======================================== */
+
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+  
+  .mobile-nav {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+  
+  .modal-content-mobile {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY IMPROVEMENTS
+   ======================================== */
+
+/* Focus indicators */
+*:focus-visible {
+  outline: 2px solid #06b6d4;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Remove default focus for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .glass-card,
+  .bento-card,
+  .glass-button {
+    border-width: 2px;
+    border-color: #06b6d4;
+  }
+  
+  .text-white\/60,
+  .text-white\/70 {
+    color: #ffffff !important;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ========================================
+   PERFORMANCE OPTIMIZATIONS
+   ======================================== */
+
+/* Hardware acceleration for animations */
+.animate-float,
+.animate-spin,
+.animate-pulse,
+.animate-bounce {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Optimize images */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
