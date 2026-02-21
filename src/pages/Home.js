@@ -35,9 +35,6 @@ const Home = () => {
       const res = await fetch(`${API_BASE_URL}/api/events/lightweight`);
       const data = await res.json();
 
-      const prayog = data.find(e => e && e.title && e.title.trim().toLowerCase() === 'prayog 1.0');
-      setPrayogEvent(prayog || null);
-
       const now = new Date();
 
       // Filter upcoming events
@@ -55,10 +52,9 @@ const Home = () => {
       });
       setEvents(upcoming);
 
-      // Filter past events (automatic detection) - excluding PRAYOG as it's shown separately
-      const past = data.filter(e => {
+      // Filter ALL past events (automatic detection)
+      const allPastEvents = data.filter(e => {
         if (!e || e.status === 'draft') return false;
-        if (e.title && e.title.trim().toLowerCase() === 'prayog 1.0') return false; // Exclude PRAYOG
         if (e.status === 'completed') return true;
 
         const eventDate = new Date(e.date);
@@ -76,9 +72,15 @@ const Home = () => {
           return (b.priority || 0) - (a.priority || 0);
         }
         return new Date(b.date) - new Date(a.date);
-      }).slice(0, 4); // Limit to 4 most recent/priority past events for home page
+      });
 
-      setPastEvents(past);
+      // Set the most recent past event as featured (first in sorted array)
+      const featuredEvent = allPastEvents[0] || null;
+      setPrayogEvent(featuredEvent);
+
+      // Set remaining past events for gallery (skip the featured one, limit to 4)
+      const remainingPastEvents = allPastEvents.slice(1, 5);
+      setPastEvents(remainingPastEvents);
 
       // Check session storage to show popup only once per session
       const popupShown = sessionStorage.getItem('upcomingEventsPopupShown');
@@ -91,8 +93,6 @@ const Home = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/events`);
         const data = await res.json();
-        const prayog = data.find(e => e && e.title && e.title.trim().toLowerCase() === 'prayog 1.0');
-        setPrayogEvent(prayog || null);
         
         const now = new Date();
         
@@ -110,9 +110,9 @@ const Home = () => {
         });
         setEvents(upcoming);
 
-        const past = data.filter(e => {
+        // Filter ALL past events for fallback
+        const allPastEvents = data.filter(e => {
           if (!e || e.status === 'draft') return false;
-          if (e.title && e.title.trim().toLowerCase() === 'prayog 1.0') return false;
           if (e.status === 'completed') return true;
 
           const eventDate = new Date(e.date);
@@ -129,9 +129,15 @@ const Home = () => {
             return (b.priority || 0) - (a.priority || 0);
           }
           return new Date(b.date) - new Date(a.date);
-        }).slice(0, 4);
+        });
 
-        setPastEvents(past);
+        // Set the most recent past event as featured
+        const featuredEvent = allPastEvents[0] || null;
+        setPrayogEvent(featuredEvent);
+
+        // Set remaining past events for gallery
+        const remainingPastEvents = allPastEvents.slice(1, 5);
+        setPastEvents(remainingPastEvents);
       } catch (fallbackErr) {
         console.error('Error fetching events (fallback):', fallbackErr);
       }
@@ -157,11 +163,11 @@ const Home = () => {
   };
 
   const prayogFallback = useMemo(() => ({
-    title: 'PRAYOG 1.0',
-    date: 'March 25, 2025',
+    title: 'No Past Events Yet',
+    date: 'Coming Soon',
     venue: 'Navkis College of Engineering',
-    description1: 'Prayog 1.0 was a flagship technical event organized by Team Vortex at Navkis College of Engineering, Hassan, held on 25th March 2025. Designed to foster innovation, collaboration, and tech-oriented problem-solving, Prayog 1.0 showcased the club\'s commitment to hands-on learning and student engagement through its four key sub-events.',
-    description2: 'The event drew over 150 participants, reflecting strong interest across disciplines. Prayog 1.0 not only provided a platform for skill development and networking but also celebrated the diversity and enthusiasm of the tech community at Navkis College of Engineering. The success and energetic response to Prayog 1.0 have laid a strong foundation for it to become a recurring highlight in the annual calendar of Team Vortex.'
+    description1: 'We are excited to bring you amazing technical events! Our team is working hard to organize innovative competitions, workshops, and hackathons that will challenge your skills and expand your knowledge.',
+    description2: 'Stay tuned for upcoming events. Follow us on social media and check back regularly for updates on our latest activities and competitions. Join Team Vortex and be part of the tech revolution!'
   }), []);
 
   const prayogDisplay = useMemo(() => {
@@ -319,7 +325,7 @@ const Home = () => {
             </p>
           </div>
 
-          {/* PRAYOG 1.0 - Featured Event */}
+          {/* Featured Past Event - Automatically shows most recent */}
           {prayogEvent && (
             <div className="glass-card overflow-hidden bg-white/5 border border-white/10 mb-12">
               <div className="p-10">
