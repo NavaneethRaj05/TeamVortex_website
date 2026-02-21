@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, MapPin, Clock, X, User, Mail, GraduationCap, Plus } from 'lucide-react';
+import { Calendar, MapPin, Clock, X, User, Mail, GraduationCap, Plus, Users, Zap } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
 import PaymentFlow from '../components/PaymentFlow';
 
@@ -333,22 +333,37 @@ const Contests = () => {
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
             {events.length > 0 ? (
-              events.map((event) => (
+              events.map((event, index) => (
                 <motion.div
                   key={event._id}
                   variants={itemVariants}
-                  className="glass-card overflow-hidden group hover:scale-105 transition-transform duration-300"
+                  className="glass-card overflow-hidden group hover-lift neon-border relative"
+                  style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <div className="h-48 bg-gradient-to-br from-vortex-blue/20 to-purple-500/20 relative p-6 flex flex-col justify-end">
-                    <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white border border-white/10">
-                      UPCOMING
+                  {/* Animated Background Gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-vortex-blue/10 via-purple-500/10 to-vortex-orange/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  
+                  {/* Event Header with Image/Gradient */}
+                  <div className="h-48 bg-gradient-to-br from-vortex-blue/30 via-purple-500/30 to-vortex-orange/20 relative p-6 flex flex-col justify-end overflow-hidden">
+                    {/* Animated particles effect */}
+                    <div className="absolute inset-0 particle-bg opacity-50"></div>
+                    
+                    {/* Floating badge */}
+                    <div className="absolute top-4 right-4 bg-black/70 backdrop-blur-md px-4 py-2 rounded-full text-xs font-bold text-white border border-vortex-blue/50 pulse-glow animate-float">
+                      <span className="text-glow">UPCOMING</span>
                     </div>
-                    <h3 className="text-2xl font-bold text-white mb-2">{event.title}</h3>
+                    
+                    {/* Event Title with glow */}
+                    <h3 className="text-2xl font-bold text-white mb-2 relative z-10 text-glow group-hover:scale-105 transition-transform duration-300">
+                      {event.title}
+                    </h3>
                   </div>
-                  <div className="p-6">
+                  
+                  {/* Event Details */}
+                  <div className="p-6 relative z-10">
                     <div className="space-y-3 mb-6">
-                      <div className="flex items-center text-white/70 text-sm">
-                        <Calendar className="h-4 w-4 mr-2 text-vortex-blue" />
+                      <div className="flex items-center text-white/70 text-sm hover:text-vortex-blue transition-colors">
+                        <Calendar className="h-4 w-4 mr-2 text-vortex-blue animate-pulse" />
                         {new Date(event.date).toLocaleDateString(undefined, {
                           weekday: 'long',
                           year: 'numeric',
@@ -356,45 +371,62 @@ const Contests = () => {
                           day: 'numeric'
                         })}
                       </div>
-                      <div className="flex items-center text-white/70 text-sm">
+                      <div className="flex items-center text-white/70 text-sm hover:text-vortex-orange transition-colors">
                         <Clock className="h-4 w-4 mr-2 text-vortex-orange" />
                         {event.startTime ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}` : 'Time TBA'}
                       </div>
-                      <div className="flex items-center text-white/70 text-sm">
+                      <div className="flex items-center text-white/70 text-sm hover:text-green-400 transition-colors">
                         <MapPin className="h-4 w-4 mr-2 text-green-400" />
                         {event.location || 'Venue TBA'}
                       </div>
                     </div>
 
-                    {/* Event Stats */}
-                    <div className="flex justify-between items-center mb-4 p-3 bg-white/5 rounded-lg border border-white/10">
+                    {/* Event Stats with enhanced styling */}
+                    <div className="flex justify-between items-center mb-4 p-4 bg-gradient-to-r from-white/5 to-white/10 rounded-xl border border-white/10 hover:border-vortex-blue/30 transition-all duration-300 shimmer">
                       <div className="flex flex-col">
-                        <span className="text-[10px] uppercase text-white/40">Price</span>
-                        <span className="text-vortex-blue font-bold">{event.price > 0 ? `₹${event.price}` : 'FREE'}</span>
+                        <span className="text-[10px] uppercase text-white/40 font-bold tracking-wider">Price</span>
+                        <span className="text-vortex-blue font-bold text-lg">{event.price > 0 ? `₹${event.price}` : 'FREE'}</span>
                       </div>
+                      <div className="h-8 w-px bg-white/10"></div>
                       <div className="flex flex-col text-center">
-                        <span className="text-[10px] uppercase text-white/40">Registered</span>
-                        <span className="text-white font-bold">{event.registrationCount || 0}</span>
+                        <span className="text-[10px] uppercase text-white/40 font-bold tracking-wider">Registered</span>
+                        <span className="text-white font-bold text-lg">{event.registrationCount || 0}</span>
                       </div>
+                      <div className="h-8 w-px bg-white/10"></div>
                       <div className="flex flex-col text-right">
-                        <span className="text-[10px] uppercase text-white/40">Spots Left</span>
-                        <span className={`${event.capacity > 0 && (event.capacity - (event.registrationCount || 0)) <= 5 ? 'text-vortex-orange' : 'text-white'} font-bold`}>
+                        <span className="text-[10px] uppercase text-white/40 font-bold tracking-wider">Spots Left</span>
+                        <span className={`${event.capacity > 0 && (event.capacity - (event.registrationCount || 0)) <= 5 ? 'text-vortex-orange animate-pulse' : 'text-white'} font-bold text-lg`}>
                           {event.capacity > 0 ? Math.max(0, event.capacity - (event.registrationCount || 0)) : '∞'}
                         </span>
                       </div>
                     </div>
 
-                    <p className="text-white/60 text-sm mb-6 line-clamp-3">
+                    <p className="text-white/60 text-sm mb-6 line-clamp-3 leading-relaxed">
                       {event.description}
                     </p>
+                    
+                    {/* Enhanced Register Button */}
                     <button
                       onClick={() => setSelectedEvent(event)}
-                      className={`w-full glass-button font-bold py-3 transition-colors ${event.capacity > 0 && event.registrationCount >= event.capacity
-                        ? 'text-vortex-orange border border-vortex-orange/30 hover:bg-vortex-orange hover:text-black'
-                        : 'text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black'
-                        }`}
+                      className={`w-full glass-button font-bold py-3 rounded-xl transition-all duration-300 btn-glow ripple relative overflow-hidden ${
+                        event.capacity > 0 && event.registrationCount >= event.capacity
+                          ? 'text-vortex-orange border-2 border-vortex-orange/50 hover:bg-vortex-orange hover:text-black hover:shadow-lg hover:shadow-vortex-orange/50'
+                          : 'text-vortex-blue border-2 border-vortex-blue/50 hover:bg-vortex-blue hover:text-black hover:shadow-lg hover:shadow-vortex-blue/50'
+                      }`}
                     >
-                      {event.capacity > 0 && event.registrationCount >= event.capacity ? 'JOIN WAITLIST' : 'REGISTER NOW'}
+                      <span className="relative z-10 flex items-center justify-center gap-2">
+                        {event.capacity > 0 && event.registrationCount >= event.capacity ? (
+                          <>
+                            <Users className="h-4 w-4" />
+                            JOIN WAITLIST
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="h-4 w-4" />
+                            REGISTER NOW
+                          </>
+                        )}
+                      </span>
                     </button>
                   </div>
                 </motion.div>
