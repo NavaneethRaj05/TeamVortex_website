@@ -623,7 +623,7 @@
 
 /* Unique Chatbot Button Styling */
 .chatbot-button-unique {
-  position: relative;
+  /* Don't override position - let Tailwind handle it */
   overflow: visible;
 }
 
