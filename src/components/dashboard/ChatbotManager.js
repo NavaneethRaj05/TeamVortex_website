@@ -7,6 +7,7 @@ const ChatbotManager = () => {
   const [loading, setLoading] = useState(true);
   const [editingFAQ, setEditingFAQ] = useState(null);
   const [showAddFAQ, setShowAddFAQ] = useState(false);
+  const [improvementSuggestions, setImprovementSuggestions] = useState(null);
   const [newFAQ, setNewFAQ] = useState({
     question: '',
     answer: '',
@@ -17,6 +18,7 @@ const ChatbotManager = () => {
 
   useEffect(() => {
     fetchChatbotConfig();
+    fetchImprovementSuggestions();
   }, []);
 
   const fetchChatbotConfig = async () => {
@@ -29,6 +31,16 @@ const ChatbotManager = () => {
       console.error('Error fetching chatbot config:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchImprovementSuggestions = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/chatbot/improvement-suggestions`);
+      const data = await res.json();
+      setImprovementSuggestions(data);
+    } catch (err) {
+      console.error('Error fetching improvement suggestions:', err);
     }
   };
 
@@ -179,6 +191,54 @@ const ChatbotManager = () => {
                 ? Math.round((chatbotConfig.analytics.resolvedQueries / chatbotConfig.analytics.totalQueries) * 100)
                 : 0}%
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ML Improvement Suggestions */}
+      {improvementSuggestions && improvementSuggestions.suggestions.length > 0 && (
+        <div className="glass-card p-6 border border-yellow-500/30 bg-yellow-500/5">
+          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-yellow-400" />
+            ML Improvement Suggestions
+          </h3>
+          
+          <div className="space-y-3">
+            {improvementSuggestions.suggestions.slice(0, 5).map((suggestion, idx) => (
+              <div key={idx} className="p-3 bg-white/5 rounded-lg border border-yellow-500/20">
+                {suggestion.type === 'low_quality_faq' ? (
+                  <>
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <div className="text-yellow-400 font-medium text-sm">Low Quality FAQ</div>
+                        <div className="text-white/80 text-sm mt-1">{suggestion.question}</div>
+                      </div>
+                      <div className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded-full">
+                        {Math.round(suggestion.qualityScore * 100)}% quality
+                      </div>
+                    </div>
+                    <div className="text-white/60 text-xs">{suggestion.suggestion}</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <div className="text-yellow-400 font-medium text-sm">Frequent Unresolved Query</div>
+                        <div className="text-white/80 text-sm mt-1">{suggestion.query}</div>
+                      </div>
+                      <div className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
+                        Asked {suggestion.frequency}x
+                      </div>
+                    </div>
+                    <div className="text-white/60 text-xs">{suggestion.suggestion}</div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-4 text-xs text-white/50">
+            Showing {Math.min(5, improvementSuggestions.suggestions.length)} of {improvementSuggestions.suggestions.length} suggestions
           </div>
         </div>
       )}
@@ -336,13 +396,24 @@ const ChatbotManager = () => {
                       <div className="flex-1">
                         <div className="text-white font-medium mb-1">{faq.question}</div>
                         <div className="text-white/70 text-sm">{faq.answer}</div>
-                        <div className="flex items-center gap-2 mt-2">
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
                           <span className="text-xs bg-vortex-blue/20 text-vortex-blue px-2 py-1 rounded-full">
                             {faq.category}
                           </span>
                           {faq.keywords && faq.keywords.length > 0 && (
                             <span className="text-xs text-white/40">
                               Keywords: {faq.keywords.join(', ')}
+                            </span>
+                          )}
+                          {faq.totalRatings > 0 && (
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              faq.qualityScore >= 0.7 
+                                ? 'bg-green-500/20 text-green-400' 
+                                : faq.qualityScore >= 0.5
+                                ? 'bg-yellow-500/20 text-yellow-400'
+                                : 'bg-red-500/20 text-red-400'
+                            }`}>
+                              {Math.round(faq.qualityScore * 100)}% quality ({faq.totalRatings} ratings)
                             </span>
                           )}
                         </div>

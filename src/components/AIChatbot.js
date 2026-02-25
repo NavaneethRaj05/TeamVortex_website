@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, X, Send, Bot, User, Sparkles } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, User, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import API_BASE_URL from '../apiConfig';
 
@@ -8,6 +8,7 @@ const AIChatbot = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [feedbackGiven, setFeedbackGiven] = useState(new Set());
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -83,7 +84,12 @@ const AIChatbot = () => {
           text: data.response,
           sender: 'bot',
           timestamp: new Date(),
-          suggestions: data.suggestions || []
+          suggestions: data.suggestions || [],
+          responseId: data.responseId,
+          learnedId: data.learnedId,
+          faqId: data.faqId,
+          confidence: data.confidence,
+          askFeedback: data.askFeedback
         };
 
         setMessages(prev => [...prev, botMessage]);
@@ -106,6 +112,46 @@ const AIChatbot = () => {
 
   const handleSuggestionClick = (suggestion) => {
     setInputMessage(suggestion);
+  };
+
+  const handleFeedback = async (messageId, wasHelpful) => {
+    // Prevent duplicate feedback
+    if (feedbackGiven.has(messageId)) return;
+    
+    const message = messages.find(m => m.id === messageId);
+    if (!message) return;
+    
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/chatbot/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          responseId: message.responseId,
+          learnedId: message.learnedId,
+          faqId: message.faqId,
+          wasHelpful,
+          rating: wasHelpful ? 5 : 1
+        })
+      });
+      
+      const data = await res.json();
+      
+      // Mark feedback as given
+      setFeedbackGiven(prev => new Set([...prev, messageId]));
+      
+      // Show thank you message
+      const thankYouMessage = {
+        id: Date.now(),
+        text: data.thanksMessage || 'Thank you for your feedback!',
+        sender: 'bot',
+        timestamp: new Date(),
+        isSystemMessage: true
+      };
+      
+      setMessages(prev => [...prev, thankYouMessage]);
+    } catch (err) {
+      console.error('Error submitting feedback:', err);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -289,11 +335,41 @@ const AIChatbot = () => {
                       className={`rounded-2xl p-2.5 sm:p-3 ${
                         message.sender === 'user'
                           ? 'bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 text-white shadow-lg shadow-cyan-500/20'
+                          : message.isSystemMessage
+                          ? 'bg-gradient-to-br from-green-500/10 to-emerald-500/10 text-green-300 border border-green-500/30 backdrop-blur-sm'
                           : 'bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-purple-500/10 text-white border border-cyan-500/30 backdrop-blur-sm'
                       }`}
                     >
                       <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-line">{message.text}</p>
                     </div>
+                    
+                    {/* Feedback Buttons - Only for bot messages that ask for feedback */}
+                    {message.sender === 'bot' && message.askFeedback && !message.isSystemMessage && !feedbackGiven.has(message.id) && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-xs text-white/50">Was this helpful?</span>
+                        <button
+                          onClick={() => handleFeedback(message.id, true)}
+                          className="p-1.5 bg-green-500/20 hover:bg-green-500/30 active:bg-green-500/40 text-green-400 rounded-lg transition-all touch-manipulation"
+                          aria-label="Helpful"
+                        >
+                          <ThumbsUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleFeedback(message.id, false)}
+                          className="p-1.5 bg-red-500/20 hover:bg-red-500/30 active:bg-red-500/40 text-red-400 rounded-lg transition-all touch-manipulation"
+                          aria-label="Not helpful"
+                        >
+                          <ThumbsDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* Feedback Given Indicator */}
+                    {message.sender === 'bot' && feedbackGiven.has(message.id) && !message.isSystemMessage && (
+                      <div className="mt-2 flex items-center gap-1">
+                        <span className="text-xs text-green-400/70">✓ Feedback recorded</span>
+                      </div>
+                    )}
                     
                     {/* Suggestions - Mobile Optimized with Unique Colors */}
                     {message.suggestions && message.suggestions.length > 0 && (
