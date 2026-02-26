@@ -124,7 +124,7 @@ const Dashboard = () => {
     const [newSponsor, setNewSponsor] = useState({
         name: '',
         description: '',
-        type: 'partner',
+        type: 'bronze',
         logo: '',
         website: '',
         contactEmail: '',
@@ -300,7 +300,7 @@ const Dashboard = () => {
             setShowSponsorForm(false);
             setEditingSponsorId(null);
             setNewSponsor({
-                name: '', description: '', type: 'partner', logo: '', website: '', contactEmail: '', contactPerson: '', phone: '', industry: '', sponsorshipAmount: 0, benefits: [], startDate: '', endDate: '', isActive: true,
+                name: '', description: '', type: 'bronze', logo: '', website: '', contactEmail: '', contactPerson: '', phone: '', industry: '', sponsorshipAmount: 0, benefits: [], startDate: '', endDate: '', isActive: true,
                 socialLinks: { linkedin: '', twitter: '', instagram: '', facebook: '' }, events: [], notes: ''
             });
             fetchSponsors();

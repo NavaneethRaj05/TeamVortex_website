@@ -20,7 +20,6 @@ const SponsorManager = React.memo(({
         { value: 'gold', label: 'Gold', color: 'text-yellow-500' },
         { value: 'silver', label: 'Silver', color: 'text-gray-400' },
         { value: 'bronze', label: 'Bronze', color: 'text-orange-600' },
-        { value: 'partner', label: 'Partner', color: 'text-blue-400' },
         { value: 'media', label: 'Media Partner', color: 'text-purple-400' }
     ];
 
@@ -36,7 +35,6 @@ const SponsorManager = React.memo(({
             case 'gold': return '🥇';
             case 'silver': return '🥈';
             case 'bronze': return '🥉';
-            case 'partner': return '🤝';
             case 'media': return '📺';
             default: return '🏢';
         }
@@ -53,7 +51,7 @@ const SponsorManager = React.memo(({
                         setNewSponsor({
                             name: '',
                             description: '',
-                            type: 'partner',
+                            type: 'bronze',
                             logo: '',
                             website: '',
                             contactEmail: '',

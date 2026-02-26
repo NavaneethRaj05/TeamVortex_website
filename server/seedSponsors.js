@@ -121,26 +121,6 @@ const sampleSponsors = [
         notes: "Provides valuable development tools and resources"
     },
     {
-        name: "EduTech Partners",
-        description: "Educational technology solutions and learning management systems for academic institutions.",
-        type: "partner",
-        logo: "https://via.placeholder.com/200x100/3B82F6/FFFFFF?text=EduTech",
-        website: "https://edutech.example.com",
-        contactEmail: "partnerships@edutech.com",
-        contactPerson: "Robert Thompson",
-        industry: "Education Technology",
-        sponsorshipAmount: 3000,
-        benefits: [
-            "Educational platform access",
-            "Learning resource sharing",
-            "Student project support"
-        ],
-        startDate: new Date('2024-05-01'),
-        isActive: true,
-        events: ["EdTech Innovation Fair"],
-        notes: "Great partner for educational initiatives"
-    },
-    {
         name: "TechNews Daily",
         description: "Leading technology news and media platform covering the latest trends in tech and innovation.",
         type: "media",

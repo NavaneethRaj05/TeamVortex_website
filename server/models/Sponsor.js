@@ -6,7 +6,7 @@ const sponsorSchema = new mongoose.Schema({
     type: { 
         type: String, 
         required: true,
-        enum: ['title', 'platinum', 'gold', 'silver', 'bronze', 'partner', 'media']
+        enum: ['title', 'platinum', 'gold', 'silver', 'bronze', 'media']
     },
     logo: { type: String, required: true }, // URL to logo image
     website: { type: String },
