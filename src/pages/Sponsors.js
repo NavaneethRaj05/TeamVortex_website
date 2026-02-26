@@ -29,7 +29,6 @@ const Sponsors = () => {
     { id: 'gold', name: 'Gold', color: 'text-yellow-500' },
     { id: 'silver', name: 'Silver', color: 'text-gray-400' },
     { id: 'bronze', name: 'Bronze', color: 'text-orange-600' },
-    { id: 'partner', name: 'Partners', color: 'text-blue-400' },
     { id: 'media', name: 'Media Partners', color: 'text-purple-400' },
   ];
 
@@ -53,7 +52,6 @@ const Sponsors = () => {
       case 'gold': return '🥇';
       case 'silver': return '🥈';
       case 'bronze': return '🥉';
-      case 'partner': return '🤝';
       case 'media': return '📺';
       default: return '🏢';
     }
@@ -264,8 +262,8 @@ const Sponsors = () => {
               Let's create something amazing together.
             </p>
             <a
-              href="mailto:teamvortexnce@gmail.com?subject=Sponsorship Inquiry"
-              className="glass-button bg-vortex-blue text-black font-bold px-8 py-3 hover:bg-vortex-blue/90 transition-colors inline-flex items-center gap-2"
+              href="mailto:teamvortexnce@gmail.com?subject=Sponsorship%20Inquiry%20-%20Team%20Vortex&body=Hello%20Team%20Vortex,%0D%0A%0D%0AI%20am%20interested%20in%20partnering%20with%20your%20organization.%0D%0A%0D%0A"
+              className="glass-button bg-vortex-blue text-black font-bold px-8 py-3 hover:bg-vortex-blue/90 transition-colors inline-flex items-center gap-2 rounded-lg"
             >
               <Mail className="h-5 w-5" />
               Get in Touch
