@@ -9,6 +9,7 @@ const AIChatbot = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState(new Set());
+  const [sessionQueries, setSessionQueries] = useState([]);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -65,17 +66,28 @@ const AIChatbot = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentQuery = inputMessage;
     setInputMessage('');
     setIsTyping(true);
 
     try {
+      // Get previous query for context
+      const previousQuery = sessionQueries.length > 0 ? sessionQueries[sessionQueries.length - 1] : null;
+      
       const res = await fetch(`${API_BASE_URL}/api/chatbot/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: inputMessage })
+        body: JSON.stringify({ 
+          message: currentQuery,
+          previousQuery: previousQuery,
+          sessionQueries: sessionQueries
+        })
       });
 
       const data = await res.json();
+
+      // Update session queries for context
+      setSessionQueries(prev => [...prev, currentQuery]);
 
       // Simulate typing delay
       setTimeout(() => {
@@ -89,6 +101,7 @@ const AIChatbot = () => {
           learnedId: data.learnedId,
           faqId: data.faqId,
           confidence: data.confidence,
+          intent: data.intent,
           askFeedback: data.askFeedback
         };
 

@@ -76,7 +76,12 @@ const SignIn = () => {
 
       navigate('/dashboard'); // Redirect to Dashboard
     } catch (err) {
-      setError(err.message);
+      // Better error messages
+      if (err.message === 'Failed to fetch') {
+        setError('Cannot connect to server. Please make sure the backend server is running on port 5001.');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
