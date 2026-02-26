@@ -262,12 +262,10 @@ const Sponsors = () => {
               Let's create something amazing together.
             </p>
             <a
-              href="mailto:teamvortexnce@gmail.com?subject=Sponsorship Inquiry - Team Vortex"
+              href="https://mail.google.com/mail/?view=cm&fs=1&to=teamvortexnce@gmail.com&su=Sponsorship%20Inquiry%20-%20Team%20Vortex&body=Hello%20Team%20Vortex,%0D%0A%0D%0AI%20am%20interested%20in%20partnering%20with%20your%20organization.%0D%0A%0D%0A"
+              target="_blank"
+              rel="noopener noreferrer"
               className="glass-button bg-vortex-blue text-black font-bold px-8 py-3 hover:bg-vortex-blue/90 transition-colors inline-flex items-center gap-2 rounded-lg"
-              onClick={(e) => {
-                e.preventDefault();
-                window.location.href = "mailto:teamvortexnce@gmail.com?subject=Sponsorship Inquiry - Team Vortex&body=Hello Team Vortex,%0D%0A%0D%0AI am interested in partnering with your organization.%0D%0A%0D%0A";
-              }}
             >
               <Mail className="h-5 w-5" />
               Get in Touch
