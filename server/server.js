@@ -55,7 +55,7 @@ app.use(helmet({
 // CORS with optimized settings
 app.use(cors({
     origin: process.env.NODE_ENV === 'production' 
-        ? ['https://your-domain.com', 'https://your-netlify-domain.netlify.app'] 
+        ? true // Allow all origins in production (Netlify handles this)
         : true,
     credentials: true,
     optionsSuccessStatus: 200
@@ -105,6 +105,12 @@ const connectDB = async () => {
 
 connectDB();
 
+// Start Event Scheduler for automated notifications (only in non-serverless environment)
+if (!process.env.AWS_LAMBDA_FUNCTION_NAME && !process.env.NETLIFY) {
+    const { startScheduler } = require('./utils/eventScheduler');
+    startScheduler();
+}
+
 // Add response compression and optimization headers
 app.use((req, res, next) => {
     // Enable keep-alive connections
@@ -132,10 +138,6 @@ const analyticsRoutes = require('./routes/analytics');
 const paymentRoutes = require('./routes/payments');
 const chatbotRoutes = require('./routes/chatbot');
 const clubStatsRoutes = require('./routes/clubStats');
-
-// Start Event Scheduler for automated notifications
-const { startScheduler } = require('./utils/eventScheduler');
-startScheduler();
 
 const apiRouter = express.Router();
 
@@ -177,11 +179,13 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 
-// Start Server
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🌐 MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
-});
+// Start Server (only if not in serverless environment)
+if (!process.env.AWS_LAMBDA_FUNCTION_NAME && !process.env.NETLIFY) {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+        console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
+        console.log(`🌐 MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
+    });
+}
 
 module.exports = app;
