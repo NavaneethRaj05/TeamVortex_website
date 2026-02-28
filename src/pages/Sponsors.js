@@ -12,7 +12,6 @@ const Sponsors = () => {
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/sponsors/active`)
       .then(res => res.json())
-      .then(res => res.json())
       .then(data => {
         setSponsors(Array.isArray(data) ? data : []);
         setLoading(false);
