@@ -35,7 +35,7 @@
     "dev": "concurrently \"npm start\" \"npm run server\"",
     "start:3001": "cross-env PORT=3001 react-scripts start",
     "dev:3001": "concurrently \"npm run start:3001\" \"npm run server\"",
-    "build": "cross-env CI=false react-scripts build",
+    "build": "react-scripts build",
     "build:analyze": "cross-env CI=false GENERATE_SOURCEMAP=true react-scripts build && npx source-map-explorer 'build/static/js/*.js'",
     "server": "cd server && npm run dev",
     "start:server": "cd server && node server.js",
