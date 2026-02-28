@@ -12,12 +12,14 @@ const Sponsors = () => {
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/sponsors/active`)
       .then(res => res.json())
+      .then(res => res.json())
       .then(data => {
-        setSponsors(data);
+        setSponsors(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch(err => {
         console.error('Error fetching sponsors:', err);
+        setSponsors([]);
         setLoading(false);
       });
   }, []);
@@ -32,13 +34,13 @@ const Sponsors = () => {
     { id: 'media', name: 'Media Partners', color: 'text-purple-400' },
   ];
 
-  const filteredSponsors = sponsors.filter(sponsor => {
+  const filteredSponsors = Array.isArray(sponsors) ? sponsors.filter(sponsor => {
     const matchesSearch = sponsor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       sponsor.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       sponsor.industry?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedType === 'all' || sponsor.type === selectedType;
     return matchesSearch && matchesType;
-  });
+  }) : [];
 
   const getSponsorTypeColor = (type) => {
     const typeObj = sponsorTypes.find(t => t.id === type);

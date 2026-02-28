@@ -33,7 +33,16 @@ const Home = () => {
     try {
       // Use lightweight endpoint for faster loading
       const res = await fetch(`${API_BASE_URL}/api/events/lightweight`);
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
       const data = await res.json();
+      
+      // Ensure data is an array
+      if (!Array.isArray(data)) {
+        console.error('Events data is not an array:', data);
+        return;
+      }
 
       const now = new Date();
 

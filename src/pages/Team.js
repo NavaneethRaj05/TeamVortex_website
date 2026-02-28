@@ -20,11 +20,16 @@ const Team = () => {
     const fetchTeam = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/team`);
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
         const data = await res.json();
-        setTeamMembers(data);
+        // Ensure data is an array
+        setTeamMembers(Array.isArray(data) ? data : []);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching team:', err);
+        setTeamMembers([]); // Set empty array on error
         setLoading(false);
       }
     };
@@ -32,7 +37,8 @@ const Team = () => {
   }, []);
 
   const getMembersByCategory = (category) => {
-    return teamMembers.filter(member => member.category === category);
+    // Ensure teamMembers is an array before filtering
+    return Array.isArray(teamMembers) ? teamMembers.filter(member => member.category === category) : [];
   };
 
   const containerVariants = {
