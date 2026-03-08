@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Rocket, Users, Award, Code, ArrowRight, Zap, Globe, Calendar, Trophy, Key, Gamepad2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -17,9 +17,10 @@ const Home = () => {
   useEffect(() => {
     fetchEvents();
     fetchSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/settings`);
       const data = await res.json();
@@ -27,9 +28,9 @@ const Home = () => {
     } catch (err) {
       console.error('Error fetching settings:', err);
     }
-  };
+  }, []);
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       // Use lightweight endpoint for faster loading
       const res = await fetch(`${API_BASE_URL}/api/events/lightweight`);
@@ -151,25 +152,25 @@ const Home = () => {
         console.error('Error fetching events (fallback):', fallbackErr);
       }
     }
-  };
+  }, []);
 
   const closePopup = () => {
     setShowPopup(false);
     sessionStorage.setItem('upcomingEventsPopupShown', 'true');
   };
 
-  const container = {
+  const container = useMemo(() => ({
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.1 }
+      transition: { staggerChildren: 0.05 }
     }
-  };
+  }), []);
 
-  const item = {
+  const item = useMemo(() => ({
     hidden: { opacity: 0, y: 30 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 50 } }
-  };
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 60, damping: 15 } }
+  }), []);
 
   const prayogFallback = useMemo(() => ({
     title: 'No Past Events Yet',
@@ -280,13 +281,22 @@ const Home = () => {
               Join the revolution of technical excellence.
             </motion.p>
 
-            <motion.div variants={item} className="flex flex-col sm:flex-row gap-4">
-              <Link to="/team" className="glass-button group flex items-center justify-center space-x-2 text-white">
+            <motion.div variants={item} className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <Link 
+                to="/team" 
+                className="glass-button group flex items-center justify-center gap-2 sm:gap-3 text-white px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-bold rounded-xl bg-gradient-to-r from-vortex-blue to-blue-600 hover:from-vortex-blue/90 hover:to-blue-600/90 shadow-lg hover:shadow-vortex-blue/50 transition-all"
+              >
+                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Meet the Team</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link to="/contests" className="px-8 py-4 rounded-xl font-bold border border-white/10 hover:bg-white/5 text-white/70 hover:text-white transition-all text-center">
-                View Contests
+              <Link 
+                to="/contests" 
+                className="glass-button group flex items-center justify-center gap-2 sm:gap-3 text-white px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-bold rounded-xl bg-gradient-to-r from-vortex-orange to-red-600 hover:from-vortex-orange/90 hover:to-red-600/90 shadow-lg hover:shadow-vortex-orange/50 transition-all"
+              >
+                <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>View Contests</span>
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </motion.div>
           </motion.div>
@@ -416,163 +426,6 @@ const Home = () => {
                     </div>
                   </div>
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* Other Past Events - Automatically displayed when date finishes */}
-          {pastEvents.length > 0 && (
-            <div className="space-y-8">
-              <div className="text-center">
-                <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">Other Past Events</h3>
-                <p className="text-white/60">Automatically displayed when event dates finish</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {pastEvents.map((event, index) => {
-                  // Safety check
-                  if (!event || !event._id || !event.title) {
-                    console.warn('Invalid past event data in Home.js:', event);
-                    return null;
-                  }
-                  
-                  const gradientConfigs = [
-                    'from-purple-500 to-pink-500',
-                    'from-blue-500 to-cyan-500', 
-                    'from-green-500 to-emerald-500',
-                    'from-orange-500 to-red-500'
-                  ];
-                  
-                  const gradientClass = gradientConfigs[index % gradientConfigs.length];
-                  
-                  return (
-                    <div key={event._id} className="glass-card overflow-hidden bg-white/5 border border-white/10">
-                      <div className="p-6">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h4 className="text-xl font-bold text-white mb-2">{event.title}</h4>
-                            <div className="flex items-center gap-4 text-sm text-white/60">
-                              <div className="flex items-center">
-                                <Calendar className="w-4 h-4 mr-2 text-vortex-blue" />
-                                {new Date(event.date).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                })}
-                              </div>
-                              {event.location && (
-                                <div className="flex items-center">
-                                  <Globe className="w-4 h-4 mr-2 text-green-400" />
-                                  {event.location}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          {event.priority > 0 && (
-                            <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-bold rounded-full">
-                              Priority {event.priority}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Event Image or Gradient */}
-                        <div className="h-32 mb-4 rounded-lg overflow-hidden">
-                          {event.images && event.images.length > 0 ? (
-                            <img 
-                              src={event.images[0]} 
-                              alt={event.title} 
-                              className="w-full h-full object-cover" 
-                            />
-                          ) : (
-                            <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center`}>
-                              <Calendar className="h-8 w-8 text-white/30" />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Event Details */}
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-1 rounded-full text-xs bg-vortex-blue/20 text-vortex-blue">
-                              {event.eventType}
-                            </span>
-                            <span className="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">
-                              {event.category}
-                            </span>
-                          </div>
-                          {event.registrationCount > 0 && (
-                            <div className="flex items-center text-white/60 text-xs">
-                              <Users className="w-3 h-3 mr-1" />
-                              {event.registrationCount} participants
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Sub-Events Preview */}
-                        {event.subEvents && event.subEvents.length > 0 && (
-                          <div className="mb-4">
-                            <div className="text-xs text-white/40 mb-2">Sub-Events ({event.subEvents.length})</div>
-                            <div className="grid grid-cols-2 gap-2">
-                              {event.subEvents.slice(0, 4).map((subEvent, idx) => {
-                                // Safety check for subEvent
-                                if (!subEvent || !subEvent.title) {
-                                  console.warn('Invalid subEvent data in Other Past Events:', subEvent);
-                                  return null;
-                                }
-                                
-                                const IconComponent = getIconComponent(subEvent.icon);
-                                return (
-                                  <div
-                                    key={idx}
-                                    className="flex items-center gap-2 p-2 bg-white/5 rounded text-xs text-white/70"
-                                  >
-                                    <div className={`w-6 h-6 bg-gradient-to-br ${subEvent.color || 'from-blue-500 to-purple-500'} rounded flex items-center justify-center`}>
-                                      <IconComponent className="w-3 h-3 text-white" />
-                                    </div>
-                                    <span className="truncate">{subEvent.title}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            {event.subEvents.length > 4 && (
-                              <div className="text-xs text-white/50 mt-2 text-center">
-                                +{event.subEvents.length - 4} more sub-events
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Gallery Links */}
-                        <div className="flex gap-2">
-                          {event.images && event.images.length > 0 && (
-                            <button className="flex-1 px-3 py-2 bg-vortex-blue/20 text-vortex-blue border border-vortex-blue/30 rounded-lg text-xs font-medium hover:bg-vortex-blue/30 transition-colors">
-                              📸 Photos ({event.images.length})
-                            </button>
-                          )}
-                          {event.galleryDriveLink && (
-                            <button 
-                              onClick={() => window.open(event.galleryDriveLink, '_blank')}
-                              className="flex-1 px-3 py-2 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/30 transition-colors"
-                            >
-                              📁 Drive
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* View All Past Events Link */}
-              <div className="text-center mt-8">
-                <Link 
-                  to="/events" 
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all"
-                >
-                  View All Past Events
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
               </div>
             </div>
           )}
@@ -711,176 +564,6 @@ const Home = () => {
           </motion.div>
         </div>
       </section>
-
-      {/* Past Events Gallery */}
-      {pastEvents.length > 0 && (
-        <section className="py-20 px-4 bg-black/40">
-          <div className="max-w-7xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="mb-16 text-center"
-            >
-              <h2 className="text-4xl md:text-5xl font-bold font-display mb-4">Our <span className="gradient-text">Event Legacy</span></h2>
-              <p className="text-white/60 max-w-2xl mx-auto">Celebrating our journey through memorable events and achievements.</p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {pastEvents.map((event, index) => {
-                // Safety check
-                if (!event || !event._id || !event.title) {
-                  console.warn('Invalid past event data in Home.js (Event Legacy section):', event);
-                  return null;
-                }
-                
-                const gradientConfigs = [
-                  'from-purple-500 to-pink-500',
-                  'from-blue-500 to-cyan-500', 
-                  'from-green-500 to-emerald-500',
-                  'from-orange-500 to-red-500',
-                  'from-indigo-500 to-purple-500',
-                  'from-teal-500 to-blue-500'
-                ];
-                
-                const gradientClass = gradientConfigs[index % gradientConfigs.length];
-                
-                return (
-                  <motion.div
-                    key={event._id}
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
-                    className="glass-card overflow-hidden group hover:scale-105 transition-transform duration-300"
-                  >
-                    <div className="h-48 overflow-hidden relative">
-                      {event.images && event.images.length > 0 ? (
-                        <img 
-                          src={event.images[0]} 
-                          alt={event.title} 
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                        />
-                      ) : (
-                        <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center`}>
-                          <Calendar className="h-16 w-16 text-white/20" />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/40" />
-                      
-                      {/* Priority Badge */}
-                      {event.priority > 0 && (
-                        <div className="absolute top-4 right-4">
-                          <div className="px-3 py-1 bg-yellow-500/90 text-black text-xs font-bold rounded-full">
-                            Priority {event.priority}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Event Title Overlay */}
-                      <div className="absolute bottom-4 left-4 right-4">
-                        <h3 className="text-xl font-bold text-white mb-2">{event.title}</h3>
-                        <div className="flex items-center text-white/80 text-sm">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          {new Date(event.date).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-1 rounded-full text-xs bg-vortex-blue/20 text-vortex-blue">
-                            {event.eventType}
-                          </span>
-                          <span className="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">
-                            {event.category}
-                          </span>
-                        </div>
-                        {event.registrationCount > 0 && (
-                          <div className="flex items-center text-white/60 text-xs">
-                            <Users className="w-3 h-3 mr-1" />
-                            {event.registrationCount}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Sub-Events Preview */}
-                      {event.subEvents && event.subEvents.length > 0 && (
-                        <div className="mb-4">
-                          <div className="text-xs text-white/40 mb-2">Sub-Events ({event.subEvents.length})</div>
-                          <div className="flex flex-wrap gap-1">
-                            {event.subEvents.slice(0, 3).map((subEvent, idx) => {
-                              // Safety check for subEvent
-                              if (!subEvent || !subEvent.title) {
-                                console.warn('Invalid subEvent data in Event Legacy:', subEvent);
-                                return null;
-                              }
-                              
-                              const IconComponent = getIconComponent(subEvent.icon);
-                              return (
-                                <div
-                                  key={idx}
-                                  className="flex items-center gap-1 px-2 py-1 bg-white/5 rounded text-xs text-white/70"
-                                >
-                                  <IconComponent className="w-3 h-3" />
-                                  {subEvent.title}
-                                </div>
-                              );
-                            })}
-                            {event.subEvents.length > 3 && (
-                              <div className="px-2 py-1 bg-white/5 rounded text-xs text-white/50">
-                                +{event.subEvents.length - 3} more
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Gallery Links */}
-                      <div className="flex gap-2">
-                        {event.images && event.images.length > 0 && (
-                          <button className="flex-1 px-3 py-2 bg-vortex-blue/20 text-vortex-blue border border-vortex-blue/30 rounded-lg text-xs font-medium hover:bg-vortex-blue/30 transition-colors">
-                            📸 Photos ({event.images.length})
-                          </button>
-                        )}
-                        {event.galleryDriveLink && (
-                          <button 
-                            onClick={() => window.open(event.galleryDriveLink, '_blank')}
-                            className="flex-1 px-3 py-2 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/30 transition-colors"
-                          >
-                            📁 Drive
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-
-            {/* View All Past Events Link */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="text-center mt-12"
-            >
-              <Link 
-                to="/events" 
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all"
-              >
-                View All Past Events
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </motion.div>
-          </div>
-        </section>
-      )}
 
       <AnimatePresence>
         {showPopup && (

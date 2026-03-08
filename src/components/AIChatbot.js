@@ -176,7 +176,7 @@ const AIChatbot = () => {
 
   return (
     <>
-      {/* Chatbot Toggle Button - ALWAYS VISIBLE ON ALL DEVICES */}
+      {/* Chatbot Toggle Button */}
       <AnimatePresence>
         {!isOpen && (
           <motion.button
@@ -184,29 +184,7 @@ const AIChatbot = () => {
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
             exit={{ scale: 0, opacity: 0, rotate: 180 }}
             onClick={() => setIsOpen(true)}
-            className="chatbot-button-unique"
-            style={{
-              position: 'fixed',
-              bottom: window.innerWidth < 640 ? '1rem' : '1.5rem', // 16px mobile, 24px desktop
-              right: window.innerWidth < 640 ? '1rem' : '1.5rem',
-              zIndex: 9999,
-              width: window.innerWidth < 640 ? '3.5rem' : '4rem', // 56px mobile, 64px desktop
-              height: window.innerWidth < 640 ? '3.5rem' : '4rem',
-              borderRadius: '50%',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'transform 0.3s ease',
-              touchAction: 'manipulation' // Better touch handling
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-            onTouchStart={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-            onTouchEnd={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-transform hover:scale-110 active:scale-95"
             aria-label="Open Chat"
           >
             {/* Animated rotating gradient background */}
@@ -216,36 +194,12 @@ const AIChatbot = () => {
             <div className="absolute inset-0 rounded-full animate-ping-slow opacity-75 bg-gradient-radial-glow"></div>
             
             {/* Inner circle with icon */}
-            <div style={{
-              position: 'relative',
-              zIndex: 10,
-              width: window.innerWidth < 640 ? '3rem' : '3.5rem',
-              height: window.innerWidth < 640 ? '3rem' : '3.5rem',
-              borderRadius: '50%',
-              background: 'linear-gradient(to bottom right, #22d3ee, #3b82f6, #a855f7)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
-            }}>
-              <MessageCircle style={{
-                width: window.innerWidth < 640 ? '1.5rem' : '1.75rem',
-                height: window.innerWidth < 640 ? '1.5rem' : '1.75rem',
-                color: 'white'
-              }} className="animate-bounce-subtle" />
+            <div className="relative z-10 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-500 flex items-center justify-center shadow-inner">
+              <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 text-white animate-bounce-subtle" />
             </div>
             
             {/* Status indicator */}
-            <span style={{
-              position: 'absolute',
-              top: '-0.125rem',
-              right: '-0.125rem',
-              width: window.innerWidth < 640 ? '0.75rem' : '1rem',
-              height: window.innerWidth < 640 ? '0.75rem' : '1rem',
-              backgroundColor: '#4ade80',
-              borderRadius: '50%',
-              border: '2px solid white'
-            }} className="animate-pulse-glow shadow-glow-green"></span>
+            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 sm:w-4 sm:h-4 bg-green-400 rounded-full border-2 border-white animate-pulse-glow shadow-glow-green"></span>
             
             {/* Tooltip - Hidden on mobile, shown on desktop */}
             {window.innerWidth >= 640 && (
@@ -279,16 +233,8 @@ const AIChatbot = () => {
             initial={{ opacity: 0, y: 100, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.8 }}
-            className="glass-card rounded-2xl shadow-2xl flex flex-col overflow-hidden border-2 border-cyan-500/30"
+            className="glass-card rounded-2xl shadow-2xl flex flex-col overflow-hidden border-2 border-cyan-500/30 fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] w-[calc(100vw-2rem)] sm:w-96 max-w-[calc(100vw-2rem)] sm:max-w-96 h-[calc(100vh-2rem)] sm:h-[600px] max-h-[calc(100vh-2rem)] sm:max-h-[600px]"
             style={{
-              position: 'fixed',
-              bottom: window.innerWidth < 640 ? '1rem' : '1.5rem',
-              right: window.innerWidth < 640 ? '1rem' : '1.5rem',
-              zIndex: 9999,
-              width: window.innerWidth < 640 ? 'calc(100vw - 2rem)' : '384px',
-              maxWidth: window.innerWidth < 640 ? 'calc(100vw - 2rem)' : '384px',
-              height: window.innerWidth < 640 ? 'calc(100vh - 2rem)' : '600px',
-              maxHeight: window.innerWidth < 640 ? 'calc(100vh - 2rem)' : '600px',
               boxShadow: '0 0 40px rgba(6, 182, 212, 0.3), 0 20px 60px rgba(0, 0, 0, 0.5)'
             }}
           >

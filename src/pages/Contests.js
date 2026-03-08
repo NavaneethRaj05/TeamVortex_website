@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, MapPin, Clock, X, User, Mail, GraduationCap, Plus, Users, Zap } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
 import PaymentFlow from '../components/PaymentFlow';
+import GoogleFormPayment from '../components/GoogleFormPayment';
 
 const Contests = () => {
   const [events, setEvents] = useState([]);
@@ -31,15 +32,18 @@ const Contests = () => {
   const [emailValidation, setEmailValidation] = useState({});
 
   useEffect(() => {
-    fetchEvents();
+    const controller = new AbortController();
+    fetchEvents(controller.signal);
+    return () => controller.abort();
   }, []);
 
-  const fetchEvents = async () => {
+  const fetchEvents = async (signal) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/events`);
+      // Use lightweight endpoint for faster loading
+      const res = await fetch(`${API_BASE_URL}/api/events/lightweight`, { signal });
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      
       const data = await res.json();
-
-      // Filter upcoming events and sort by date
       const now = new Date();
 
       const upcoming = data.filter(e => {
@@ -53,15 +57,16 @@ const Contests = () => {
           eventEnd.setHours(parseInt(h), parseInt(m), 0);
         }
 
-        const isUpcoming = now <= eventEnd;
-        return isUpcoming;
+        return now <= eventEnd;
       }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
       setEvents(upcoming);
       setLoading(false);
     } catch (err) {
-      console.error('Error fetching events:', err);
-      setLoading(false);
+      if (err.name !== 'AbortError') {
+        console.error('Error fetching events:', err);
+        setLoading(false);
+      }
     }
   };
 
@@ -254,16 +259,23 @@ const Contests = () => {
 
       // If it's a paid contest, show the payment flow
       if (selectedEvent.price > 0 && !showingPayment) {
-        try {
-          const payInfoRes = await fetch(`${API_BASE_URL}/api/events/${selectedEvent._id}/payment-info`);
-          const payInfoData = await payInfoRes.json();
-          setPaymentInfo(payInfoData);
+        // Check if Google Form payment is enabled
+        if (selectedEvent.paymentGateway === 'GoogleForm' && selectedEvent.googleFormPayment?.enabled) {
           setShowingPayment(true);
           setSubmitting(false);
-        } catch (err) {
-          console.error('Failed to fetch payment info:', err);
-          setRegSuccess(true);
-          setSubmitting(false);
+        } else {
+          // Regular UPI/Offline payment flow
+          try {
+            const payInfoRes = await fetch(`${API_BASE_URL}/api/events/${selectedEvent._id}/payment-info`);
+            const payInfoData = await payInfoRes.json();
+            setPaymentInfo(payInfoData);
+            setShowingPayment(true);
+            setSubmitting(false);
+          } catch (err) {
+            console.error('Failed to fetch payment info:', err);
+            setRegSuccess(true);
+            setSubmitting(false);
+          }
         }
       } else {
         setRegSuccess(true);
@@ -289,22 +301,22 @@ const Contests = () => {
     }
   };
 
-  const containerVariants = {
+  const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.1 }
+      transition: { staggerChildren: 0.05 }
     }
-  };
+  }), []);
 
-  const itemVariants = {
+  const itemVariants = useMemo(() => ({
     hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.5 }
+      transition: { duration: 0.3 }
     }
-  };
+  }), []);
 
   return (
     <div className="pt-24 pb-12 px-4 min-h-screen">
@@ -324,9 +336,21 @@ const Contests = () => {
         </motion.div>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-vortex-blue mb-4"></div>
-            <p className="text-white/50 text-lg">Loading upcoming events...</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="glass-card overflow-hidden animate-pulse">
+                <div className="h-48 bg-white/10"></div>
+                <div className="p-6 space-y-4">
+                  <div className="h-6 bg-white/10 rounded w-3/4"></div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-white/10 rounded"></div>
+                    <div className="h-3 bg-white/10 rounded"></div>
+                    <div className="h-3 bg-white/10 rounded w-2/3"></div>
+                  </div>
+                  <div className="h-10 bg-white/10 rounded"></div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <motion.div
@@ -482,30 +506,55 @@ const Contests = () => {
                   </div>
                 </div>
               ) : showingPayment ? (
-                <PaymentFlow
-                  eventId={selectedEvent._id}
-                  eventTitle={selectedEvent.title}
-                  amount={selectedEvent.price}
-                  paymentInfo={paymentInfo}
-                  userEmail={regData.members[0].email}
-                  onComplete={() => {
-                    setShowingPayment(false);
-                    setRegSuccess(true);
-                    setTimeout(() => {
-                      setRegSuccess(false);
-                      setSelectedEvent(null);
-                      setRegData({
-                        teamName: '',
-                        members: [{
-                          name: '', email: '', studentId: '', college: '', phone: '',
-                          department: '', year: '', state: '', city: '', age: ''
-                        }]
-                      });
-                      fetchEvents();
-                    }, 3000);
-                  }}
-                  onCancel={() => setShowingPayment(false)}
-                />
+                <>
+                  {selectedEvent.paymentGateway === 'GoogleForm' && selectedEvent.googleFormPayment?.enabled ? (
+                    <GoogleFormPayment
+                      event={selectedEvent}
+                      onComplete={() => {
+                        setShowingPayment(false);
+                        setRegSuccess(true);
+                        setTimeout(() => {
+                          setRegSuccess(false);
+                          setSelectedEvent(null);
+                          setRegData({
+                            teamName: '',
+                            members: [{
+                              name: '', email: '', studentId: '', college: '', phone: '',
+                              department: '', year: '', state: '', city: '', age: ''
+                            }]
+                          });
+                          fetchEvents();
+                        }, 3000);
+                      }}
+                      onCancel={() => setShowingPayment(false)}
+                    />
+                  ) : (
+                    <PaymentFlow
+                      eventId={selectedEvent._id}
+                      eventTitle={selectedEvent.title}
+                      amount={selectedEvent.price}
+                      paymentInfo={paymentInfo}
+                      userEmail={regData.members[0].email}
+                      onComplete={() => {
+                        setShowingPayment(false);
+                        setRegSuccess(true);
+                        setTimeout(() => {
+                          setRegSuccess(false);
+                          setSelectedEvent(null);
+                          setRegData({
+                            teamName: '',
+                            members: [{
+                              name: '', email: '', studentId: '', college: '', phone: '',
+                              department: '', year: '', state: '', city: '', age: ''
+                            }]
+                          });
+                          fetchEvents();
+                        }, 3000);
+                      }}
+                      onCancel={() => setShowingPayment(false)}
+                    />
+                  )}
+                </>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* Left Column - Event Information */}

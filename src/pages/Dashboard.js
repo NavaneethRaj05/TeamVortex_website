@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
-    Users, Calendar, Activity, Plus, Edit2, Trash2, Mail, MapPin, CreditCard, Menu, X, LayoutDashboard, TrendingUp, Award, Settings
+    Users, Calendar, Activity, Plus, Edit2, Trash2, Mail, MapPin, CreditCard, Menu, X, LayoutDashboard, TrendingUp, Award, Settings, LogOut
 } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
 import { generateAdminReportPDF, downloadPDF } from '../utils/pdfGenerator';
@@ -382,14 +382,32 @@ const Dashboard = () => {
 
     return (
         <div className="min-h-screen bg-dark-bg">
-            {/* Hamburger Menu Button - Mobile Optimized */}
-            <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="fixed top-20 left-4 z-50 p-2.5 sm:p-3 glass-card rounded-xl hover:bg-white/10 active:scale-95 transition-all touch-manipulation"
-                aria-label="Toggle Menu"
-            >
-                {sidebarOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6 text-white" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-white" />}
-            </button>
+            {/* Dashboard Header - Replaces Navbar */}
+            <header className="fixed top-0 left-0 right-0 z-30 glass-card border-b border-white/10">
+                <div className="px-4 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                            className="p-2 glass-card rounded-lg hover:bg-white/10 active:scale-95 transition-all"
+                            aria-label="Toggle Menu"
+                        >
+                            {sidebarOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
+                        </button>
+                        <h1 className="text-xl font-bold gradient-text">TEAM VORTEX</h1>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="hidden sm:block text-right">
+                            <p className="text-white text-sm font-medium">Admin</p>
+                            <p className="text-white/60 text-xs">{user?.email}</p>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-vortex-blue to-vortex-orange flex items-center justify-center">
+                            <span className="text-black font-bold">
+                                {user?.email?.charAt(0).toUpperCase()}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </header>
 
             {/* Sidebar Overlay */}
             <AnimatePresence>
@@ -439,22 +457,19 @@ const Dashboard = () => {
                                     <span className="text-sm sm:text-base">{item.label}</span>
                                 </button>
                             ))}
+                            
+                            {/* Logout Button */}
+                            <button
+                                onClick={() => {
+                                    localStorage.removeItem('user');
+                                    navigate('/signin');
+                                }}
+                                className="w-full flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all touch-manipulation text-red-400 hover:bg-red-500/10 hover:text-red-300 border border-red-500/20 mt-4"
+                            >
+                                <LogOut className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                                <span className="text-sm sm:text-base font-medium">Logout</span>
+                            </button>
                         </nav>
-
-                        {/* User Info - Mobile Optimized */}
-                        <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 border-t border-white/10 bg-black/20">
-                            <div className="flex items-center gap-2.5 sm:gap-3">
-                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-vortex-blue to-vortex-orange flex items-center justify-center flex-shrink-0">
-                                    <span className="text-black font-bold text-xs sm:text-sm">
-                                        {user?.email?.charAt(0).toUpperCase()}
-                                    </span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-white text-xs sm:text-sm font-medium truncate">Admin</p>
-                                    <p className="text-white/60 text-[10px] sm:text-xs truncate">{user?.email}</p>
-                                </div>
-                            </div>
-                        </div>
                     </motion.aside>
                 )}
             </AnimatePresence>

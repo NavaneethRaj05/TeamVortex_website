@@ -5,6 +5,28 @@ import Footer from './components/Footer';
 import FloatingTrophy from './components/FloatingTrophy';
 import AIChatbot from './components/AIChatbot';
 
+// Wrapper component to conditionally show Navbar
+const ConditionalNavbar = () => {
+  const location = useLocation();
+  const isDashboard = location.pathname === '/dashboard';
+  
+  // Don't show navbar on dashboard
+  if (isDashboard) return null;
+  
+  return <Navbar />;
+};
+
+// Wrapper component to conditionally show Footer
+const ConditionalFooter = () => {
+  const location = useLocation();
+  const isDashboard = location.pathname === '/dashboard';
+  
+  // Don't show footer on dashboard
+  if (isDashboard) return null;
+  
+  return <Footer />;
+};
+
 // Wrapper component to conditionally show chatbot
 const ConditionalChatbot = () => {
   const location = useLocation();
@@ -45,7 +67,7 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-dark-bg">
-        <Navbar />
+        <ConditionalNavbar />
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<RootRoute />} />
@@ -57,7 +79,7 @@ function App() {
             <Route path="/signin" element={<SignIn />} />
           </Routes>
         </Suspense>
-        <Footer />
+        <ConditionalFooter />
         <FloatingTrophy />
         <ConditionalChatbot />
       </div>

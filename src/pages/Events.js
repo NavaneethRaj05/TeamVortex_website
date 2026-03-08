@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X, AlertCircle, Mail, Plus, CreditCard, Download } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
 import PaymentFlow from '../components/PaymentFlow';
+import GoogleFormPayment from '../components/GoogleFormPayment';
 import MultiEventRegistration from '../components/MultiEventRegistration';
 import { generateRegistrationPDF, downloadPDF } from '../utils/pdfGenerator';
 
@@ -146,9 +147,10 @@ const Events = () => {
 
   useEffect(() => {
     fetchEvents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchEvents = () => {
+  const fetchEvents = useCallback(() => {
     // Use lightweight endpoint for faster initial loading
     fetch(`${API_BASE_URL}/api/events/lightweight`)
       .then(res => res.json())
@@ -167,7 +169,7 @@ const Events = () => {
             console.error('Error fetching events (fallback):', fallbackErr);
           });
       });
-  };
+  }, []);
 
   // Email validation function
   const validateEmail = (email, memberIndex) => {
@@ -411,26 +413,26 @@ const Events = () => {
     setCurrentSlide((prev) => (prev - 1 + pastEvents.length) % pastEvents.length);
   };
 
-  const containerVariants = {
+  const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
+        staggerChildren: 0.05,
       },
     },
-  };
+  }), []);
 
-  const itemVariants = {
+  const itemVariants = useMemo(() => ({
     hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.5,
+        duration: 0.3,
       },
     },
-  };
+  }), []);
 
   const getIconComponent = useMemo(() => (iconName) => {
     const icons = { Trophy, Code, Key, Gamepad2, Users, MapPin, Clock };
@@ -556,6 +558,20 @@ const Events = () => {
   // Initiate payment flow
   const initiatePaymentFlow = async (registrationData) => {
     try {
+      // Check if Google Form payment is enabled
+      if (rsvpEvent.paymentGateway === 'GoogleForm' && rsvpEvent.googleFormPayment?.enabled) {
+        setRegistrationFlow(prev => ({
+          ...prev,
+          step: 'payment',
+          isSubmitting: false,
+          canSubmit: false
+        }));
+        
+        setShowingPayment(true);
+        return;
+      }
+
+      // Regular UPI/Offline payment flow
       const payInfoRes = await fetch(`${API_BASE_URL}/api/events/${rsvpEvent._id}/payment-info`);
       
       if (!payInfoRes.ok) {
@@ -1859,15 +1875,25 @@ const Events = () => {
                           }
                         })()}
                     {showingPayment && (
-                      <PaymentFlow
-                        eventId={rsvpEvent._id}
-                        eventTitle={rsvpEvent.title}
-                        amount={rsvpEvent.price}
-                        paymentInfo={paymentInfo}
-                        userEmail={rsvpForm.members[0].email}
-                        onComplete={handlePaymentComplete}
-                        onCancel={handlePaymentCancel}
-                      />
+                      <>
+                        {rsvpEvent.paymentGateway === 'GoogleForm' && rsvpEvent.googleFormPayment?.enabled ? (
+                          <GoogleFormPayment
+                            event={rsvpEvent}
+                            onComplete={handlePaymentComplete}
+                            onCancel={handlePaymentCancel}
+                          />
+                        ) : (
+                          <PaymentFlow
+                            eventId={rsvpEvent._id}
+                            eventTitle={rsvpEvent.title}
+                            amount={rsvpEvent.price}
+                            paymentInfo={paymentInfo}
+                            userEmail={rsvpForm.members[0].email}
+                            onComplete={handlePaymentComplete}
+                            onCancel={handlePaymentCancel}
+                          />
+                        )}
+                      </>
                     )}
                   </form>
                 )}

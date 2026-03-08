@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Linkedin, Instagram, Mail } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
@@ -8,48 +8,52 @@ const Team = () => {
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const categories = [
+  const categories = useMemo(() => [
     { id: 'faculty', name: 'Faculty Advisors' },
     { id: 'core', name: 'Core Team' },
     { id: 'technical', name: 'Technical & Projects' },
     { id: 'creative', name: 'Events & Media' },
     { id: 'editorial', name: 'Editorial' },
-  ];
+  ], []);
 
   useEffect(() => {
+    const controller = new AbortController();
+    
     const fetchTeam = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/team`);
+        const res = await fetch(`${API_BASE_URL}/api/team`, { signal: controller.signal });
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
         const data = await res.json();
-        // Ensure data is an array
         setTeamMembers(Array.isArray(data) ? data : []);
         setLoading(false);
       } catch (err) {
-        console.error('Error fetching team:', err);
-        setTeamMembers([]); // Set empty array on error
-        setLoading(false);
+        if (err.name !== 'AbortError') {
+          console.error('Error fetching team:', err);
+          setTeamMembers([]);
+          setLoading(false);
+        }
       }
     };
     fetchTeam();
+    
+    return () => controller.abort();
   }, []);
 
-  const getMembersByCategory = (category) => {
-    // Ensure teamMembers is an array before filtering
+  const getMembersByCategory = useCallback((category) => {
     return Array.isArray(teamMembers) ? teamMembers.filter(member => member.category === category) : [];
-  };
+  }, [teamMembers]);
 
-  const containerVariants = {
+  const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
-  };
+    visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
+  }), []);
 
-  const itemVariants = {
+  const itemVariants = useMemo(() => ({
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-  };
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+  }), []);
 
   return (
     <div className="pt-24 pb-12 px-4">
@@ -91,7 +95,20 @@ const Team = () => {
 
         {/* Team Members Grid */}
         {loading ? (
-          <div className="text-center text-white/50">Loading Team Data...</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="team-card animate-pulse">
+                <div className="w-28 h-28 mx-auto mb-6 bg-white/10 rounded-2xl"></div>
+                <div className="h-4 bg-white/10 rounded mb-2 w-3/4 mx-auto"></div>
+                <div className="h-3 bg-white/10 rounded mb-6 w-1/2 mx-auto"></div>
+                <div className="flex justify-center space-x-4">
+                  <div className="w-10 h-10 bg-white/10 rounded-xl"></div>
+                  <div className="w-10 h-10 bg-white/10 rounded-xl"></div>
+                  <div className="w-10 h-10 bg-white/10 rounded-xl"></div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <motion.div
             key={activeCategory}

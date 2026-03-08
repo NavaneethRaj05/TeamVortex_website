@@ -178,12 +178,19 @@ const eventSchema = new mongoose.Schema({
     tags: [{ type: String }],
 
     // Payment & Fee Collection
-    paymentGateway: { type: String, enum: ['UPI', 'Offline'], default: 'UPI' },
+    paymentGateway: { type: String, enum: ['UPI', 'Offline', 'GoogleForm', 'Both'], default: 'UPI' },
     upiId: { type: String },
     upiQrCode: { type: String },
     paymentReceiverName: { type: String },
     offlineInstructions: { type: String },
     enableOfflinePayment: { type: Boolean, default: true },
+    // Google Form Payment Option
+    googleFormPayment: {
+        enabled: { type: Boolean, default: false },
+        formUrl: { type: String },
+        buttonText: { type: String, default: 'Complete Payment via Google Form' },
+        instructions: { type: String, default: 'Click the button below to open the payment form and complete your registration.' }
+    },
     // Offline payment methods (when paymentGateway is 'Offline')
     offlineMethods: [{ type: String }], // ['upi', 'bank', 'cash']
     bankDetails: {

@@ -46,8 +46,10 @@ const PastEventsManager = () => {
 
   const fetchPastEvents = async () => {
     try {
+      console.log('Fetching past events...');
       const res = await fetch(`${API_BASE_URL}/api/events`);
       const data = await res.json();
+      console.log('Total events fetched:', data.length);
 
       const prayog = data.find(e => (e.title || '').trim().toLowerCase() === 'prayog 1.0');
       
@@ -116,6 +118,9 @@ const PastEventsManager = () => {
         return new Date(b.date) - new Date(a.date);
       });
 
+      console.log('Past events filtered:', past.length);
+      console.log('Past event IDs:', past.map(e => ({ id: e._id, title: e.title })));
+      
       setPastEvents(past);
       setLoading(false);
     } catch (err) {
@@ -354,6 +359,8 @@ const PastEventsManager = () => {
     }
 
     try {
+      console.log('Deleting event with ID:', eventId);
+      
       const res = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
         method: 'DELETE',
         headers: {
@@ -362,8 +369,18 @@ const PastEventsManager = () => {
       });
 
       if (res.ok) {
-        await fetchPastEvents();
+        const data = await res.json();
+        console.log('Delete response:', data);
+        
+        // Immediately remove from local state for instant UI update
+        setPastEvents(prevEvents => prevEvents.filter(e => e._id !== eventId));
         setDeleteConfirm(null);
+        
+        // Then refresh from server to ensure consistency
+        setTimeout(() => {
+          fetchPastEvents();
+        }, 500);
+        
         alert('Event deleted successfully!');
       } else {
         const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
@@ -371,6 +388,8 @@ const PastEventsManager = () => {
         
         if (res.status === 404) {
           alert('Event not found in database. It may have already been deleted or never created.');
+          // Still remove from UI if not found
+          setPastEvents(prevEvents => prevEvents.filter(e => e._id !== eventId));
         } else {
           alert(`Failed to delete event: ${errorData.message || 'Server error'}`);
         }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Search, ExternalLink, Mail, Phone, Building, Calendar } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
@@ -10,20 +10,27 @@ const Sponsors = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/sponsors/active`)
+    // Use AbortController for cleanup
+    const controller = new AbortController();
+    
+    fetch(`${API_BASE_URL}/api/sponsors/active`, { signal: controller.signal })
       .then(res => res.json())
       .then(data => {
         setSponsors(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch(err => {
-        console.error('Error fetching sponsors:', err);
-        setSponsors([]);
-        setLoading(false);
+        if (err.name !== 'AbortError') {
+          console.error('Error fetching sponsors:', err);
+          setSponsors([]);
+          setLoading(false);
+        }
       });
+    
+    return () => controller.abort();
   }, []);
 
-  const sponsorTypes = [
+  const sponsorTypes = useMemo(() => [
     { id: 'all', name: 'All Sponsors', color: 'text-white' },
     { id: 'title', name: 'Title Sponsor', color: 'text-yellow-400' },
     { id: 'platinum', name: 'Platinum', color: 'text-gray-300' },
@@ -31,22 +38,27 @@ const Sponsors = () => {
     { id: 'silver', name: 'Silver', color: 'text-gray-400' },
     { id: 'bronze', name: 'Bronze', color: 'text-orange-600' },
     { id: 'media', name: 'Media Partners', color: 'text-purple-400' },
-  ];
+  ], []);
 
-  const filteredSponsors = Array.isArray(sponsors) ? sponsors.filter(sponsor => {
-    const matchesSearch = sponsor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sponsor.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sponsor.industry?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = selectedType === 'all' || sponsor.type === selectedType;
-    return matchesSearch && matchesType;
-  }) : [];
+  const filteredSponsors = useMemo(() => {
+    if (!Array.isArray(sponsors)) return [];
+    
+    return sponsors.filter(sponsor => {
+      const matchesSearch = searchTerm === '' || 
+        sponsor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sponsor.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sponsor.industry?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = selectedType === 'all' || sponsor.type === selectedType;
+      return matchesSearch && matchesType;
+    });
+  }, [sponsors, searchTerm, selectedType]);
 
-  const getSponsorTypeColor = (type) => {
+  const getSponsorTypeColor = useCallback((type) => {
     const typeObj = sponsorTypes.find(t => t.id === type);
     return typeObj ? typeObj.color : 'text-white';
-  };
+  }, [sponsorTypes]);
 
-  const getSponsorTypeIcon = (type) => {
+  const getSponsorTypeIcon = useCallback((type) => {
     switch (type) {
       case 'title': return '👑';
       case 'platinum': return '💎';
@@ -56,28 +68,28 @@ const Sponsors = () => {
       case 'media': return '📺';
       default: return '🏢';
     }
-  };
+  }, []);
 
-  const containerVariants = {
+  const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
+        staggerChildren: 0.05, // Reduced from 0.1 for faster animation
       },
     },
-  };
+  }), []);
 
-  const itemVariants = {
+  const itemVariants = useMemo(() => ({
     hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.5,
+        duration: 0.3, // Reduced from 0.5 for faster animation
       },
     },
-  };
+  }), []);
 
   return (
     <div className="pt-24 pb-12 px-4">
@@ -105,13 +117,13 @@ const Sponsors = () => {
         >
           {/* Search Bar */}
           <div className="relative mb-6 max-w-md mx-auto">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/40" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-white/40 pointer-events-none" />
             <input
               type="text"
               placeholder="Search sponsors..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 glass-card border border-dark-border rounded-lg bg-transparent text-white placeholder-white/40 focus:outline-none focus:border-vortex-blue transition-colors"
+              className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 glass-card border border-dark-border rounded-lg bg-transparent text-white text-sm sm:text-base placeholder-white/40 focus:outline-none focus:border-vortex-blue transition-colors"
             />
           </div>
 
@@ -134,7 +146,22 @@ const Sponsors = () => {
 
         {/* Sponsors Grid */}
         {loading ? (
-          <div className="text-center text-white/50">Loading sponsors...</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="glass-card overflow-hidden animate-pulse">
+                <div className="h-48 bg-white/10"></div>
+                <div className="p-6 space-y-4">
+                  <div className="h-4 bg-white/10 rounded w-1/3"></div>
+                  <div className="h-6 bg-white/10 rounded w-2/3"></div>
+                  <div className="h-16 bg-white/10 rounded"></div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-white/10 rounded"></div>
+                    <div className="h-3 bg-white/10 rounded"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <motion.div
             variants={containerVariants}

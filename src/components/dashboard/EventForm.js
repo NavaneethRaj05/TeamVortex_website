@@ -632,6 +632,20 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                     <input
                                         type="radio"
                                         name="paymentGateway"
+                                        value="GoogleForm"
+                                        checked={newEvent.paymentGateway === 'GoogleForm'}
+                                        onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
+                                        className="accent-green-400"
+                                    />
+                                    <div className="flex-1">
+                                        <div className="text-sm font-medium text-white">Google Form Payment</div>
+                                        <div className="text-xs text-white/60">Redirect users to Google Form for payment</div>
+                                    </div>
+                                </label>
+                                <label className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                                    <input
+                                        type="radio"
+                                        name="paymentGateway"
                                         value="Both"
                                         checked={newEvent.paymentGateway === 'Both'}
                                         onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
@@ -730,6 +744,83 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                         onChange={e => setNewEvent({ ...newEvent, offlineInstructions: e.target.value })}
                                     />
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Google Form Payment Configuration */}
+                        {newEvent.paymentGateway === 'GoogleForm' && (
+                            <div className="space-y-3 p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                                <label className="text-[9px] text-purple-300 uppercase font-bold block">🟣 Google Form Payment Configuration</label>
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="text-[8px] text-white/40 uppercase ml-1 block mb-1">Google Form URL *</label>
+                                        <input
+                                            className="input-glass p-3 rounded-lg w-full text-sm"
+                                            placeholder="https://forms.gle/xxxxx or https://docs.google.com/forms/..."
+                                            value={newEvent.googleFormPayment?.formUrl || ''}
+                                            onChange={e => setNewEvent({ 
+                                                ...newEvent, 
+                                                googleFormPayment: { 
+                                                    ...newEvent.googleFormPayment, 
+                                                    formUrl: e.target.value,
+                                                    enabled: true
+                                                } 
+                                            })}
+                                            required={newEvent.paymentGateway === 'GoogleForm'}
+                                        />
+                                        <div className="text-[8px] text-white/30 mt-1">Paste your Google Form link here. Users will be redirected to this form for payment.</div>
+                                    </div>
+                                    <div>
+                                        <label className="text-[8px] text-white/40 uppercase ml-1 block mb-1">Button Text (Optional)</label>
+                                        <input
+                                            className="input-glass p-3 rounded-lg w-full text-sm"
+                                            placeholder="Complete Payment via Google Form"
+                                            value={newEvent.googleFormPayment?.buttonText || 'Complete Payment via Google Form'}
+                                            onChange={e => setNewEvent({ 
+                                                ...newEvent, 
+                                                googleFormPayment: { 
+                                                    ...newEvent.googleFormPayment, 
+                                                    buttonText: e.target.value 
+                                                } 
+                                            })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[8px] text-white/40 uppercase ml-1 block mb-1">Instructions for Users (Optional)</label>
+                                        <textarea
+                                            className="input-glass p-3 rounded-lg w-full text-sm h-20 resize-none"
+                                            placeholder="Click the button below to open the payment form and complete your registration."
+                                            value={newEvent.googleFormPayment?.instructions || 'Click the button below to open the payment form and complete your registration.'}
+                                            onChange={e => setNewEvent({ 
+                                                ...newEvent, 
+                                                googleFormPayment: { 
+                                                    ...newEvent.googleFormPayment, 
+                                                    instructions: e.target.value 
+                                                } 
+                                            })}
+                                        />
+                                    </div>
+                                </div>
+                                
+                                {/* Google Form Preview */}
+                                {newEvent.googleFormPayment?.formUrl && (
+                                    <div className="p-3 bg-white/5 rounded-lg border border-white/5">
+                                        <div className="text-[8px] text-purple-400 uppercase font-bold mb-2">Preview</div>
+                                        <div className="space-y-2">
+                                            <div className="text-xs text-white/70">
+                                                <div className="font-medium">Form URL: {newEvent.googleFormPayment.formUrl.substring(0, 50)}...</div>
+                                                <div className="text-[10px] text-white/50 mt-1">Users will see a button to open this form</div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => window.open(newEvent.googleFormPayment.formUrl, '_blank')}
+                                                className="w-full px-4 py-2 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-lg text-xs font-medium hover:bg-purple-500/30 transition-colors"
+                                            >
+                                                🔗 Test Form Link
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
