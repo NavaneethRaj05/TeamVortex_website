@@ -52,7 +52,7 @@ const PastEventsManager = () => {
       console.log('Total events fetched:', data.length);
 
       const prayog = data.find(e => (e.title || '').trim().toLowerCase() === 'prayog 1.0');
-      
+
       // Check if PRAYOG exists but has no sub-events
       const prayogNeedsSubEvents = prayog && (!prayog.subEvents || prayog.subEvents.length === 0);
       setPrayogMissing(!prayog || prayogNeedsSubEvents);
@@ -75,23 +75,23 @@ const PastEventsManager = () => {
           console.warn('Skipping event without _id:', event.title);
           return false;
         }
-        
+
         // Skip draft events
         if (event.status === 'draft') return false;
-        
+
         // Include explicitly completed events
         if (event.status === 'completed') return true;
 
         // Auto-detect past events based on date/time
         try {
           const eventDate = new Date(event.date);
-          
+
           // Check if date is valid
           if (isNaN(eventDate.getTime())) {
             console.warn('Invalid date for event:', event.title, event.date);
             return false;
           }
-          
+
           // Create end time for the event
           const eventEnd = new Date(eventDate);
           eventEnd.setHours(23, 59, 59, 999); // Default to end of day
@@ -120,7 +120,7 @@ const PastEventsManager = () => {
 
       console.log('Past events filtered:', past.length);
       console.log('Past event IDs:', past.map(e => ({ id: e._id, title: e.title })));
-      
+
       setPastEvents(past);
       setLoading(false);
     } catch (err) {
@@ -135,27 +135,27 @@ const PastEventsManager = () => {
 
   const handleBulkDelete = async () => {
     if (selectedEvents.length === 0) return;
-    
+
     if (!window.confirm(`Are you sure you want to delete ${selectedEvents.length} events? This action cannot be undone.`)) {
       return;
     }
 
     try {
       const results = await Promise.allSettled(
-        selectedEvents.map(eventId => 
-          fetch(`${API_BASE_URL}/api/events/${eventId}`, { 
+        selectedEvents.map(eventId =>
+          fetch(`${API_BASE_URL}/api/events/${eventId}`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' }
           })
         )
       );
-      
+
       const successful = results.filter(r => r.status === 'fulfilled' && r.value.ok).length;
       const failed = results.length - successful;
-      
+
       await fetchPastEvents();
       setSelectedEvents([]);
-      
+
       if (failed === 0) {
         alert(`${successful} events deleted successfully!`);
       } else {
@@ -172,14 +172,14 @@ const PastEventsManager = () => {
     if (selectedEvents.length === 0) return;
 
     try {
-      await Promise.all(selectedEvents.map(eventId => 
+      await Promise.all(selectedEvents.map(eventId =>
         fetch(`${API_BASE_URL}/api/events/${eventId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ priority: parseInt(newPriority) || 0 })
         })
       ));
-      
+
       await fetchPastEvents();
       setSelectedEvents([]);
       alert(`Priority updated for ${selectedEvents.length} events!`);
@@ -207,45 +207,45 @@ const PastEventsManager = () => {
         galleryDriveLink: '',
         images: [],
         subEvents: [
-          { 
-            title: 'Champions League', 
-            description: 'Branch-wise competitive event where teams represented their respective departments.', 
-            details: 'Champions League was a branch-wise competitive event where teams represented their respective departments. It focused on testing participants\' technical knowledge, logical thinking, and teamwork through multiple challenging rounds, fostering healthy competition among branches.', 
-            icon: 'Trophy', 
-            color: 'from-yellow-500 to-orange-500', 
-            duration: 'Full Day', 
-            participants: 'Branch-wise Teams', 
-            images: [] 
+          {
+            title: 'Champions League',
+            description: 'Branch-wise competitive event where teams represented their respective departments.',
+            details: 'Champions League was a branch-wise competitive event where teams represented their respective departments. It focused on testing participants\' technical knowledge, logical thinking, and teamwork through multiple challenging rounds, fostering healthy competition among branches.',
+            icon: 'Trophy',
+            color: 'from-yellow-500 to-orange-500',
+            duration: 'Full Day',
+            participants: 'Branch-wise Teams',
+            images: []
           },
-          { 
-            title: 'Hackathon', 
-            description: 'Inter-college team-based coding and innovation challenge.', 
-            details: 'The Hackathon was an inter-college team-based coding and innovation challenge. Teams worked intensively to develop practical solutions to real-world problems within a limited time. This event emphasized innovation, problem-solving, coding skills, and collaboration.', 
-            icon: 'Code', 
-            color: 'from-vortex-blue to-cyan-400', 
-            duration: 'Full Day', 
-            participants: 'Inter-College Teams', 
-            images: [] 
+          {
+            title: 'Hackathon',
+            description: 'Inter-college team-based coding and innovation challenge.',
+            details: 'The Hackathon was an inter-college team-based coding and innovation challenge. Teams worked intensively to develop practical solutions to real-world problems within a limited time. This event emphasized innovation, problem-solving, coding skills, and collaboration.',
+            icon: 'Code',
+            color: 'from-vortex-blue to-cyan-400',
+            duration: 'Full Day',
+            participants: 'Inter-College Teams',
+            images: []
           },
-          { 
-            title: 'Eureka', 
-            description: 'Idea and innovation-based event conducted within the college.', 
-            details: 'Eureka was an idea and innovation-based event conducted within the college. Teams presented creative solutions and project ideas to real-world or technical problems, focusing on original thinking, feasibility, and impact.', 
-            icon: 'Key', 
-            color: 'from-purple-500 to-pink-500', 
-            duration: 'Half Day', 
-            participants: 'Intra-College Teams', 
-            images: [] 
+          {
+            title: 'Eureka',
+            description: 'Idea and innovation-based event conducted within the college.',
+            details: 'Eureka was an idea and innovation-based event conducted within the college. Teams presented creative solutions and project ideas to real-world or technical problems, focusing on original thinking, feasibility, and impact.',
+            icon: 'Key',
+            color: 'from-purple-500 to-pink-500',
+            duration: 'Half Day',
+            participants: 'Intra-College Teams',
+            images: []
           },
-          { 
-            title: 'Gameathon', 
-            description: 'Fun yet competitive intra-college event centered around strategic games.', 
-            details: 'Gameathon was a fun yet competitive intra-college event centered around strategic and skill-based games. It tested participants\' decision-making, coordination, and analytical skills, making it both engaging and intellectually stimulating.', 
-            icon: 'Gamepad2', 
-            color: 'from-red-500 to-vortex-orange', 
-            duration: 'Half Day', 
-            participants: 'Intra-College Teams', 
-            images: [] 
+          {
+            title: 'Gameathon',
+            description: 'Fun yet competitive intra-college event centered around strategic games.',
+            details: 'Gameathon was a fun yet competitive intra-college event centered around strategic and skill-based games. It tested participants\' decision-making, coordination, and analytical skills, making it both engaging and intellectually stimulating.',
+            icon: 'Gamepad2',
+            color: 'from-red-500 to-vortex-orange',
+            duration: 'Half Day',
+            participants: 'Intra-College Teams',
+            images: []
           }
         ],
         organizer: { name: 'Team Vortex', email: 'teamvortexnce@gmail.com' }
@@ -264,7 +264,7 @@ const PastEventsManager = () => {
 
       console.log('PRAYOG 1.0 created successfully in database');
       await fetchPastEvents();
-      
+
       if (!silent) {
         alert('PRAYOG 1.0 created! You can now edit its info, sub-events, and gallery.');
       }
@@ -360,7 +360,7 @@ const PastEventsManager = () => {
 
     try {
       console.log('Deleting event with ID:', eventId);
-      
+
       const res = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
         method: 'DELETE',
         headers: {
@@ -371,21 +371,21 @@ const PastEventsManager = () => {
       if (res.ok) {
         const data = await res.json();
         console.log('Delete response:', data);
-        
+
         // Immediately remove from local state for instant UI update
         setPastEvents(prevEvents => prevEvents.filter(e => e._id !== eventId));
         setDeleteConfirm(null);
-        
+
         // Then refresh from server to ensure consistency
         setTimeout(() => {
           fetchPastEvents();
         }, 500);
-        
+
         alert('Event deleted successfully!');
       } else {
         const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
         console.error('Delete failed:', errorData);
-        
+
         if (res.status === 404) {
           alert('Event not found in database. It may have already been deleted or never created.');
           // Still remove from UI if not found
@@ -479,7 +479,7 @@ const PastEventsManager = () => {
           <div className="flex-1">
             <div className="text-blue-400 font-bold mb-1">Automatic Past Event Detection</div>
             <div className="text-white/70 text-sm">
-              Events automatically appear here when their date/time passes. They also appear in the public Events page for users. 
+              Events automatically appear here when their date/time passes. They also appear in the public Events page for users.
               No manual action needed - the system detects past events based on date and time.
             </div>
           </div>
@@ -552,109 +552,109 @@ const PastEventsManager = () => {
         <div className="grid grid-cols-1 gap-6">
           {pastEvents.map((event) => (
             <div key={event._id} className="glass-card p-6 border-l-4 border-vortex-blue">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-white mb-2">{event.title}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-white/60 mb-3">
-                    <div className="flex items-center">
-                      <Calendar className="w-4 h-4 mr-2 text-vortex-blue" />
-                      {new Date(event.date).toLocaleDateString('en-US', {
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+                <div className="flex-1 w-full">
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2 break-words">{event.title}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm text-white/60 mb-3">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-vortex-blue flex-shrink-0" />
+                      <span className="truncate">{new Date(event.date).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
-                      })}
+                      })}</span>
                     </div>
-                    <div className="flex items-center">
-                      <Clock className="w-4 h-4 mr-2 text-vortex-orange" />
-                      {event.startTime ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}` : 'Time TBA'}
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-vortex-orange flex-shrink-0" />
+                      <span className="truncate">{event.startTime ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}` : 'Time TBA'}</span>
                     </div>
-                    <div className="flex items-center">
-                      <MapPin className="w-4 h-4 mr-2 text-green-400" />
-                      {event.location || 'Location TBA'}
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-green-400 flex-shrink-0" />
+                      <span className="truncate">{event.location || 'Location TBA'}</span>
                     </div>
                   </div>
-                  <p className="text-white/70 text-sm mb-3 line-clamp-2">{event.description}</p>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${event.status === 'completed'
+                  <p className="text-white/70 text-xs sm:text-sm mb-3 line-clamp-2">{event.description}</p>
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                    <span className={`px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold whitespace-nowrap ${event.status === 'completed'
                       ? 'bg-green-500/20 text-green-400'
                       : 'bg-orange-500/20 text-orange-400'
                       }`}>
                       {event.status === 'completed' ? 'Completed' : 'Past Event'}
                     </span>
                     {event.priority > 0 && (
-                      <span className="px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">
+                      <span className="px-2 py-1 rounded-full text-[10px] sm:text-xs bg-yellow-500/20 text-yellow-400 whitespace-nowrap">
                         Top Priority ({event.priority})
                       </span>
                     )}
-                    <span className="px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400">
+                    <span className="px-2 py-1 rounded-full text-[10px] sm:text-xs bg-blue-500/20 text-blue-400 whitespace-nowrap">
                       {event.eventType}
                     </span>
-                    <span className="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">
+                    <span className="px-2 py-1 rounded-full text-[10px] sm:text-xs bg-purple-500/20 text-purple-400 whitespace-nowrap">
                       {event.category}
                     </span>
                     {event.registrationCount && (
-                      <span className="px-2 py-1 rounded-full text-xs bg-white/10 text-white/70">
-                        <Users className="w-3 h-3 inline mr-1" />
+                      <span className="px-2 py-1 rounded-full text-[10px] sm:text-xs bg-white/10 text-white/70 whitespace-nowrap">
+                        <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 inline mr-1" />
                         {event.registrationCount} participants
                       </span>
                     )}
                     {event.subEvents && event.subEvents.length > 0 && (
-                      <span className="px-2 py-1 rounded-full text-xs bg-vortex-blue/20 text-vortex-blue">
+                      <span className="px-2 py-1 rounded-full text-[10px] sm:text-xs bg-vortex-blue/20 text-vortex-blue whitespace-nowrap">
                         {event.subEvents.length} sub-events
                       </span>
                     )}
                     {event.price > 0 && (
-                      <span className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
+                      <span className="px-2 py-1 rounded-full text-[10px] sm:text-xs bg-green-500/20 text-green-400 whitespace-nowrap">
                         ₹{event.price}
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="flex gap-2 ml-4">
+                <div className="flex gap-1.5 sm:gap-2 w-full sm:w-auto border-t sm:border-t-0 border-white/5 pt-3 sm:pt-0 justify-end flex-wrap">
                   {event.status !== 'completed' && (
                     <button
                       onClick={() => markAsCompleted(event._id)}
-                      className="p-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors"
+                      className="p-2 sm:p-2.5 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors touch-manipulation"
                       title="Mark as Completed"
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
                   )}
                   <button
                     onClick={() => setViewingFeedback(event)}
-                    className="p-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors"
+                    className="p-2 sm:p-2.5 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors touch-manipulation"
                     title="View Feedback"
                   >
-                    <MessageSquare className="w-4 h-4" />
+                    <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                   <button
                     onClick={() => handleEdit(event, 'info')}
-                    className="p-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
+                    className="p-2 sm:p-2.5 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors touch-manipulation"
                     title="Edit Event Info"
                   >
-                    <Info className="w-4 h-4" />
+                    <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                   <button
                     onClick={() => handleEdit(event, 'subevents')}
-                    className="p-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors"
+                    className="p-2 sm:p-2.5 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors touch-manipulation"
                     title="Edit Sub-Events"
                   >
-                    <Users className="w-4 h-4" />
+                    <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                   <button
                     onClick={() => handleEdit(event, 'gallery')}
-                    className="p-2 bg-vortex-blue/20 text-vortex-blue rounded-lg hover:bg-vortex-blue/30 transition-colors"
+                    className="p-2 sm:p-2.5 bg-vortex-blue/20 text-vortex-blue rounded-lg hover:bg-vortex-blue/30 transition-colors touch-manipulation"
                     title="Edit Gallery"
                   >
-                    <Image className="w-4 h-4" />
+                    <Image className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                   <button
                     onClick={() => setDeleteConfirm(event._id)}
-                    className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                    className="p-2 sm:p-2.5 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors touch-manipulation"
                     title="Delete Event"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                 </div>
               </div>
@@ -903,7 +903,7 @@ const PastEventsManager = () => {
                     </div>
                   ) : editMode === 'subevents' ? (
                     <div className="space-y-4">
-                      <div className="flex justify-between items-center">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="text-xs text-white/60 uppercase tracking-wider">Sub-Events</div>
                         <button
                           type="button"
@@ -945,20 +945,6 @@ const PastEventsManager = () => {
                                     value={subEvent.participants || ''}
                                     onChange={(e) => updateSubEvent(index, { participants: e.target.value })}
                                   />
-                                  <select
-                                    className="w-full bg-white/10 border border-white/20 rounded-lg p-3 text-white focus:border-vortex-blue outline-none"
-                                    value={subEvent.icon || 'Calendar'}
-                                    onChange={(e) => updateSubEvent(index, { icon: e.target.value })}
-                                  >
-                                    <option value="Calendar">Calendar</option>
-                                    <option value="Trophy">Trophy</option>
-                                    <option value="Code">Code</option>
-                                    <option value="Key">Key</option>
-                                    <option value="Gamepad2">Gamepad2</option>
-                                    <option value="Users">Users</option>
-                                    <option value="MapPin">MapPin</option>
-                                    <option value="Clock">Clock</option>
-                                  </select>
                                 </div>
                                 <button
                                   type="button"

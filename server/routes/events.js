@@ -16,6 +16,7 @@ router.get('/lightweight', async (req, res) => {
             {
                 $project: {
                     title: 1,
+                    description: 1,
                     date: 1,
                     location: 1,
                     startTime: 1,
@@ -26,6 +27,7 @@ router.get('/lightweight', async (req, res) => {
                     capacity: 1,
                     registrationType: 1,
                     status: 1,
+                    priority: 1,
                     images: { $slice: ["$images", 1] }, // Only first image
                     subEvents: {
                         $map: {

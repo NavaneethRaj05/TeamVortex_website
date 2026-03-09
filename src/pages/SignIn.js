@@ -116,7 +116,7 @@ const SignIn = () => {
   };
 
   return (
-    <div className="pt-16 min-h-screen flex items-center justify-center px-4">
+    <div className="pt-16 min-h-screen flex items-center justify-center px-4 pb-24 sm:pb-12">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -155,14 +155,14 @@ const SignIn = () => {
               <label className="block text-white/80 text-sm font-medium mb-2">
                 Email Address
               </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-white/40 pointer-events-none" />
+              <div className="relative flex items-center">
+                <Mail className="absolute left-3 sm:left-4 h-4 w-4 sm:h-5 sm:w-5 text-white/40 pointer-events-none z-10" />
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 glass-card border border-dark-border rounded-lg bg-transparent text-white text-sm sm:text-base placeholder-white/40 focus:outline-none focus:border-vortex-blue transition-colors"
+                  className="w-full pl-10 sm:pl-12 pr-4 py-3 sm:py-3.5 glass-card border border-dark-border rounded-lg bg-transparent text-white text-sm sm:text-base placeholder-white/40 focus:outline-none focus:border-vortex-blue transition-colors"
                   placeholder="teamvortexnce@gmail.com"
                   required
                 />
@@ -174,21 +174,21 @@ const SignIn = () => {
               <label className="block text-white/80 text-sm font-medium mb-2">
                 Password
               </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-white/40 pointer-events-none" />
+              <div className="relative flex items-center">
+                <Lock className="absolute left-3 sm:left-4 h-4 w-4 sm:h-5 sm:w-5 text-white/40 pointer-events-none z-10" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full pl-9 sm:pl-10 pr-11 sm:pr-12 py-2.5 sm:py-3 glass-card border border-dark-border rounded-lg bg-transparent text-white text-sm sm:text-base placeholder-white/40 focus:outline-none focus:border-vortex-blue transition-colors"
+                  className="w-full pl-10 sm:pl-12 pr-12 sm:pr-14 py-3 sm:py-3.5 glass-card border border-dark-border rounded-lg bg-transparent text-white text-sm sm:text-base placeholder-white/40 focus:outline-none focus:border-vortex-blue transition-colors"
                   placeholder="Enter your password"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/40 hover:text-white transition-colors p-1"
+                  className="absolute right-3 sm:right-4 text-white/40 hover:text-white transition-colors p-1 z-10"
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -200,17 +200,17 @@ const SignIn = () => {
             </div>
 
             {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 sm:gap-3">
               <label className="flex items-center cursor-pointer group">
-                <div className="relative">
+                <div className="relative flex-shrink-0">
                   <input
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 sm:w-5 sm:h-5 text-vortex-blue bg-dark-bg border-2 border-white/20 rounded focus:ring-vortex-blue focus:ring-2 cursor-pointer appearance-none checked:bg-vortex-blue checked:border-vortex-blue transition-all"
+                    className="w-4 h-4 text-vortex-blue bg-dark-bg border-2 border-white/20 rounded focus:ring-vortex-blue focus:ring-2 cursor-pointer appearance-none checked:bg-vortex-blue checked:border-vortex-blue transition-all"
                   />
                   <svg
-                    className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 sm:w-3.5 sm:h-3.5 text-black pointer-events-none transition-opacity ${
+                    className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 text-black pointer-events-none transition-opacity ${
                       rememberMe ? 'opacity-100' : 'opacity-0'
                     }`}
                     fill="none"
@@ -220,12 +220,12 @@ const SignIn = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <span className="ml-2 text-white/70 text-xs sm:text-sm whitespace-nowrap">Remember me</span>
+                <span className="ml-2 text-white/70 text-sm whitespace-nowrap">Remember me</span>
               </label>
               <button
                 type="button"
                 onClick={handleForgotPassword}
-                className="text-vortex-blue text-xs sm:text-sm hover:underline whitespace-nowrap"
+                className="text-vortex-blue text-sm hover:underline whitespace-nowrap flex-shrink-0"
               >
                 Forgot password?
               </button>

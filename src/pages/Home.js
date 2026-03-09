@@ -22,7 +22,13 @@ const Home = () => {
 
   const fetchSettings = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/settings`);
+      const timestamp = new Date().getTime();
+      const res = await fetch(`${API_BASE_URL}/api/settings?t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
       const data = await res.json();
       setSettings(data);
     } catch (err) {
@@ -32,13 +38,20 @@ const Home = () => {
 
   const fetchEvents = useCallback(async () => {
     try {
-      // Use lightweight endpoint for faster loading
-      const res = await fetch(`${API_BASE_URL}/api/events/lightweight`);
+      // Add cache-busting timestamp to force fresh data
+      const timestamp = new Date().getTime();
+      const res = await fetch(`${API_BASE_URL}/api/events/lightweight?t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       const data = await res.json();
-      
+
       // Ensure data is an array
       if (!Array.isArray(data)) {
         console.error('Events data is not an array:', data);
@@ -52,12 +65,12 @@ const Home = () => {
         if (!e || e.status === 'draft' || e.status === 'completed') return false;
         const eventDate = new Date(e.date);
         const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
-        
+
         if (e.endTime) {
           const [h, m] = e.endTime.split(':');
           eventEnd.setHours(parseInt(h), parseInt(m), 0);
         }
-        
+
         return now <= eventEnd;
       });
       setEvents(upcoming);
@@ -103,19 +116,19 @@ const Home = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/events`);
         const data = await res.json();
-        
+
         const now = new Date();
-        
+
         const upcoming = data.filter(e => {
           if (!e || e.status === 'draft' || e.status === 'completed') return false;
           const eventDate = new Date(e.date);
           const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
-          
+
           if (e.endTime) {
             const [h, m] = e.endTime.split(':');
             eventEnd.setHours(parseInt(h), parseInt(m), 0);
           }
-          
+
           return now <= eventEnd;
         });
         setEvents(upcoming);
@@ -198,7 +211,7 @@ const Home = () => {
       title: (prayogEvent.title || '').trim() || prayogFallback.title,
       date: eventDateStr,
       venue: venueStr,
-      description1: parts[0] || prayogFallback.description1,
+      description1: parts[0] || rawDesc || prayogFallback.description1,
       description2: parts[1] || prayogFallback.description2
     };
   }, [prayogEvent, prayogFallback]);
@@ -266,11 +279,6 @@ const Home = () => {
             animate="show"
             className="text-left z-10"
           >
-            <motion.div variants={item} className="inline-flex items-center space-x-2 bg-white/5 border border-white/10 rounded-full px-4 py-1 mb-6 backdrop-blur-md">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              <span className="text-sm font-medium text-white/80">Recruitment Open 2026</span>
-            </motion.div>
-
             <motion.h1 variants={item} className="text-5xl sm:text-6xl md:text-8xl font-display font-bold leading-tight mb-6">
               TEAM <br />
               <span className="gradient-text text-glow">VORTEX</span>
@@ -281,17 +289,17 @@ const Home = () => {
               Join the revolution of technical excellence.
             </motion.p>
 
-            <motion.div variants={item} className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <Link 
-                to="/team" 
+            <motion.div variants={item} className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-16 sm:mb-0">
+              <Link
+                to="/team"
                 className="glass-button group flex items-center justify-center gap-2 sm:gap-3 text-white px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-bold rounded-xl bg-gradient-to-r from-vortex-blue to-blue-600 hover:from-vortex-blue/90 hover:to-blue-600/90 shadow-lg hover:shadow-vortex-blue/50 transition-all"
               >
                 <Users className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Meet the Team</span>
                 <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link 
-                to="/contests" 
+              <Link
+                to="/contests"
                 className="glass-button group flex items-center justify-center gap-2 sm:gap-3 text-white px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-bold rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-lg hover:shadow-purple-500/50 transition-all"
               >
                 <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -403,7 +411,7 @@ const Home = () => {
                           console.warn('Invalid prayog subEvent data:', subEvent);
                           return null;
                         }
-                        
+
                         const IconComponent = getIconComponent(subEvent.icon);
                         return (
                           <div

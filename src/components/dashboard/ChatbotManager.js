@@ -119,7 +119,7 @@ const ChatbotManager = () => {
     try {
       const faq = chatbotConfig.customFAQs.find(f => f._id === faqId);
       faq.enabled = !faq.enabled;
-      
+
       await fetch(`${API_BASE_URL}/api/chatbot/faq/${faqId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -202,7 +202,7 @@ const ChatbotManager = () => {
             <TrendingUp className="w-5 h-5 text-yellow-400" />
             ML Improvement Suggestions
           </h3>
-          
+
           <div className="space-y-3">
             {improvementSuggestions.suggestions.slice(0, 5).map((suggestion, idx) => (
               <div key={idx} className="p-3 bg-white/5 rounded-lg border border-yellow-500/20">
@@ -236,7 +236,7 @@ const ChatbotManager = () => {
               </div>
             ))}
           </div>
-          
+
           <div className="mt-4 text-xs text-white/50">
             Showing {Math.min(5, improvementSuggestions.suggestions.length)} of {improvementSuggestions.suggestions.length} suggestions
           </div>
@@ -279,7 +279,7 @@ const ChatbotManager = () => {
         {/* Add FAQ Form */}
         {showAddFAQ && (
           <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <h4 className="text-white font-bold">New FAQ</h4>
               <button onClick={() => setShowAddFAQ(false)} className="text-white/60 hover:text-white">
                 <X className="w-5 h-5" />
@@ -346,11 +346,10 @@ const ChatbotManager = () => {
             chatbotConfig.customFAQs.map((faq) => (
               <div
                 key={faq._id}
-                className={`p-4 rounded-xl border transition-all ${
-                  faq.enabled
-                    ? 'bg-white/5 border-white/10'
-                    : 'bg-white/5 border-red-500/30 opacity-60'
-                }`}
+                className={`p-4 rounded-xl border transition-all ${faq.enabled
+                  ? 'bg-white/5 border-white/10'
+                  : 'bg-white/5 border-red-500/30 opacity-60'
+                  }`}
               >
                 {editingFAQ === faq._id ? (
                   <div className="space-y-3">
@@ -406,13 +405,12 @@ const ChatbotManager = () => {
                             </span>
                           )}
                           {faq.totalRatings > 0 && (
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              faq.qualityScore >= 0.7 
-                                ? 'bg-green-500/20 text-green-400' 
-                                : faq.qualityScore >= 0.5
+                            <span className={`text-xs px-2 py-1 rounded-full ${faq.qualityScore >= 0.7
+                              ? 'bg-green-500/20 text-green-400'
+                              : faq.qualityScore >= 0.5
                                 ? 'bg-yellow-500/20 text-yellow-400'
                                 : 'bg-red-500/20 text-red-400'
-                            }`}>
+                              }`}>
                               {Math.round(faq.qualityScore * 100)}% quality ({faq.totalRatings} ratings)
                             </span>
                           )}
@@ -421,11 +419,10 @@ const ChatbotManager = () => {
                       <div className="flex gap-2 ml-4">
                         <button
                           onClick={() => handleToggleFAQ(faq._id)}
-                          className={`p-2 rounded-lg transition-colors ${
-                            faq.enabled
-                              ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                              : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                          }`}
+                          className={`p-2 rounded-lg transition-colors ${faq.enabled
+                            ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                            : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                            }`}
                           title={faq.enabled ? 'Disable' : 'Enable'}
                         >
                           <CheckCircle className="w-4 h-4" />

@@ -29,29 +29,31 @@ const TeamManager = React.memo(({
 
     return (
         <div className="space-y-6 animate-fade-in">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                <h2 className="text-2xl font-bold text-white">Team Management</h2>
-                <div className="flex bg-white/5 p-1 rounded-xl overflow-x-auto scrollbar-hide max-w-full">
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 className="text-2xl font-bold text-white">Team Management</h2>
+                    <button
+                        onClick={() => {
+                            setShowTeamForm(true);
+                            setEditingMemberId(null);
+                            setNewMember({ name: '', role: '', category: activeCategory, linkedin: '', instagram: '', email: '' });
+                        }}
+                        className="glass-button bg-white/10 flex items-center gap-2 text-sm shrink-0 w-full sm:w-auto justify-center py-3 sm:py-2"
+                    >
+                        <Plus size={16} /> Add Member
+                    </button>
+                </div>
+                <div className="flex bg-white/5 p-1 rounded-xl overflow-x-auto scrollbar-hide w-full">
                     {categories.map(cat => (
                         <button
                             key={cat.id}
                             onClick={() => setActiveCategory(cat.id)}
-                            className={`px-4 sm:px-6 py-2 rounded-lg font-medium text-xs transition-all whitespace-nowrap ${activeCategory === cat.id ? 'bg-vortex-blue text-black shadow-lg' : 'text-white/70 hover:text-white'}`}
+                            className={`px-4 sm:px-6 py-3 sm:py-2 rounded-lg font-medium text-xs transition-all whitespace-nowrap flex-shrink-0 ${activeCategory === cat.id ? 'bg-vortex-blue text-black shadow-lg' : 'text-white/70 hover:text-white'}`}
                         >
                             {cat.label}
                         </button>
                     ))}
                 </div>
-                <button
-                    onClick={() => {
-                        setShowTeamForm(true);
-                        setEditingMemberId(null);
-                        setNewMember({ name: '', role: '', category: activeCategory, linkedin: '', instagram: '', email: '' });
-                    }}
-                    className="glass-button bg-white/10 flex items-center gap-2 text-sm shrink-0"
-                >
-                    <Plus size={16} /> Add Member
-                </button>
             </div>
 
             {showTeamForm && (
@@ -177,16 +179,16 @@ const TeamManager = React.memo(({
                         </div>
 
                         {/* Social Icons & Actions */}
-                        <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/5">
-                            <div className="flex items-center gap-2">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mt-6 pt-4 border-t border-white/5">
+                            <div className="flex items-center justify-center sm:justify-start gap-2">
                                 {member.linkedin && (
-                                    <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-white/5 hover:bg-vortex-blue/20 rounded-lg text-white/40 hover:text-vortex-blue transition-all">
-                                        <Linkedin size={14} />
+                                    <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="p-2.5 sm:p-1.5 bg-white/5 hover:bg-vortex-blue/20 rounded-lg text-white/40 hover:text-vortex-blue transition-all touch-manipulation">
+                                        <Linkedin size={16} className="sm:w-3.5 sm:h-3.5" />
                                     </a>
                                 )}
                                 {member.instagram && (
-                                    <a href={member.instagram} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-white/5 hover:bg-pink-500/20 rounded-lg text-white/40 hover:text-pink-500 transition-all">
-                                        <Instagram size={14} />
+                                    <a href={member.instagram} target="_blank" rel="noopener noreferrer" className="p-2.5 sm:p-1.5 bg-white/5 hover:bg-pink-500/20 rounded-lg text-white/40 hover:text-pink-500 transition-all touch-manipulation">
+                                        <Instagram size={16} className="sm:w-3.5 sm:h-3.5" />
                                     </a>
                                 )}
                                 {member.email && (
@@ -194,20 +196,20 @@ const TeamManager = React.memo(({
                                         href={`https://mail.google.com/mail/?view=cm&fs=1&to=${member.email}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="p-1.5 bg-white/5 hover:bg-green-500/20 rounded-lg text-white/40 hover:text-green-500 transition-all"
+                                        className="p-2.5 sm:p-1.5 bg-white/5 hover:bg-green-500/20 rounded-lg text-white/40 hover:text-green-500 transition-all touch-manipulation"
                                         title={`Email ${member.name}`}
                                     >
-                                        <Mail size={14} />
+                                        <Mail size={16} className="sm:w-3.5 sm:h-3.5" />
                                     </a>
                                 )}
                             </div>
 
-                            <div className="flex gap-1 pl-2">
-                                <button onClick={() => onEdit(member)} className="p-1.5 text-white/20 hover:text-vortex-blue transition-colors">
-                                    <Edit2 size={14} />
+                            <div className="flex gap-2 justify-center sm:justify-end">
+                                <button onClick={() => onEdit(member)} className="p-2.5 sm:p-1.5 text-white/60 hover:text-vortex-blue transition-colors bg-white/5 hover:bg-vortex-blue/20 rounded-lg touch-manipulation" aria-label="Edit member">
+                                    <Edit2 size={16} className="sm:w-3.5 sm:h-3.5" />
                                 </button>
-                                <button onClick={() => onDelete(member._id)} className="p-1.5 text-white/20 hover:text-red-500 transition-colors">
-                                    <Trash2 size={14} />
+                                <button onClick={() => onDelete(member._id)} className="p-2.5 sm:p-1.5 text-white/60 hover:text-red-500 transition-colors bg-white/5 hover:bg-red-500/20 rounded-lg touch-manipulation" aria-label="Delete member">
+                                    <Trash2 size={16} className="sm:w-3.5 sm:h-3.5" />
                                 </button>
                             </div>
                         </div>

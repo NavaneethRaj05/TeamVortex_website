@@ -155,12 +155,32 @@ const eventSchema = new mongoose.Schema({
     autoCloseOnCapacity: { type: Boolean, default: true },
     enableWaitlist: { type: Boolean, default: true },
 
-    // Eligibility & College Restrictions
+    // Eligibility & Restrictions - Enhanced
     eligibility: {
-        participants: [{ type: String }], // 'College Students', 'School Students', 'Professionals', 'Open to All'
+        // Participant Type (Radio Selection)
+        participantType: { 
+            type: String, 
+            enum: ['open', 'engineering'],
+            default: 'open'
+        },
+        
+        // Engineering-specific restrictions
+        restrictBranches: { type: Boolean, default: false },
+        allowedBranches: [{ type: String }], // ['CSE', 'ISE', 'ECE', 'EEE', 'ME', 'CE', 'AI/ML', 'Data Science', 'Other']
+        
+        restrictYears: { type: Boolean, default: false },
+        allowedYears: [{ type: String }], // ['1st Year', '2nd Year', '3rd Year', '4th Year']
+        
+        // Age restrictions
         minAge: { type: Number },
         maxAge: { type: Number },
-        requiredDocs: [{ type: String }] // 'College ID', 'Govt ID', 'Resume'
+        noAgeRestriction: { type: Boolean, default: false },
+        
+        // Required documents
+        requiredDocs: [{ type: String }], // ['collegeId', 'govId', 'participationCert']
+        
+        // Legacy fields (for backward compatibility)
+        participants: [{ type: String }]
     },
     allowedCollege: { type: String }, // For intra-college events
 
@@ -178,19 +198,30 @@ const eventSchema = new mongoose.Schema({
     tags: [{ type: String }],
 
     // Payment & Fee Collection
-    paymentGateway: { type: String, enum: ['UPI', 'Offline', 'GoogleForm', 'Both'], default: 'UPI' },
+    paymentGateway: { type: String, enum: ['Razorpay', 'UPI', 'Offline', 'Both'], default: 'Razorpay' },
+    
+    // Razorpay Configuration
+    razorpayEnabled: { type: Boolean, default: true },
+    razorpayKeyId: { type: String },
+    razorpayKeySecret: { type: String },
+    
+    // UPI Direct Configuration
     upiId: { type: String },
     upiQrCode: { type: String },
     paymentReceiverName: { type: String },
+    
+    // Offline Payment Configuration
     offlineInstructions: { type: String },
     enableOfflinePayment: { type: Boolean, default: true },
-    // Google Form Payment Option
+    
+    // Google Form Payment Option (Legacy - keeping for backward compatibility)
     googleFormPayment: {
         enabled: { type: Boolean, default: false },
         formUrl: { type: String },
         buttonText: { type: String, default: 'Complete Payment via Google Form' },
         instructions: { type: String, default: 'Click the button below to open the payment form and complete your registration.' }
     },
+    
     // Offline payment methods (when paymentGateway is 'Offline')
     offlineMethods: [{ type: String }], // ['upi', 'bank', 'cash']
     bankDetails: {
@@ -206,6 +237,7 @@ const eventSchema = new mongoose.Schema({
         contactPerson: { type: String },
         contactPhone: { type: String }
     },
+    
     gstEnabled: { type: Boolean, default: false },
     gstPercent: { type: Number, default: 18 },
     gstNumber: { type: String },

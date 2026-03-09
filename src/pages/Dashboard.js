@@ -152,11 +152,24 @@ const Dashboard = () => {
         const fetchAll = async () => {
             setLoading(true);
             try {
+                const timestamp = new Date().getTime();
                 const [evRes, teamRes, settingsRes, sponsorsRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/api/events`),
-                    fetch(`${API_BASE_URL}/api/team`),
-                    fetch(`${API_BASE_URL}/api/settings`),
-                    fetch(`${API_BASE_URL}/api/sponsors`)
+                    fetch(`${API_BASE_URL}/api/events?t=${timestamp}`, {
+                        cache: 'no-store',
+                        headers: { 'Cache-Control': 'no-cache' }
+                    }),
+                    fetch(`${API_BASE_URL}/api/team?t=${timestamp}`, {
+                        cache: 'no-store',
+                        headers: { 'Cache-Control': 'no-cache' }
+                    }),
+                    fetch(`${API_BASE_URL}/api/settings?t=${timestamp}`, {
+                        cache: 'no-store',
+                        headers: { 'Cache-Control': 'no-cache' }
+                    }),
+                    fetch(`${API_BASE_URL}/api/sponsors?t=${timestamp}`, {
+                        cache: 'no-store',
+                        headers: { 'Cache-Control': 'no-cache' }
+                    })
                 ]);
 
                 setEvents(await evRes.json());
@@ -164,7 +177,10 @@ const Dashboard = () => {
                 setClubSettings(await settingsRes.json());
                 setSponsors(await sponsorsRes.json());
 
-                const statsRes = await fetch(`${API_BASE_URL}/api/events/stats`);
+                const statsRes = await fetch(`${API_BASE_URL}/api/events/stats?t=${timestamp}`, {
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-cache' }
+                });
                 setEventStats(await statsRes.json());
             } catch (err) {
                 console.error("Failed to fetch dashboard data:", err);
@@ -177,9 +193,42 @@ const Dashboard = () => {
     }, [user, navigate]);
 
     // Individual fetch functions
-    const fetchEvents = async () => { try { const res = await fetch(`${API_BASE_URL}/api/events`); setEvents(await res.json()); } catch (err) { console.error(err); } };
-    const fetchTeam = async () => { try { const res = await fetch(`${API_BASE_URL}/api/team`); setTeamMembers(await res.json()); } catch (err) { console.error(err); } };
-    const fetchSponsors = async () => { try { const res = await fetch(`${API_BASE_URL}/api/sponsors`); setSponsors(await res.json()); } catch (err) { console.error(err); } };
+    const fetchEvents = async () => { 
+        try { 
+            const timestamp = new Date().getTime();
+            const res = await fetch(`${API_BASE_URL}/api/events?t=${timestamp}`, {
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' }
+            }); 
+            setEvents(await res.json()); 
+        } catch (err) { 
+            console.error(err); 
+        } 
+    };
+    const fetchTeam = async () => { 
+        try { 
+            const timestamp = new Date().getTime();
+            const res = await fetch(`${API_BASE_URL}/api/team?t=${timestamp}`, {
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' }
+            }); 
+            setTeamMembers(await res.json()); 
+        } catch (err) { 
+            console.error(err); 
+        } 
+    };
+    const fetchSponsors = async () => { 
+        try { 
+            const timestamp = new Date().getTime();
+            const res = await fetch(`${API_BASE_URL}/api/sponsors?t=${timestamp}`, {
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' }
+            }); 
+            setSponsors(await res.json()); 
+        } catch (err) { 
+            console.error(err); 
+        } 
+    };
 
     // --- Event Handlers ---
     const handleSaveEvent = async (e) => {
@@ -327,7 +376,7 @@ const Dashboard = () => {
             const doc = generateAdminReportPDF(event);
             const filename = `${event.title.replace(/\s+/g, '_')}_Registrations.pdf`;
             const success = downloadPDF(doc, filename);
-            
+
             if (!success) {
                 alert('Failed to download PDF. Please try again.');
             }
@@ -384,8 +433,8 @@ const Dashboard = () => {
         <div className="min-h-screen bg-dark-bg">
             {/* Dashboard Header - Replaces Navbar */}
             <header className="fixed top-0 left-0 right-0 z-30 glass-card border-b border-white/10">
-                <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2 sm:gap-3">
+                <div className="px-3 sm:px-4 py-2 sm:py-3 md:py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                         <button
                             onClick={() => setSidebarOpen(!sidebarOpen)}
                             className="p-1.5 sm:p-2 glass-card rounded-lg hover:bg-white/10 active:scale-95 transition-all flex-shrink-0"
@@ -393,7 +442,7 @@ const Dashboard = () => {
                         >
                             {sidebarOpen ? <X className="w-4 h-4 sm:w-5 sm:h-5 text-white" /> : <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-white" />}
                         </button>
-                        <h1 className="text-base sm:text-xl font-bold gradient-text">TEAM VORTEX</h1>
+                        <h1 className="text-sm sm:text-base md:text-xl font-bold gradient-text truncate">TEAM VORTEX</h1>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="hidden sm:block text-right">
@@ -447,17 +496,16 @@ const Dashboard = () => {
                                         setActiveTab(item.id);
                                         setSidebarOpen(false);
                                     }}
-                                    className={`w-full flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all touch-manipulation ${
-                                        activeTab === item.id
+                                    className={`w-full flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all touch-manipulation ${activeTab === item.id
                                             ? 'bg-vortex-blue text-black font-bold shadow-lg'
                                             : 'text-white/70 active:bg-white/10 sm:hover:bg-white/5 active:text-white sm:hover:text-white'
-                                    }`}
+                                        }`}
                                 >
                                     <item.icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                                     <span className="text-sm sm:text-base">{item.label}</span>
                                 </button>
                             ))}
-                            
+
                             {/* Logout Button */}
                             <button
                                 onClick={() => {
@@ -475,10 +523,10 @@ const Dashboard = () => {
             </AnimatePresence>
 
             {/* Main Content */}
-            <div className="pt-24 pb-12 px-4 lg:px-8">
+            <div className="pt-16 sm:pt-20 md:pt-24 pb-24 sm:pb-12 px-4 lg:px-8">
                 <div className="max-w-7xl mx-auto space-y-8">
                     {/* Page Header */}
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                         <div className="flex-1">
                             <h1 className="text-3xl md:text-4xl font-display font-bold gradient-text mb-2">
                                 {menuItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
@@ -502,29 +550,29 @@ const Dashboard = () => {
                         <div className="space-y-4 sm:space-y-6 animate-fade-in">
                             {/* Stats Grid */}
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                                <StatsCard 
-                                    icon={Users} 
-                                    label="Total Members" 
-                                    value={teamMembers.length} 
-                                    color="text-vortex-blue" 
+                                <StatsCard
+                                    icon={Users}
+                                    label="Total Members"
+                                    value={teamMembers.length}
+                                    color="text-vortex-blue"
                                 />
-                                <StatsCard 
-                                    icon={Calendar} 
-                                    label="Active Contests" 
-                                    value={upcomingContests.length} 
-                                    color="text-vortex-orange" 
+                                <StatsCard
+                                    icon={Calendar}
+                                    label="Active Contests"
+                                    value={upcomingContests.length}
+                                    color="text-vortex-orange"
                                 />
-                                <StatsCard 
-                                    icon={Activity} 
-                                    label="Total Events" 
-                                    value={events.length} 
-                                    color="text-green-400" 
+                                <StatsCard
+                                    icon={Activity}
+                                    label="Total Events"
+                                    value={events.length}
+                                    color="text-green-400"
                                 />
-                                <StatsCard 
-                                    icon={Award} 
-                                    label="Registrations" 
-                                    value={upcomingContests.reduce((acc, e) => acc + (e.registrationCount || 0), 0)} 
-                                    color="text-purple-400" 
+                                <StatsCard
+                                    icon={Award}
+                                    label="Registrations"
+                                    value={upcomingContests.reduce((acc, e) => acc + (e.registrationCount || 0), 0)}
+                                    color="text-purple-400"
                                 />
                             </div>
 
@@ -597,7 +645,7 @@ const Dashboard = () => {
                     {/* --- CONTESTS TAB --- */}
                     {activeTab === 'contests' && (
                         <div className="space-y-6 animate-fade-in">
-                            <div className="flex justify-between items-center bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/[0.02] p-4 rounded-2xl border border-white/5">
                                 <div>
                                     <h2 className="text-2xl font-bold text-white">Upcoming Contests</h2>
                                     <p className="text-white/60">Manage your active hackathons and competitions</p>

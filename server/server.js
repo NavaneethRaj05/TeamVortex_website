@@ -138,6 +138,7 @@ const analyticsRoutes = require('./routes/analytics');
 const paymentRoutes = require('./routes/payments');
 const chatbotRoutes = require('./routes/chatbot');
 const clubStatsRoutes = require('./routes/clubStats');
+const razorpayRoutes = require('./routes/razorpay');
 
 const apiRouter = express.Router();
 
@@ -150,6 +151,7 @@ apiRouter.use('/analytics', analyticsRoutes);
 apiRouter.use('/payments', paymentRoutes);
 apiRouter.use('/chatbot', chatbotRoutes);
 apiRouter.use('/club-stats', clubStatsRoutes);
+apiRouter.use('/razorpay', razorpayRoutes);
 
 // Mount the router on both paths to support local dev and Netlify functions
 app.use('/api', apiRouter);

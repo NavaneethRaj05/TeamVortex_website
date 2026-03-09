@@ -29,7 +29,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
     };
 
     return (
-        <form onSubmit={onSubmit} className="glass-card p-4 sm:p-8 border-l-4 border-vortex-blue animate-slide-up">
+        <form onSubmit={onSubmit} className="glass-card p-3 sm:p-8 border-l-4 border-vortex-blue animate-slide-up">
             <h3 className="text-xl sm:text-2xl font-display font-bold text-white mb-6 sm:mb-8 uppercase tracking-widest flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-vortex-blue/20 flex items-center justify-center">
                     <Plus size={20} className="text-vortex-blue" />
@@ -90,227 +90,273 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                         </div>
                     </div>
 
-                    {/* College/Institution Verification Section */}
-                    <div className="p-4 bg-gradient-to-br from-blue-500/10 rounded-xl border border-blue-500/20 space-y-4">
-                        <label className="text-[10px] text-blue-400 uppercase font-black tracking-widest block">🏫 Institution Verification & Restrictions</label>
-                        
-                        {/* Intra-College Specific Settings */}
-                        {newEvent.eventType === 'Intra-College' && (
-                            <div className="space-y-3 p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
-                                <label className="text-[9px] text-orange-300 uppercase font-bold block">Intra-College Configuration</label>
-                                <input
-                                    className="input-glass p-3 rounded-lg w-full text-sm"
-                                    placeholder="Allowed College/Institution Name (e.g., Navkis College of Engineering)"
-                                    value={newEvent.allowedCollege || ''}
-                                    onChange={e => setNewEvent({ ...newEvent, allowedCollege: e.target.value })}
-                                    required={newEvent.eventType === 'Intra-College'}
-                                />
-                                <div className="text-[8px] text-white/30">Only students from this institution will be allowed to register</div>
-                                
-                                {/* Department Restrictions */}
-                                <div className="space-y-2">
-                                    <label className="text-[9px] text-orange-300 uppercase font-bold block">Department Restrictions (Optional)</label>
-                                    <input
-                                        className="input-glass p-2 rounded-lg w-full text-xs"
-                                        placeholder="Allowed departments (comma separated, e.g., CSE, ECE, ME)"
-                                        value={newEvent.allowedDepartments || ''}
-                                        onChange={e => setNewEvent({ ...newEvent, allowedDepartments: e.target.value })}
-                                    />
-                                    <div className="text-[8px] text-white/30">Leave empty to allow all departments</div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Inter-College Settings */}
-                        {newEvent.eventType === 'Inter-College' && (
-                            <div className="space-y-3 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                                <label className="text-[9px] text-green-300 uppercase font-bold block">Inter-College Configuration</label>
-                                <div className="space-y-2">
-                                    <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={newEvent.requireCollegeVerification || false}
-                                            onChange={e => setNewEvent({ ...newEvent, requireCollegeVerification: e.target.checked })}
-                                            className="accent-green-400"
-                                        />
-                                        Require College ID Card Upload
-                                    </label>
-                                    <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={newEvent.verifyStudentStatus || false}
-                                            onChange={e => setNewEvent({ ...newEvent, verifyStudentStatus: e.target.checked })}
-                                            className="accent-green-400"
-                                        />
-                                        Verify Active Student Status
-                                    </label>
-                                </div>
-                                
-                                {/* Excluded Colleges */}
-                                <div className="space-y-2">
-                                    <label className="text-[9px] text-green-300 uppercase font-bold block">Excluded Institutions (Optional)</label>
-                                    <textarea
-                                        className="input-glass p-2 rounded-lg w-full text-xs h-16 resize-none"
-                                        placeholder="List institutions to exclude (one per line)..."
-                                        value={newEvent.excludedColleges || ''}
-                                        onChange={e => setNewEvent({ ...newEvent, excludedColleges: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* General Verification Settings */}
-                        <div className="space-y-3">
-                            <label className="text-[9px] text-blue-300 uppercase font-bold block">General Verification Requirements</label>
-                            <div className="grid grid-cols-2 gap-2">
-                                <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={newEvent.requirePhoneVerification || false}
-                                        onChange={e => setNewEvent({ ...newEvent, requirePhoneVerification: e.target.checked })}
-                                        className="accent-blue-400"
-                                    />
-                                    Phone OTP Verification
-                                </label>
-                                <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={newEvent.requireEmailVerification || false}
-                                        onChange={e => setNewEvent({ ...newEvent, requireEmailVerification: e.target.checked })}
-                                        className="accent-blue-400"
-                                    />
-                                    Email Verification
-                                </label>
-                            </div>
-                        </div>
-
-                        {/* Geographic Restrictions */}
-                        <div className="space-y-3 pt-3 border-t border-white/5">
-                            <label className="text-[9px] text-blue-300 uppercase font-bold block">Geographic Restrictions (Optional)</label>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="text-[8px] text-white/40 uppercase ml-1 block mb-1">Allowed States</label>
-                                    <input
-                                        className="input-glass p-2 rounded-lg w-full text-xs"
-                                        placeholder="e.g., Karnataka, Tamil Nadu"
-                                        value={newEvent.allowedStates || ''}
-                                        onChange={e => setNewEvent({ ...newEvent, allowedStates: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-[8px] text-white/40 uppercase ml-1 block mb-1">Allowed Cities</label>
-                                    <input
-                                        className="input-glass p-2 rounded-lg w-full text-xs"
-                                        placeholder="e.g., Bangalore, Hassan"
-                                        value={newEvent.allowedCities || ''}
-                                        onChange={e => setNewEvent({ ...newEvent, allowedCities: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                            <div className="text-[8px] text-white/30">Leave empty to allow participants from anywhere</div>
-                        </div>
-                    </div>
-
                     <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
-                        <label className="text-[10px] text-vortex-blue uppercase font-black tracking-widest block">Registration Period</label>
-                        <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
+                        <label className="text-xs sm:text-[10px] text-vortex-blue uppercase font-black tracking-widest block">Registration Period</label>
+                        <div className="grid grid-cols-1 gap-4">
                             <div>
-                                <label className="text-[9px] text-white/30 uppercase ml-1 mb-1 block">Opens On</label>
+                                <label className="text-xs sm:text-[9px] text-white/40 uppercase ml-1 mb-2 block font-bold">Opens On</label>
                                 <input className="input-glass p-3 rounded-lg w-full text-sm" type="datetime-local" value={newEvent.registrationOpens} onChange={e => setNewEvent({ ...newEvent, registrationOpens: e.target.value })} />
                             </div>
                             <div>
-                                <label className="text-[9px] text-white/30 uppercase ml-1 mb-1 block">Closes On</label>
+                                <label className="text-xs sm:text-[9px] text-white/40 uppercase ml-1 mb-2 block font-bold">Closes On</label>
                                 <input className="input-glass p-3 rounded-lg w-full text-sm" type="datetime-local" value={newEvent.registrationCloses} onChange={e => setNewEvent({ ...newEvent, registrationCloses: e.target.value })} />
                             </div>
                         </div>
-                        <div className="flex flex-wrap gap-4 xs:gap-6 text-xs text-white/60">
-                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={newEvent.autoCloseOnCapacity} onChange={e => setNewEvent({ ...newEvent, autoCloseOnCapacity: e.target.checked })} />Auto-close</label>
-                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={newEvent.enableWaitlist} onChange={e => setNewEvent({ ...newEvent, enableWaitlist: e.target.checked })} />Waitlist</label>
+                        <div className="flex flex-col gap-3 text-sm">
+                            <label className="flex items-start gap-3 cursor-pointer p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors touch-manipulation min-h-[56px]">
+                                <input type="checkbox" checked={newEvent.autoCloseOnCapacity} onChange={e => setNewEvent({ ...newEvent, autoCloseOnCapacity: e.target.checked })} className="w-6 h-6 sm:w-5 sm:h-5 accent-vortex-blue flex-shrink-0 mt-0.5" />
+                                <span className="text-white leading-relaxed">Auto-close on capacity</span>
+                            </label>
+                            <label className="flex items-start gap-3 cursor-pointer p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors touch-manipulation min-h-[56px]">
+                                <input type="checkbox" checked={newEvent.enableWaitlist} onChange={e => setNewEvent({ ...newEvent, enableWaitlist: e.target.checked })} className="w-6 h-6 sm:w-5 sm:h-5 accent-vortex-blue flex-shrink-0 mt-0.5" />
+                                <span className="text-white leading-relaxed">Enable Waitlist</span>
+                            </label>
                         </div>
                     </div>
 
                     <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
                         <label className="text-[10px] text-vortex-orange uppercase font-black tracking-widest block">Organizer Info</label>
-                        <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
-                            <input className="input-glass p-3 rounded-lg text-sm" placeholder="Name" value={newEvent.organizer?.name || ''} onChange={e => setNewEvent({ ...newEvent, organizer: { ...newEvent.organizer, name: e.target.value } })} />
-                            <input className="input-glass p-3 rounded-lg text-sm" placeholder="Email" value={newEvent.organizer?.email || ''} onChange={e => setNewEvent({ ...newEvent, organizer: { ...newEvent.organizer, email: e.target.value } })} />
+                        <div className="grid grid-cols-1 gap-4">
+                            <input className="input-glass p-3 rounded-lg text-sm w-full" placeholder="Organizer Name" value={newEvent.organizer?.name || ''} onChange={e => setNewEvent({ ...newEvent, organizer: { ...newEvent.organizer, name: e.target.value } })} />
+                            <input className="input-glass p-3 rounded-lg text-sm w-full" placeholder="Organizer Email" value={newEvent.organizer?.email || ''} onChange={e => setNewEvent({ ...newEvent, organizer: { ...newEvent.organizer, email: e.target.value } })} />
                         </div>
                     </div>
 
                     {/* Eligibility & Restrictions */}
-                    <div className="p-4 bg-gradient-to-br from-purple-500/10 rounded-xl border border-purple-500/20 space-y-4">
-                        <label className="text-[10px] text-purple-400 uppercase font-black tracking-widest block">🎯 Eligibility & Restrictions</label>
+                    <div className="p-4 sm:p-6 bg-gradient-to-br from-purple-500/10 rounded-xl border border-purple-500/20 space-y-6">
+                        <label className="text-base sm:text-sm text-purple-400 uppercase font-black tracking-wider block">🎯 Eligibility & Restrictions</label>
 
-                        {/* Participant Types */}
-                        <div className="space-y-2">
-                            <label className="text-[9px] text-white/40 uppercase ml-1 block">Who Can Participate?</label>
-                            <div className="grid grid-cols-2 gap-2">
-                                {['Open to All', 'Engineering Students', 'BCA Students', 'MCA Students'].map(type => (
-                                    <label key={type} className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={newEvent.eligibility?.participants?.includes(type) || false}
-                                            onChange={e => {
-                                                const participants = newEvent.eligibility?.participants || [];
-                                                if (e.target.checked) {
-                                                    setNewEvent({
-                                                        ...newEvent,
-                                                        eligibility: {
-                                                            ...newEvent.eligibility,
-                                                            participants: [...participants, type]
-                                                        }
-                                                    });
-                                                } else {
-                                                    setNewEvent({
-                                                        ...newEvent,
-                                                        eligibility: {
-                                                            ...newEvent.eligibility,
-                                                            participants: participants.filter(p => p !== type)
-                                                        }
-                                                    });
-                                                }
-                                            }}
-                                            className="accent-purple-400"
-                                        />
-                                        {type}
-                                    </label>
-                                ))}
+                        {/* Who Can Participate - Radio Buttons */}
+                        <div className="space-y-4">
+                            <label className="text-sm sm:text-xs text-white/70 uppercase ml-1 block font-bold">Who Can Participate? <span className="text-red-400">*</span></label>
+                            <div className="space-y-3">
+                                <label className="flex items-start gap-4 p-4 sm:p-4 bg-white/5 rounded-lg border-2 border-white/10 cursor-pointer hover:bg-white/10 hover:border-purple-400/30 transition-all touch-manipulation min-h-[80px]">
+                                    <input
+                                        type="radio"
+                                        name="participantType"
+                                        value="open"
+                                        checked={newEvent.eligibility?.participantType === 'open'}
+                                        onChange={e => setNewEvent({ 
+                                            ...newEvent, 
+                                            eligibility: { 
+                                                ...newEvent.eligibility, 
+                                                participantType: 'open',
+                                                restrictBranches: false,
+                                                allowedBranches: [],
+                                                restrictYears: false,
+                                                allowedYears: []
+                                            } 
+                                        })}
+                                        className="accent-purple-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-1"
+                                        required
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-base sm:text-sm font-semibold text-white leading-tight mb-1.5">Open to All</div>
+                                        <div className="text-sm sm:text-xs text-white/60 leading-relaxed">Open to everyone - no restrictions</div>
+                                    </div>
+                                </label>
+                                
+                                <label className="flex items-start gap-4 p-4 sm:p-4 bg-white/5 rounded-lg border-2 border-white/10 cursor-pointer hover:bg-white/10 hover:border-purple-400/30 transition-all touch-manipulation min-h-[80px]">
+                                    <input
+                                        type="radio"
+                                        name="participantType"
+                                        value="engineering"
+                                        checked={newEvent.eligibility?.participantType === 'engineering'}
+                                        onChange={e => setNewEvent({ 
+                                            ...newEvent, 
+                                            eligibility: { 
+                                                ...newEvent.eligibility, 
+                                                participantType: 'engineering' 
+                                            } 
+                                        })}
+                                        className="accent-purple-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-1"
+                                        required
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-base sm:text-sm font-semibold text-white leading-tight mb-1.5">Engineering Students Only</div>
+                                        <div className="text-sm sm:text-xs text-white/60 leading-relaxed">Only students from engineering colleges</div>
+                                    </div>
+                                </label>
                             </div>
                         </div>
 
+                        {/* Engineering-specific restrictions */}
+                        {newEvent.eligibility?.participantType === 'engineering' && (
+                            <div className="space-y-5 p-4 sm:p-5 bg-purple-500/5 rounded-lg border border-purple-500/20">
+                                {/* Branch Restrictions */}
+                                <div className="space-y-4">
+                                    <label className="flex items-start gap-3 text-base sm:text-sm text-white cursor-pointer touch-manipulation p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors min-h-[56px]">
+                                        <input
+                                            type="checkbox"
+                                            checked={newEvent.eligibility?.restrictBranches || false}
+                                            onChange={e => setNewEvent({ 
+                                                ...newEvent, 
+                                                eligibility: { 
+                                                    ...newEvent.eligibility, 
+                                                    restrictBranches: e.target.checked,
+                                                    allowedBranches: e.target.checked ? (newEvent.eligibility?.allowedBranches || []) : []
+                                                } 
+                                            })}
+                                            className="accent-purple-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-0.5"
+                                        />
+                                        <span className="font-medium leading-relaxed">Restrict to specific branches</span>
+                                    </label>
+
+                                    {newEvent.eligibility?.restrictBranches && (
+                                        <div className="pl-2 sm:pl-4 space-y-3">
+                                            <label className="text-xs text-white/50 uppercase block mb-2 ml-1">Select Branches:</label>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                                {['CSE', 'ISE', 'ECE', 'EEE', 'ME', 'CE', 'AI/ML', 'Data Science', 'Other'].map(branch => (
+                                                    <label key={branch} className="flex items-center gap-3 text-sm sm:text-sm text-white cursor-pointer p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors touch-manipulation min-h-[48px]">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={newEvent.eligibility?.allowedBranches?.includes(branch) || false}
+                                                            onChange={e => {
+                                                                const branches = newEvent.eligibility?.allowedBranches || [];
+                                                                if (e.target.checked) {
+                                                                    setNewEvent({
+                                                                        ...newEvent,
+                                                                        eligibility: {
+                                                                            ...newEvent.eligibility,
+                                                                            allowedBranches: [...branches, branch]
+                                                                        }
+                                                                    });
+                                                                } else {
+                                                                    setNewEvent({
+                                                                        ...newEvent,
+                                                                        eligibility: {
+                                                                            ...newEvent.eligibility,
+                                                                            allowedBranches: branches.filter(b => b !== branch)
+                                                                        }
+                                                                    });
+                                                                }
+                                                            }}
+                                                            className="accent-purple-400 w-5 h-5 sm:w-4 sm:h-4 flex-shrink-0"
+                                                        />
+                                                        <span className="leading-tight">{branch}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Year Restrictions */}
+                                <div className="space-y-4 pt-4 border-t border-white/5">
+                                    <label className="flex items-start gap-3 text-base sm:text-sm text-white cursor-pointer touch-manipulation p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors min-h-[56px]">
+                                        <input
+                                            type="checkbox"
+                                            checked={newEvent.eligibility?.restrictYears || false}
+                                            onChange={e => setNewEvent({ 
+                                                ...newEvent, 
+                                                eligibility: { 
+                                                    ...newEvent.eligibility, 
+                                                    restrictYears: e.target.checked,
+                                                    allowedYears: e.target.checked ? (newEvent.eligibility?.allowedYears || []) : []
+                                                } 
+                                            })}
+                                            className="accent-purple-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-0.5"
+                                        />
+                                        <span className="font-medium leading-relaxed">Restrict to specific years</span>
+                                    </label>
+
+                                    {newEvent.eligibility?.restrictYears && (
+                                        <div className="pl-2 sm:pl-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                            {['1st Year', '2nd Year', '3rd Year', '4th Year'].map(year => (
+                                                <label key={year} className="flex items-center gap-2.5 text-sm text-white cursor-pointer p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors touch-manipulation min-h-[48px]">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={newEvent.eligibility?.allowedYears?.includes(year) || false}
+                                                        onChange={e => {
+                                                            const years = newEvent.eligibility?.allowedYears || [];
+                                                            if (e.target.checked) {
+                                                                setNewEvent({
+                                                                    ...newEvent,
+                                                                    eligibility: {
+                                                                        ...newEvent.eligibility,
+                                                                        allowedYears: [...years, year]
+                                                                    }
+                                                                });
+                                                            } else {
+                                                                setNewEvent({
+                                                                    ...newEvent,
+                                                                    eligibility: {
+                                                                        ...newEvent.eligibility,
+                                                                        allowedYears: years.filter(y => y !== year)
+                                                                    }
+                                                                });
+                                                            }
+                                                        }}
+                                                        className="accent-purple-400 w-5 h-5 sm:w-4 sm:h-4 flex-shrink-0"
+                                                    />
+                                                    <span className="leading-tight">{year}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Age Restrictions */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="text-[9px] text-white/40 uppercase ml-1 block mb-1">Min Age</label>
-                                <input
-                                    className="input-glass p-2 rounded-lg w-full text-xs"
-                                    type="number"
-                                    placeholder="e.g., 16"
-                                    value={newEvent.eligibility?.minAge || ''}
-                                    onChange={e => setNewEvent({ ...newEvent, eligibility: { ...newEvent.eligibility, minAge: e.target.value } })}
-                                />
+                        <div className="space-y-4 pt-4 border-t border-white/5">
+                            <label className="text-sm sm:text-xs text-white/70 uppercase ml-1 block font-bold">Age Restriction (Optional)</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs text-white/50 ml-1 block mb-2">Min Age</label>
+                                    <input
+                                        className="input-glass p-3 sm:p-3 rounded-lg w-full text-base sm:text-sm"
+                                        type="number"
+                                        placeholder="16"
+                                        value={newEvent.eligibility?.minAge || ''}
+                                        onChange={e => setNewEvent({ ...newEvent, eligibility: { ...newEvent.eligibility, minAge: e.target.value } })}
+                                        disabled={newEvent.eligibility?.noAgeRestriction}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-white/50 ml-1 block mb-2">Max Age</label>
+                                    <input
+                                        className="input-glass p-3 sm:p-3 rounded-lg w-full text-base sm:text-sm"
+                                        type="number"
+                                        placeholder="25"
+                                        value={newEvent.eligibility?.maxAge || ''}
+                                        onChange={e => setNewEvent({ ...newEvent, eligibility: { ...newEvent.eligibility, maxAge: e.target.value } })}
+                                        disabled={newEvent.eligibility?.noAgeRestriction}
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <label className="text-[9px] text-white/40 uppercase ml-1 block mb-1">Max Age</label>
+                            <label className="flex items-center gap-3 text-sm text-white/70 cursor-pointer touch-manipulation p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors min-h-[48px]">
                                 <input
-                                    className="input-glass p-2 rounded-lg w-full text-xs"
-                                    type="number"
-                                    placeholder="e.g., 25"
-                                    value={newEvent.eligibility?.maxAge || ''}
-                                    onChange={e => setNewEvent({ ...newEvent, eligibility: { ...newEvent.eligibility, maxAge: e.target.value } })}
+                                    type="checkbox"
+                                    checked={newEvent.eligibility?.noAgeRestriction || false}
+                                    onChange={e => setNewEvent({ 
+                                        ...newEvent, 
+                                        eligibility: { 
+                                            ...newEvent.eligibility, 
+                                            noAgeRestriction: e.target.checked,
+                                            minAge: e.target.checked ? '' : newEvent.eligibility?.minAge,
+                                            maxAge: e.target.checked ? '' : newEvent.eligibility?.maxAge
+                                        } 
+                                    })}
+                                    className="accent-purple-400 w-5 h-5 sm:w-4 sm:h-4 flex-shrink-0"
                                 />
-                            </div>
+                                <span className="leading-tight">No age restriction</span>
+                            </label>
                         </div>
 
                         {/* Required Documents */}
-                        <div className="space-y-2">
-                            <label className="text-[9px] text-white/40 uppercase ml-1 block">Required Documents</label>
-                            <div className="grid grid-cols-2 gap-2">
-                                {['Registration Screenshot', 'College ID Proof'].map(doc => (
-                                    <label key={doc} className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
+                        <div className="space-y-4 pt-4 border-t border-white/5">
+                            <label className="text-sm sm:text-xs text-white/70 uppercase ml-1 block font-bold">Required Documents</label>
+                            <div className="space-y-2.5">
+                                {[
+                                    { value: 'collegeId', label: 'Valid College ID Card' },
+                                    { value: 'govId', label: 'Government ID (Aadhaar/Passport)' },
+                                    { value: 'participationCert', label: 'Previous Participation Certificate' }
+                                ].map(doc => (
+                                    <label key={doc.value} className="flex items-center gap-3 text-sm sm:text-sm text-white cursor-pointer p-3 sm:p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors touch-manipulation min-h-[56px]">
                                         <input
                                             type="checkbox"
-                                            checked={newEvent.eligibility?.requiredDocs?.includes(doc) || false}
+                                            checked={newEvent.eligibility?.requiredDocs?.includes(doc.value) || false}
                                             onChange={e => {
                                                 const docs = newEvent.eligibility?.requiredDocs || [];
                                                 if (e.target.checked) {
@@ -318,7 +364,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                                         ...newEvent,
                                                         eligibility: {
                                                             ...newEvent.eligibility,
-                                                            requiredDocs: [...docs, doc]
+                                                            requiredDocs: [...docs, doc.value]
                                                         }
                                                     });
                                                 } else {
@@ -326,32 +372,18 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                                         ...newEvent,
                                                         eligibility: {
                                                             ...newEvent.eligibility,
-                                                            requiredDocs: docs.filter(d => d !== doc)
+                                                            requiredDocs: docs.filter(d => d !== doc.value)
                                                         }
                                                     });
                                                 }
                                             }}
-                                            className="accent-purple-400"
+                                            className="accent-purple-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0"
                                         />
-                                        {doc}
+                                        <span className="leading-relaxed">{doc.label}</span>
                                     </label>
                                 ))}
                             </div>
                         </div>
-
-                        {/* College/Institution Restrictions */}
-                        {newEvent.eventType === 'Intra-College' && (
-                            <div className="space-y-2 p-3 bg-white/5 rounded-lg border border-white/5">
-                                <label className="text-[9px] text-orange-300 uppercase font-bold block">Intra-College Restrictions</label>
-                                <input
-                                    className="input-glass p-2 rounded-lg w-full text-xs"
-                                    placeholder="Allowed College/Institution Name"
-                                    value={newEvent.allowedCollege || ''}
-                                    onChange={e => setNewEvent({ ...newEvent, allowedCollege: e.target.value })}
-                                />
-                                <div className="text-[8px] text-white/30">Only students from this institution can register</div>
-                            </div>
-                        )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -374,29 +406,29 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                     <button type="button" onClick={generateGCalLink} className="text-[10px] font-bold text-vortex-orange bg-vortex-orange/10 px-3 py-1.5 rounded-full flex items-center gap-2 w-fit hover:bg-vortex-orange/20 transition-all"><Calendar size={12} />Sync GCal</button>
 
                     <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
-                        <label className="text-[10px] text-green-400 uppercase font-black tracking-widest block">💰 Pricing & Limits</label>
-                        
+                        <label className="text-xs sm:text-[10px] text-green-400 uppercase font-black tracking-widest block">💰 Pricing & Limits</label>
+
                         {/* Free vs Paid Event Toggle */}
-                        <div className="flex items-center gap-4 p-3 bg-white/5 rounded-lg border border-white/5">
-                            <label className="flex items-center gap-2 text-sm text-white/70 cursor-pointer">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label className="flex items-center gap-3 text-base sm:text-sm cursor-pointer p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors touch-manipulation min-h-[56px]">
                                 <input
                                     type="radio"
                                     name="eventPricing"
                                     checked={!newEvent.price || newEvent.price === 0}
                                     onChange={() => setNewEvent({ ...newEvent, price: 0 })}
-                                    className="accent-green-400"
+                                    className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0"
                                 />
-                                Free Event
+                                <span className="text-white flex-1">Free Event</span>
                             </label>
-                            <label className="flex items-center gap-2 text-sm text-white/70 cursor-pointer">
+                            <label className="flex items-center gap-3 text-base sm:text-sm cursor-pointer p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors touch-manipulation min-h-[56px]">
                                 <input
                                     type="radio"
                                     name="eventPricing"
                                     checked={newEvent.price > 0}
                                     onChange={() => setNewEvent({ ...newEvent, price: newEvent.price || 100 })}
-                                    className="accent-green-400"
+                                    className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0"
                                 />
-                                Paid Event
+                                <span className="text-white flex-1">Paid Event</span>
                             </label>
                         </div>
 
@@ -406,17 +438,17 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                 <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-xs">₹</span>
-                                        <input 
-                                            className="input-glass p-3 pl-7 rounded-lg w-full text-sm" 
-                                            type="number" 
-                                            placeholder="Entry Fee Amount" 
-                                            value={newEvent.price} 
-                                            onChange={e => setNewEvent({ ...newEvent, price: e.target.value })} 
+                                        <input
+                                            className="input-glass p-3 pl-7 rounded-lg w-full text-sm"
+                                            type="number"
+                                            placeholder="Entry Fee Amount"
+                                            value={newEvent.price}
+                                            onChange={e => setNewEvent({ ...newEvent, price: e.target.value })}
                                             min="1"
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <select 
+                                        <select
                                             className="input-glass p-3 rounded-lg w-full text-sm bg-[#1a1a1a]"
                                             value={newEvent.feeType || 'per_person'}
                                             onChange={e => setNewEvent({ ...newEvent, feeType: e.target.value })}
@@ -445,8 +477,8 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                         <div className="border-t border-white/10 pt-1 flex justify-between font-bold">
                                             <span className="text-white">Total Amount</span>
                                             <span className="text-green-400">
-                                                ₹{newEvent.gstEnabled ? 
-                                                    Math.round((newEvent.price || 0) * (1 + ((newEvent.gstPercent || 18) / 100))) : 
+                                                ₹{newEvent.gstEnabled ?
+                                                    Math.round((newEvent.price || 0) * (1 + ((newEvent.gstPercent || 18) / 100))) :
                                                     (newEvent.price || 0)}
                                             </span>
                                         </div>
@@ -460,23 +492,23 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                             <label className="text-[9px] text-white/40 uppercase font-bold block">Participant Capacity</label>
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
-                                    <input 
-                                        className="input-glass p-3 rounded-lg w-full text-sm" 
-                                        type="number" 
-                                        placeholder="Max Participants" 
-                                        value={newEvent.capacity} 
-                                        onChange={e => setNewEvent({ ...newEvent, capacity: e.target.value })} 
+                                    <input
+                                        className="input-glass p-3 rounded-lg w-full text-sm"
+                                        type="number"
+                                        placeholder="Max Participants"
+                                        value={newEvent.capacity}
+                                        onChange={e => setNewEvent({ ...newEvent, capacity: e.target.value })}
                                         min="0"
                                     />
                                     <div className="text-[9px] text-white/30 px-1">0 = unlimited</div>
                                 </div>
                                 <div className="space-y-1">
-                                    <input 
-                                        className="input-glass p-3 rounded-lg w-full text-sm" 
-                                        type="number" 
-                                        placeholder="Waitlist Limit" 
-                                        value={newEvent.waitlistCapacity || ''} 
-                                        onChange={e => setNewEvent({ ...newEvent, waitlistCapacity: e.target.value })} 
+                                    <input
+                                        className="input-glass p-3 rounded-lg w-full text-sm"
+                                        type="number"
+                                        placeholder="Waitlist Limit"
+                                        value={newEvent.waitlistCapacity || ''}
+                                        onChange={e => setNewEvent({ ...newEvent, waitlistCapacity: e.target.value })}
                                         min="0"
                                     />
                                     <div className="text-[9px] text-white/30 px-1">Max waitlist size</div>
@@ -486,43 +518,43 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
 
                         {/* Fee Structure Options */}
                         <div className="space-y-3 pt-2 border-t border-white/5">
-                            <label className="text-[9px] text-green-300 uppercase font-bold tracking-wider block">Fee Structure</label>
-                            <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
-                                <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
+                            <label className="text-xs sm:text-[9px] text-green-300 uppercase font-bold tracking-wider block">Fee Structure</label>
+                            <div className="grid grid-cols-1 gap-3">
+                                <label className="flex items-start gap-3 text-base sm:text-sm text-white cursor-pointer p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors touch-manipulation min-h-[56px]">
                                     <input
                                         type="radio"
                                         name="feeStructure"
                                         value="perPerson"
                                         checked={!newEvent.teamPricing?.perTeam}
                                         onChange={e => setNewEvent({ ...newEvent, teamPricing: { ...newEvent.teamPricing, perTeam: false } })}
-                                        className="accent-green-400"
+                                        className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-0.5"
                                     />
-                                    Per Person
+                                    <span className="flex-1 leading-relaxed">Per Person</span>
                                 </label>
-                                <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
+                                <label className="flex items-start gap-3 text-base sm:text-sm text-white cursor-pointer p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors touch-manipulation min-h-[56px]">
                                     <input
                                         type="radio"
                                         name="feeStructure"
                                         value="perTeam"
                                         checked={newEvent.teamPricing?.perTeam}
                                         onChange={e => setNewEvent({ ...newEvent, teamPricing: { ...newEvent.teamPricing, perTeam: true } })}
-                                        className="accent-green-400"
+                                        className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-0.5"
                                     />
-                                    Per Team (Flat Rate)
+                                    <span className="flex-1 leading-relaxed">Per Team (Flat Rate)</span>
                                 </label>
                             </div>
                         </div>
 
                         {/* Early Bird Discount */}
                         <div className="space-y-3 pt-2 border-t border-white/5">
-                            <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
+                            <label className="flex items-start gap-3 text-base sm:text-sm text-white cursor-pointer p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors touch-manipulation min-h-[56px]">
                                 <input
                                     type="checkbox"
                                     checked={newEvent.earlyBirdDiscount?.enabled}
                                     onChange={e => setNewEvent({ ...newEvent, earlyBirdDiscount: { ...newEvent.earlyBirdDiscount, enabled: e.target.checked } })}
-                                    className="accent-green-400"
+                                    className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-0.5"
                                 />
-                                Enable Early Bird Discount
+                                <span className="flex-1">Enable Early Bird Discount</span>
                             </label>
                             {newEvent.earlyBirdDiscount?.enabled && (
                                 <div className="grid grid-cols-2 gap-3">
@@ -598,85 +630,87 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
 
                         {/* Payment Method Selection */}
                         <div className="space-y-3">
-                            <label className="text-[9px] text-white/40 uppercase ml-1 block">Payment Gateway Selection</label>
-                            <div className="grid grid-cols-1 gap-2">
-                                <label className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                            <label className="text-xs sm:text-[9px] text-white/40 uppercase ml-1 block font-bold">Payment Gateway Selection</label>
+                            <div className="grid grid-cols-1 gap-3">
+                                <label className="flex items-start gap-4 p-4 bg-white/5 rounded-lg border border-white/10 cursor-pointer hover:bg-white/10 transition-colors touch-manipulation min-h-[72px]">
                                     <input
                                         type="radio"
                                         name="paymentGateway"
                                         value="UPI"
                                         checked={newEvent.paymentGateway === 'UPI'}
                                         onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
-                                        className="accent-green-400"
+                                        className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-1"
                                     />
-                                    <div className="flex-1">
-                                        <div className="text-sm font-medium text-white">UPI Payment Only</div>
-                                        <div className="text-xs text-white/60">QR Code + UPI ID for instant payments</div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-base sm:text-sm font-semibold text-white leading-tight">UPI Payment Only</div>
+                                        <div className="text-sm sm:text-xs text-white/70 mt-1.5 leading-snug">QR Code + UPI ID for instant payments</div>
                                     </div>
                                 </label>
-                                <label className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                                <label className="flex items-start gap-4 p-4 bg-white/5 rounded-lg border border-white/10 cursor-pointer hover:bg-white/10 transition-colors touch-manipulation min-h-[72px]">
                                     <input
                                         type="radio"
                                         name="paymentGateway"
                                         value="Offline"
                                         checked={newEvent.paymentGateway === 'Offline'}
                                         onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
-                                        className="accent-green-400"
+                                        className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-1"
                                     />
-                                    <div className="flex-1">
-                                        <div className="text-sm font-medium text-white">Offline Payment Only</div>
-                                        <div className="text-xs text-white/60">Cash, Bank Transfer, Manual Collection</div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-base sm:text-sm font-semibold text-white leading-tight">Offline Payment Only</div>
+                                        <div className="text-sm sm:text-xs text-white/70 mt-1.5 leading-snug">Cash, Bank Transfer, Manual Collection</div>
                                     </div>
                                 </label>
-                                <label className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                                <label className="flex items-start gap-4 p-4 bg-white/5 rounded-lg border border-white/10 cursor-pointer hover:bg-white/10 transition-colors touch-manipulation min-h-[72px]">
                                     <input
                                         type="radio"
                                         name="paymentGateway"
                                         value="GoogleForm"
                                         checked={newEvent.paymentGateway === 'GoogleForm'}
                                         onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
-                                        className="accent-green-400"
+                                        className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-1"
                                     />
-                                    <div className="flex-1">
-                                        <div className="text-sm font-medium text-white">Google Form Payment</div>
-                                        <div className="text-xs text-white/60">Redirect users to Google Form for payment</div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-base sm:text-sm font-semibold text-white leading-tight">Google Form Payment</div>
+                                        <div className="text-sm sm:text-xs text-white/70 mt-1.5 leading-snug">Redirect users to Google Form for payment</div>
                                     </div>
                                 </label>
-                                <label className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                                <label className="flex items-start gap-4 p-4 bg-white/5 rounded-lg border border-white/10 cursor-pointer hover:bg-white/10 transition-colors touch-manipulation min-h-[72px]">
                                     <input
                                         type="radio"
                                         name="paymentGateway"
                                         value="Both"
                                         checked={newEvent.paymentGateway === 'Both'}
                                         onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
-                                        className="accent-green-400"
+                                        className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-1"
                                     />
-                                    <div className="flex-1">
-                                        <div className="text-sm font-medium text-white">Both UPI & Offline</div>
-                                        <div className="text-xs text-white/60">Participants can choose either option</div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-base sm:text-sm font-semibold text-white leading-tight">Both UPI & Offline</div>
+                                        <div className="text-sm sm:text-xs text-white/70 mt-1.5 leading-snug">Participants can choose either option</div>
                                     </div>
                                 </label>
                             </div>
                         </div>
 
-                        {/* Payment Receiver Information */}
-                        <div className="space-y-3 pt-3 border-t border-white/5">
-                            <label className="text-[9px] text-white/40 uppercase ml-1 block">Payment Receiver Details</label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <input
-                                    className="input-glass p-3 rounded-lg w-full text-sm"
-                                    placeholder="Organization/Person Name"
-                                    value={newEvent.paymentReceiverName || ''}
-                                    onChange={e => setNewEvent({ ...newEvent, paymentReceiverName: e.target.value })}
-                                />
-                                <input
-                                    className="input-glass p-3 rounded-lg w-full text-sm"
-                                    placeholder="Contact Number"
-                                    value={newEvent.paymentContactNumber || ''}
-                                    onChange={e => setNewEvent({ ...newEvent, paymentContactNumber: e.target.value })}
-                                />
+                        {/* Payment Receiver Information - Only show for UPI, Offline, or Both */}
+                        {(newEvent.paymentGateway === 'UPI' || newEvent.paymentGateway === 'Offline' || newEvent.paymentGateway === 'Both') && (
+                            <div className="space-y-3 pt-3 border-t border-white/5">
+                                <label className="text-xs sm:text-[9px] text-white/40 uppercase ml-1 block font-bold">Payment Receiver Details</label>
+                                <div className="grid grid-cols-1 gap-3">
+                                    <input
+                                        className="input-glass p-3 sm:p-3 rounded-lg w-full text-base sm:text-sm"
+                                        placeholder="Organization/Person Name"
+                                        value={newEvent.paymentReceiverName || ''}
+                                        onChange={e => setNewEvent({ ...newEvent, paymentReceiverName: e.target.value })}
+                                    />
+                                    <input
+                                        className="input-glass p-3 sm:p-3 rounded-lg w-full text-base sm:text-sm"
+                                        placeholder="Contact Number"
+                                        value={newEvent.paymentContactNumber || ''}
+                                        onChange={e => setNewEvent({ ...newEvent, paymentContactNumber: e.target.value })}
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* UPI Details for UPI or Both payment methods */}
                         {(newEvent.paymentGateway === 'UPI' || newEvent.paymentGateway === 'Both') && (
@@ -705,15 +739,15 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                         <div className="text-[8px] text-white/30 mt-1">Upload QR code image to a hosting service and paste the direct image URL</div>
                                     </div>
                                 </div>
-                                
+
                                 {/* UPI Preview */}
                                 {newEvent.upiId && newEvent.upiQrCode && (
                                     <div className="p-3 bg-white/5 rounded-lg border border-white/5">
                                         <div className="text-[8px] text-green-400 uppercase font-bold mb-2">Preview</div>
                                         <div className="flex items-center gap-3">
-                                            <img 
-                                                src={newEvent.upiQrCode} 
-                                                alt="QR Code Preview" 
+                                            <img
+                                                src={newEvent.upiQrCode}
+                                                alt="QR Code Preview"
                                                 className="w-12 h-12 rounded border border-white/10"
                                                 onError={(e) => {
                                                     e.target.style.display = 'none';
@@ -758,13 +792,13 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                             className="input-glass p-3 rounded-lg w-full text-sm"
                                             placeholder="https://forms.gle/xxxxx or https://docs.google.com/forms/..."
                                             value={newEvent.googleFormPayment?.formUrl || ''}
-                                            onChange={e => setNewEvent({ 
-                                                ...newEvent, 
-                                                googleFormPayment: { 
-                                                    ...newEvent.googleFormPayment, 
+                                            onChange={e => setNewEvent({
+                                                ...newEvent,
+                                                googleFormPayment: {
+                                                    ...newEvent.googleFormPayment,
                                                     formUrl: e.target.value,
                                                     enabled: true
-                                                } 
+                                                }
                                             })}
                                             required={newEvent.paymentGateway === 'GoogleForm'}
                                         />
@@ -776,12 +810,12 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                             className="input-glass p-3 rounded-lg w-full text-sm"
                                             placeholder="Complete Payment via Google Form"
                                             value={newEvent.googleFormPayment?.buttonText || 'Complete Payment via Google Form'}
-                                            onChange={e => setNewEvent({ 
-                                                ...newEvent, 
-                                                googleFormPayment: { 
-                                                    ...newEvent.googleFormPayment, 
-                                                    buttonText: e.target.value 
-                                                } 
+                                            onChange={e => setNewEvent({
+                                                ...newEvent,
+                                                googleFormPayment: {
+                                                    ...newEvent.googleFormPayment,
+                                                    buttonText: e.target.value
+                                                }
                                             })}
                                         />
                                     </div>
@@ -791,17 +825,17 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                             className="input-glass p-3 rounded-lg w-full text-sm h-20 resize-none"
                                             placeholder="Click the button below to open the payment form and complete your registration."
                                             value={newEvent.googleFormPayment?.instructions || 'Click the button below to open the payment form and complete your registration.'}
-                                            onChange={e => setNewEvent({ 
-                                                ...newEvent, 
-                                                googleFormPayment: { 
-                                                    ...newEvent.googleFormPayment, 
-                                                    instructions: e.target.value 
-                                                } 
+                                            onChange={e => setNewEvent({
+                                                ...newEvent,
+                                                googleFormPayment: {
+                                                    ...newEvent.googleFormPayment,
+                                                    instructions: e.target.value
+                                                }
                                             })}
                                         />
                                     </div>
                                 </div>
-                                
+
                                 {/* Google Form Preview */}
                                 {newEvent.googleFormPayment?.formUrl && (
                                     <div className="p-3 bg-white/5 rounded-lg border border-white/5">
@@ -826,26 +860,26 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
 
                         {/* GST Settings */}
                         <div className="space-y-3 pt-2 border-t border-white/5">
-                            <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
+                            <label className="flex items-center gap-3 text-base sm:text-sm text-white cursor-pointer p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors touch-manipulation min-h-[56px]">
                                 <input
                                     type="checkbox"
                                     checked={newEvent.gstEnabled}
                                     onChange={e => setNewEvent({ ...newEvent, gstEnabled: e.target.checked })}
-                                    className="accent-green-400"
+                                    className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0"
                                 />
-                                Include GST in pricing
+                                <span className="flex-1">Include GST in pricing</span>
                             </label>
                             {newEvent.gstEnabled && (
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <input
-                                        className="input-glass p-2 rounded-lg w-full text-xs"
+                                        className="input-glass p-3 rounded-lg w-full text-base sm:text-sm"
                                         type="number"
                                         placeholder="GST %"
                                         value={newEvent.gstPercent || 18}
                                         onChange={e => setNewEvent({ ...newEvent, gstPercent: e.target.value })}
                                     />
                                     <input
-                                        className="input-glass p-2 rounded-lg w-full text-xs"
+                                        className="input-glass p-3 rounded-lg w-full text-base sm:text-sm"
                                         placeholder="GST Number"
                                         value={newEvent.gstNumber || ''}
                                         onChange={e => setNewEvent({ ...newEvent, gstNumber: e.target.value })}
@@ -908,35 +942,35 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                     <div className="p-4 bg-gradient-to-br from-indigo-500/10 rounded-xl border border-indigo-500/20 space-y-4">
                         <div className="flex justify-between items-center px-1">
                             <label className="text-[10px] text-indigo-400 uppercase font-black tracking-widest">🎯 Sub-Events</label>
-                            <button 
-                                type="button" 
+                            <button
+                                type="button"
                                 onClick={() => {
                                     try {
-                                        const newSubEvent = { 
-                                            title: '', 
-                                            description: '', 
-                                            details: '', 
-                                            icon: 'Calendar', 
+                                        const newSubEvent = {
+                                            title: '',
+                                            description: '',
+                                            details: '',
+                                            icon: 'Calendar',
                                             color: 'from-blue-500 to-purple-500',
                                             duration: '',
                                             participants: '',
                                             images: []
                                         };
-                                        setNewEvent({ 
-                                            ...newEvent, 
+                                        setNewEvent({
+                                            ...newEvent,
                                             subEvents: [...(newEvent.subEvents || []), newSubEvent]
-                                        }); 
+                                        });
                                     } catch (error) {
                                         console.error('Error adding sub-event:', error);
                                         alert('Failed to add sub-event. Please try again.');
                                     }
-                                }} 
+                                }}
                                 className="text-[10px] text-indigo-400 font-bold hover:underline"
                             >
                                 + Add Sub-Event
                             </button>
                         </div>
-                        
+
                         {/* Sub-Events List View */}
                         <div className="space-y-3">
                             {newEvent.subEvents?.map((subEvent, index) => {
@@ -945,152 +979,133 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                     console.warn('Invalid subEvent in EventForm:', subEvent);
                                     return null;
                                 }
-                                
+
                                 return (
-                                <div key={`subevent-${index}-${subEvent.title || 'new'}`} className="bg-black/20 p-3 rounded-lg border border-white/5 space-y-3">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <input
-                                                className="input-glass p-2 rounded text-xs"
-                                                placeholder="Sub-Event Title *"
-                                                value={subEvent.title || ''}
-                                                required
-                                                onChange={e => {
-                                                    const subEvents = newEvent.subEvents.map((se, i) => 
-                                                        i === index ? { ...se, title: e.target.value } : se
-                                                    );
-                                                    setNewEvent({ ...newEvent, subEvents });
+                                    <div key={`subevent-${index}-${subEvent.title || 'new'}`} className="bg-black/20 p-3 rounded-lg border border-white/5 space-y-3">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <input
+                                                    className="input-glass p-2 rounded text-xs"
+                                                    placeholder="Sub-Event Title *"
+                                                    value={subEvent.title || ''}
+                                                    required
+                                                    onChange={e => {
+                                                        const subEvents = newEvent.subEvents.map((se, i) =>
+                                                            i === index ? { ...se, title: e.target.value } : se
+                                                        );
+                                                        setNewEvent({ ...newEvent, subEvents });
+                                                    }}
+                                                />
+                                                <input
+                                                    className="input-glass p-2 rounded text-xs"
+                                                    placeholder="Duration (e.g., Full Day, 2 Hours)"
+                                                    value={subEvent.duration || ''}
+                                                    onChange={e => {
+                                                        const subEvents = newEvent.subEvents.map((se, i) =>
+                                                            i === index ? { ...se, duration: e.target.value } : se
+                                                        );
+                                                        setNewEvent({ ...newEvent, subEvents });
+                                                    }}
+                                                />
+                                                <input
+                                                    className="input-glass p-2 rounded text-xs"
+                                                    placeholder="Participants (e.g., Multiple Teams, Solo)"
+                                                    value={subEvent.participants || ''}
+                                                    onChange={e => {
+                                                        const subEvents = newEvent.subEvents.map((se, i) =>
+                                                            i === index ? { ...se, participants: e.target.value } : se
+                                                        );
+                                                        setNewEvent({ ...newEvent, subEvents });
+                                                    }}
+                                                />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    try {
+                                                        setNewEvent({ ...newEvent, subEvents: newEvent.subEvents.filter((_, idx) => idx !== index) });
+                                                    } catch (error) {
+                                                        console.error('Error deleting sub-event:', error);
+                                                        alert('Failed to delete sub-event. Please try again.');
+                                                    }
                                                 }}
-                                            />
-                                            <input
-                                                className="input-glass p-2 rounded text-xs"
-                                                placeholder="Duration (e.g., Full Day, 2 Hours)"
-                                                value={subEvent.duration || ''}
-                                                onChange={e => {
-                                                    const subEvents = newEvent.subEvents.map((se, i) => 
-                                                        i === index ? { ...se, duration: e.target.value } : se
-                                                    );
-                                                    setNewEvent({ ...newEvent, subEvents });
-                                                }}
-                                            />
-                                            <input
-                                                className="input-glass p-2 rounded text-xs"
-                                                placeholder="Participants (e.g., Multiple Teams, Solo)"
-                                                value={subEvent.participants || ''}
-                                                onChange={e => {
-                                                    const subEvents = newEvent.subEvents.map((se, i) => 
-                                                        i === index ? { ...se, participants: e.target.value } : se
-                                                    );
-                                                    setNewEvent({ ...newEvent, subEvents });
-                                                }}
-                                            />
-                                            <select
-                                                className="input-glass p-2 rounded text-xs bg-[#1a1a1a]"
-                                                value={subEvent.icon || 'Calendar'}
-                                                onChange={e => {
-                                                    const subEvents = newEvent.subEvents.map((se, i) => 
-                                                        i === index ? { ...se, icon: e.target.value } : se
-                                                    );
-                                                    setNewEvent({ ...newEvent, subEvents });
-                                                }}
+                                                className="text-red-400/40 hover:text-red-400 transition-colors ml-2"
                                             >
-                                                <option value="Calendar">Calendar</option>
-                                                <option value="Trophy">Trophy</option>
-                                                <option value="Code">Code</option>
-                                                <option value="Key">Key</option>
-                                                <option value="Gamepad2">Gamepad2</option>
-                                                <option value="Users">Users</option>
-                                                <option value="MapPin">MapPin</option>
-                                                <option value="Clock">Clock</option>
-                                            </select>
+                                                <X size={16} />
+                                            </button>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                try {
-                                                    setNewEvent({ ...newEvent, subEvents: newEvent.subEvents.filter((_, idx) => idx !== index) });
-                                                } catch (error) {
-                                                    console.error('Error deleting sub-event:', error);
-                                                    alert('Failed to delete sub-event. Please try again.');
-                                                }
+
+                                        <textarea
+                                            className="input-glass p-2 rounded text-xs w-full h-16 resize-none"
+                                            placeholder="Brief description of the sub-event *"
+                                            value={subEvent.description || ''}
+                                            required
+                                            onChange={e => {
+                                                const subEvents = newEvent.subEvents.map((se, i) =>
+                                                    i === index ? { ...se, description: e.target.value } : se
+                                                );
+                                                setNewEvent({ ...newEvent, subEvents });
                                             }}
-                                            className="text-red-400/40 hover:text-red-400 transition-colors ml-2"
+                                        />
+
+                                        <textarea
+                                            className="input-glass p-2 rounded text-xs w-full h-20 resize-none"
+                                            placeholder="Detailed information about the sub-event"
+                                            value={subEvent.details || ''}
+                                            onChange={e => {
+                                                const subEvents = newEvent.subEvents.map((se, i) =>
+                                                    i === index ? { ...se, details: e.target.value } : se
+                                                );
+                                                setNewEvent({ ...newEvent, subEvents });
+                                            }}
+                                        />
+
+                                        <select
+                                            className="input-glass p-2 rounded text-xs bg-[#1a1a1a] w-full"
+                                            value={subEvent.color || 'from-blue-500 to-purple-500'}
+                                            onChange={e => {
+                                                const subEvents = newEvent.subEvents.map((se, i) =>
+                                                    i === index ? { ...se, color: e.target.value } : se
+                                                );
+                                                setNewEvent({ ...newEvent, subEvents });
+                                            }}
                                         >
-                                            <X size={16} />
-                                        </button>
+                                            <option value="from-blue-500 to-purple-500">Blue to Purple</option>
+                                            <option value="from-yellow-500 to-orange-500">Yellow to Orange</option>
+                                            <option value="from-vortex-blue to-cyan-400">Vortex Blue to Cyan</option>
+                                            <option value="from-purple-500 to-pink-500">Purple to Pink</option>
+                                            <option value="from-red-500 to-vortex-orange">Red to Orange</option>
+                                            <option value="from-green-500 to-emerald-500">Green to Emerald</option>
+                                        </select>
+
+                                        {/* Conditional Photo Upload for PRAYOG 1.0 */}
+                                        {newEvent.title === 'PRAYOG 1.0' && (
+                                            <div className="space-y-2 p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                                                <label className="text-[9px] text-yellow-300 uppercase font-bold block">📸 Photos (PRAYOG 1.0 Only)</label>
+                                                <input
+                                                    className="input-glass p-2 rounded text-xs w-full"
+                                                    placeholder="Enter image URLs (comma separated)"
+                                                    value={subEvent.images?.join(', ') || ''}
+                                                    onChange={e => {
+                                                        const urls = e.target.value.split(',').map(url => url.trim()).filter(url => url);
+                                                        const validUrls = urls.filter(url => {
+                                                            try { new URL(url); return true; }
+                                                            catch { return false; }
+                                                        });
+                                                        const subEvents = newEvent.subEvents.map((se, i) =>
+                                                            i === index ? { ...se, images: validUrls } : se
+                                                        );
+                                                        setNewEvent({ ...newEvent, subEvents });
+                                                    }}
+                                                />
+                                                <div className="text-[8px] text-white/30">Add image URLs separated by commas</div>
+                                            </div>
+                                        )}
                                     </div>
-                                    
-                                    <textarea
-                                        className="input-glass p-2 rounded text-xs w-full h-16 resize-none"
-                                        placeholder="Brief description of the sub-event *"
-                                        value={subEvent.description || ''}
-                                        required
-                                        onChange={e => {
-                                            const subEvents = newEvent.subEvents.map((se, i) => 
-                                                i === index ? { ...se, description: e.target.value } : se
-                                            );
-                                            setNewEvent({ ...newEvent, subEvents });
-                                        }}
-                                    />
-                                    
-                                    <textarea
-                                        className="input-glass p-2 rounded text-xs w-full h-20 resize-none"
-                                        placeholder="Detailed information about the sub-event"
-                                        value={subEvent.details || ''}
-                                        onChange={e => {
-                                            const subEvents = newEvent.subEvents.map((se, i) => 
-                                                i === index ? { ...se, details: e.target.value } : se
-                                            );
-                                            setNewEvent({ ...newEvent, subEvents });
-                                        }}
-                                    />
-                                    
-                                    <select
-                                        className="input-glass p-2 rounded text-xs bg-[#1a1a1a] w-full"
-                                        value={subEvent.color || 'from-blue-500 to-purple-500'}
-                                        onChange={e => {
-                                            const subEvents = newEvent.subEvents.map((se, i) => 
-                                                i === index ? { ...se, color: e.target.value } : se
-                                            );
-                                            setNewEvent({ ...newEvent, subEvents });
-                                        }}
-                                    >
-                                        <option value="from-blue-500 to-purple-500">Blue to Purple</option>
-                                        <option value="from-yellow-500 to-orange-500">Yellow to Orange</option>
-                                        <option value="from-vortex-blue to-cyan-400">Vortex Blue to Cyan</option>
-                                        <option value="from-purple-500 to-pink-500">Purple to Pink</option>
-                                        <option value="from-red-500 to-vortex-orange">Red to Orange</option>
-                                        <option value="from-green-500 to-emerald-500">Green to Emerald</option>
-                                    </select>
-                                    
-                                    {/* Conditional Photo Upload for PRAYOG 1.0 */}
-                                    {newEvent.title === 'PRAYOG 1.0' && (
-                                        <div className="space-y-2 p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                                            <label className="text-[9px] text-yellow-300 uppercase font-bold block">📸 Photos (PRAYOG 1.0 Only)</label>
-                                            <input
-                                                className="input-glass p-2 rounded text-xs w-full"
-                                                placeholder="Enter image URLs (comma separated)"
-                                                value={subEvent.images?.join(', ') || ''}
-                                                onChange={e => {
-                                                    const urls = e.target.value.split(',').map(url => url.trim()).filter(url => url);
-                                                    const validUrls = urls.filter(url => {
-                                                        try { new URL(url); return true; } 
-                                                        catch { return false; }
-                                                    });
-                                                    const subEvents = newEvent.subEvents.map((se, i) => 
-                                                        i === index ? { ...se, images: validUrls } : se
-                                                    );
-                                                    setNewEvent({ ...newEvent, subEvents });
-                                                }}
-                                            />
-                                            <div className="text-[8px] text-white/30">Add image URLs separated by commas</div>
-                                        </div>
-                                    )}
-                                </div>
                                 );
                             })}
                         </div>
-                        
+
                         {(!newEvent.subEvents || newEvent.subEvents.length === 0) && (
                             <div className="text-center py-6 text-white/30 text-xs">
                                 <div className="mb-2">No sub-events added yet</div>

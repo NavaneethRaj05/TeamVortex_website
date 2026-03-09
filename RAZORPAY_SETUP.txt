@@ -1,0 +1,24 @@
+🚀 RAZORPAY SETUP - 4 STEPS
+
+1. SIGN UP
+   → Go to https://razorpay.com/
+   → Create free account
+
+2. GET API KEYS
+   → Login to Dashboard
+   → Settings → API Keys
+   → Generate Test Keys (start with "rzp_test_")
+   → Copy Key ID and Key Secret
+
+3. UPDATE .ENV
+   → Open: server/.env
+   → Replace:
+     RAZORPAY_KEY_ID=rzp_test_YOUR_KEY_HERE
+     RAZORPAY_KEY_SECRET=YOUR_SECRET_HERE
+
+4. TEST IT
+   → cd server
+   → node test-razorpay.js
+   → Should show: ✅ All systems ready!
+
+DONE! Backend ready to accept payments 💳
