@@ -2575,3 +2575,147 @@ html {
     -webkit-tap-highlight-color: transparent;
   }
 }
+
+
+/* ========================================
+   CUSTOM RADIO BUTTONS & CHECKBOXES
+   Mobile-Optimized with Visible Indicators
+   ======================================== */
+
+/* Radio Buttons - Custom Styling */
+input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #6b7280;
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  background-color: transparent;
+}
+
+input[type="radio"]:checked {
+  border-color: #06b6d4;
+  background-color: #06b6d4;
+}
+
+input[type="radio"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background-color: white;
+  border-radius: 50%;
+}
+
+input[type="radio"]:focus-visible {
+  outline: 2px solid #06b6d4;
+  outline-offset: 2px;
+}
+
+/* Mobile - Larger Radio Buttons */
+@media (max-width: 768px) {
+  input[type="radio"] {
+    width: 24px;
+    height: 24px;
+    border-width: 2.5px;
+  }
+  
+  input[type="radio"]:checked::after {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+/* Checkboxes - Custom Styling */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #6b7280;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  background-color: transparent;
+}
+
+input[type="checkbox"]:checked {
+  border-color: #06b6d4;
+  background-color: #06b6d4;
+}
+
+input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: 2px solid #06b6d4;
+  outline-offset: 2px;
+}
+
+/* Mobile - Larger Checkboxes */
+@media (max-width: 768px) {
+  input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+    border-width: 2.5px;
+  }
+  
+  input[type="checkbox"]:checked::after {
+    font-size: 16px;
+  }
+}
+
+/* Label Hover Effects */
+label:has(input[type="radio"]),
+label:has(input[type="checkbox"]) {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+label:has(input[type="radio"]):hover,
+label:has(input[type="checkbox"]):hover {
+  background-color: rgba(6, 182, 212, 0.05);
+}
+
+/* Selected Card Styling */
+label:has(input[type="radio"]:checked),
+label:has(input[type="checkbox"]:checked) {
+  border-color: #06b6d4 !important;
+  background-color: rgba(6, 182, 212, 0.08) !important;
+}
+
+/* Disabled State */
+input[type="radio"]:disabled,
+input[type="checkbox"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+label:has(input:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+label:has(input:disabled):hover {
+  background-color: transparent;
+}
