@@ -767,12 +767,12 @@ const Events = () => {
           className="mb-16"
         >
           <div className="glass-card overflow-hidden bg-white/5 border border-white/10">
-            <div className="p-10">
-              <div className="text-center mb-8">
-                <h2 className="text-4xl md:text-6xl font-orbitron font-bold mb-4 tracking-wider">
+            <div className="p-4 sm:p-6 md:p-10">
+              <div className="text-center mb-4 sm:mb-6 md:mb-8">
+                <h2 className="text-2xl sm:text-4xl md:text-6xl font-orbitron font-bold mb-2 sm:mb-3 md:mb-4 tracking-wider">
                   <span className="gradient-text">{prayogDisplay.title}</span>
                 </h2>
-                <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-white/60">
+                <div className="flex flex-col md:flex-row items-center justify-center gap-2 sm:gap-3 md:gap-4 text-white/60">
                   <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">
                     {prayogDisplay.date}
                   </span>
@@ -782,13 +782,13 @@ const Events = () => {
                 </div>
               </div>
 
-              <div className="text-white/80 max-w-4xl mx-auto leading-relaxed space-y-4 text-justify">
+              <div className="text-white/80 max-w-4xl mx-auto leading-relaxed space-y-2 sm:space-y-3 md:space-y-4 text-justify text-sm sm:text-base">
                 <p>{prayogDisplay.description1}</p>
                 <p>{prayogDisplay.description2}</p>
               </div>
 
               {(prayogDisplay.images?.length > 0 || prayogDisplay.galleryDriveLink) && (
-                <div className="mt-8 flex flex-wrap gap-4 justify-center">
+                <div className="mt-4 sm:mt-6 md:mt-8 flex flex-wrap gap-2 sm:gap-3 md:gap-4 justify-center">
                   {prayogDisplay.images?.length > 0 && (
                     <button
                       onClick={() => setSelectedEventGallery({
@@ -816,9 +816,9 @@ const Events = () => {
               )}
 
               {prayogSubEvents?.length > 0 && (
-                <div className="mt-10">
-                  <h3 className="text-xl font-bold text-white/80 mb-4 text-center">Sub-Events</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="mt-4 sm:mt-6 md:mt-10">
+                  <h3 className="text-lg sm:text-xl font-bold text-white/80 mb-2 sm:mb-3 md:mb-4 text-center">Sub-Events</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                     {prayogSubEvents.map((subEvent, index) => {
                       // Safety check for subEvent
                       if (!subEvent || !subEvent.title) {
@@ -832,17 +832,17 @@ const Events = () => {
                         <button
                           key={`prayog-subevent-${subEvent.title || index}`}
                           onClick={() => setSelectedSubEvent(subEvent)}
-                          className="p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all text-left"
+                          className="p-3 sm:p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all text-left"
                         >
-                          <div className={`w-10 h-10 bg-gradient-to-br ${subEvent.color || 'from-blue-500 to-purple-500'} rounded-xl flex items-center justify-center mb-3`}>
-                            <IconComponent className="h-5 w-5 text-white" />
+                          <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br ${subEvent.color || 'from-blue-500 to-purple-500'} rounded-xl flex items-center justify-center mb-2 sm:mb-3`}>
+                            <IconComponent className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                           </div>
-                          <div className="text-sm font-semibold text-white">{subEvent.title}</div>
+                          <div className="text-xs sm:text-sm font-semibold text-white leading-tight">{subEvent.title}</div>
                           {subEvent.duration && (
-                            <div className="text-xs text-white/50 mt-1">{subEvent.duration}</div>
+                            <div className="text-[10px] sm:text-xs text-white/50 mt-0.5 sm:mt-1">{subEvent.duration}</div>
                           )}
                           {subEvent.participants && (
-                            <div className="text-[11px] text-white/40 mt-1">{subEvent.participants}</div>
+                            <div className="text-[9px] sm:text-[11px] text-white/40 mt-0.5 sm:mt-1 leading-tight">{subEvent.participants}</div>
                           )}
                         </button>
                       );

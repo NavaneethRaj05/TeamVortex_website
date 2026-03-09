@@ -384,24 +384,24 @@ const Dashboard = () => {
         <div className="min-h-screen bg-dark-bg">
             {/* Dashboard Header - Replaces Navbar */}
             <header className="fixed top-0 left-0 right-0 z-30 glass-card border-b border-white/10">
-                <div className="px-4 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2 sm:gap-3">
                         <button
                             onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="p-2 glass-card rounded-lg hover:bg-white/10 active:scale-95 transition-all"
+                            className="p-1.5 sm:p-2 glass-card rounded-lg hover:bg-white/10 active:scale-95 transition-all flex-shrink-0"
                             aria-label="Toggle Menu"
                         >
-                            {sidebarOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
+                            {sidebarOpen ? <X className="w-4 h-4 sm:w-5 sm:h-5 text-white" /> : <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-white" />}
                         </button>
-                        <h1 className="text-xl font-bold gradient-text">TEAM VORTEX</h1>
+                        <h1 className="text-base sm:text-xl font-bold gradient-text">TEAM VORTEX</h1>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="hidden sm:block text-right">
                             <p className="text-white text-sm font-medium">Admin</p>
                             <p className="text-white/60 text-xs">{user?.email}</p>
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-vortex-blue to-vortex-orange flex items-center justify-center">
-                            <span className="text-black font-bold">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-vortex-blue to-vortex-orange flex items-center justify-center flex-shrink-0">
+                            <span className="text-black font-bold text-sm sm:text-base">
                                 {user?.email?.charAt(0).toUpperCase()}
                             </span>
                         </div>
@@ -499,9 +499,9 @@ const Dashboard = () => {
 
                     {/* --- OVERVIEW TAB --- */}
                     {activeTab === 'overview' && (
-                        <div className="space-y-6 animate-fade-in">
+                        <div className="space-y-4 sm:space-y-6 animate-fade-in">
                             {/* Stats Grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
                                 <StatsCard 
                                     icon={Users} 
                                     label="Total Members" 
@@ -529,9 +529,9 @@ const Dashboard = () => {
                             </div>
 
                             {/* Quick Actions */}
-                            <div className="glass-card p-6">
-                                <h2 className="text-xl font-bold text-white mb-4">Quick Actions</h2>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="glass-card p-4 sm:p-6">
+                                <h2 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">Quick Actions</h2>
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                                     <button
                                         onClick={() => {
                                             setActiveTab('contests');

@@ -292,7 +292,7 @@ const Home = () => {
               </Link>
               <Link 
                 to="/contests" 
-                className="glass-button group flex items-center justify-center gap-2 sm:gap-3 text-white px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-bold rounded-xl bg-gradient-to-r from-vortex-orange to-red-600 hover:from-vortex-orange/90 hover:to-red-600/90 shadow-lg hover:shadow-vortex-orange/50 transition-all"
+                className="glass-button group flex items-center justify-center gap-2 sm:gap-3 text-white px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-bold rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-lg hover:shadow-purple-500/50 transition-all"
               >
                 <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>View Contests</span>
@@ -346,13 +346,13 @@ const Home = () => {
 
           {/* Featured Past Event - Automatically shows most recent */}
           {prayogEvent && (
-            <div className="glass-card overflow-hidden bg-white/5 border border-white/10 mb-12">
-              <div className="p-10">
-                <div className="text-center mb-8">
-                  <h3 className="text-3xl md:text-4xl font-orbitron font-bold mb-4 tracking-wider">
+            <div className="glass-card overflow-hidden bg-white/5 border border-white/10 mb-8 sm:mb-12">
+              <div className="p-4 sm:p-6 md:p-10">
+                <div className="text-center mb-4 sm:mb-6 md:mb-8">
+                  <h3 className="text-2xl sm:text-3xl md:text-4xl font-orbitron font-bold mb-2 sm:mb-3 md:mb-4 tracking-wider">
                     <span className="gradient-text">{prayogDisplay.title}</span>
                   </h3>
-                  <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-white/60">
+                  <div className="flex flex-col md:flex-row items-center justify-center gap-2 sm:gap-3 md:gap-4 text-white/60">
                     <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">
                       {prayogDisplay.date}
                     </span>
@@ -367,14 +367,14 @@ const Home = () => {
                   </div>
                 </div>
 
-                <div className="text-white/80 max-w-4xl mx-auto leading-relaxed space-y-4 text-justify">
+                <div className="text-white/80 max-w-4xl mx-auto leading-relaxed space-y-2 sm:space-y-3 md:space-y-4 text-justify text-sm sm:text-base">
                   <p>{prayogDisplay.description1}</p>
                   <p>{prayogDisplay.description2}</p>
                 </div>
 
                 {/* Gallery Links for PRAYOG */}
                 {(prayogDisplay.images?.length > 0 || prayogDisplay.galleryDriveLink) && (
-                  <div className="mt-8 flex flex-wrap gap-4 justify-center">
+                  <div className="mt-4 sm:mt-6 md:mt-8 flex flex-wrap gap-2 sm:gap-3 md:gap-4 justify-center">
                     {prayogDisplay.images?.length > 0 && (
                       <button className="glass-button text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2">
                         📸 View Photos ({prayogDisplay.images.length})
@@ -394,9 +394,9 @@ const Home = () => {
                 )}
 
                 {prayogSubEvents.length > 0 && (
-                  <div className="mt-10">
-                    <h4 className="text-xl font-bold text-white/80 mb-4 text-center">Sub-Events</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="mt-4 sm:mt-6 md:mt-10">
+                    <h4 className="text-lg sm:text-xl font-bold text-white/80 mb-2 sm:mb-3 md:mb-4 text-center">Sub-Events</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                       {prayogSubEvents.map((subEvent, index) => {
                         // Safety check for subEvent
                         if (!subEvent || !subEvent.title) {
@@ -408,17 +408,17 @@ const Home = () => {
                         return (
                           <div
                             key={`home-prayog-subevent-${subEvent.title || index}`}
-                            className="p-4 bg-white/5 rounded-xl border border-white/10 text-left"
+                            className="p-3 sm:p-4 bg-white/5 rounded-xl border border-white/10 text-left"
                           >
-                            <div className={`w-10 h-10 bg-gradient-to-br ${subEvent.color || 'from-blue-500 to-purple-500'} rounded-xl flex items-center justify-center mb-3`}>
-                              <IconComponent className="h-5 w-5 text-white" />
+                            <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br ${subEvent.color || 'from-blue-500 to-purple-500'} rounded-xl flex items-center justify-center mb-2 sm:mb-3`}>
+                              <IconComponent className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                             </div>
-                            <div className="text-sm font-semibold text-white">{subEvent.title}</div>
+                            <div className="text-xs sm:text-sm font-semibold text-white leading-tight">{subEvent.title}</div>
                             {subEvent.duration && (
-                              <div className="text-xs text-white/50 mt-1">{subEvent.duration}</div>
+                              <div className="text-[10px] sm:text-xs text-white/50 mt-0.5 sm:mt-1">{subEvent.duration}</div>
                             )}
                             {subEvent.participants && (
-                              <div className="text-[11px] text-white/40 mt-1">{subEvent.participants}</div>
+                              <div className="text-[9px] sm:text-[11px] text-white/40 mt-0.5 sm:mt-1 leading-tight">{subEvent.participants}</div>
                             )}
                           </div>
                         );
