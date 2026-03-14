@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Search, ExternalLink, Mail, Phone, Building, Calendar } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
+import SmartImage from '../components/SmartImage';
 
 const Sponsors = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -146,18 +147,14 @@ const Sponsors = () => {
 
         {/* Sponsors Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="glass-card overflow-hidden animate-pulse">
-                <div className="h-48 bg-white/10"></div>
-                <div className="p-6 space-y-4">
+                <div className="h-32 sm:h-40 bg-white/10"></div>
+                <div className="p-4 sm:p-6 space-y-3">
                   <div className="h-4 bg-white/10 rounded w-1/3"></div>
-                  <div className="h-6 bg-white/10 rounded w-2/3"></div>
-                  <div className="h-16 bg-white/10 rounded"></div>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-white/10 rounded"></div>
-                    <div className="h-3 bg-white/10 rounded"></div>
-                  </div>
+                  <div className="h-5 bg-white/10 rounded w-2/3"></div>
+                  <div className="h-12 bg-white/10 rounded"></div>
                 </div>
               </div>
             ))}
@@ -167,7 +164,7 @@ const Sponsors = () => {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8"
           >
             {filteredSponsors.map((sponsor) => (
               <motion.div
@@ -176,60 +173,61 @@ const Sponsors = () => {
                 className="glass-card overflow-hidden hover:bg-white/10 transition-all duration-300 group cursor-pointer"
               >
                 {/* Logo Section */}
-                <div className="h-48 flex items-center justify-center bg-gradient-to-br from-gray-900/40 to-gray-800/40 p-6">
+                <div className="h-32 sm:h-40 flex items-center justify-center bg-gradient-to-br from-gray-900/40 to-gray-800/40 p-4 sm:p-6">
                   {sponsor.logo ? (
-                    <img 
-                      src={sponsor.logo} 
+                    <SmartImage
+                      src={sponsor.logo}
                       alt={sponsor.name}
                       className="max-h-full max-w-full object-contain"
+                      fallbackClassName="w-full h-full"
                     />
                   ) : (
-                    <div className="text-6xl">
+                    <div className="text-4xl sm:text-6xl">
                       {getSponsorTypeIcon(sponsor.type)}
                     </div>
                   )}
                 </div>
 
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   {/* Sponsor Type Badge */}
-                  <div className="flex items-center justify-between mb-3">
-                    <span className={`inline-flex items-center px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full bg-white/10 ${getSponsorTypeColor(sponsor.type)}`}>
+                  <div className="flex items-center justify-between mb-3 gap-2">
+                    <span className={`inline-flex items-center px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-full bg-white/10 ${getSponsorTypeColor(sponsor.type)}`}>
                       {getSponsorTypeIcon(sponsor.type)} {sponsor.type}
                     </span>
                     {sponsor.industry && (
-                      <span className="text-xs text-white/50 bg-white/5 px-2 py-1 rounded">
+                      <span className="text-[10px] sm:text-xs text-white/50 bg-white/5 px-2 py-1 rounded truncate max-w-[100px]">
                         {sponsor.industry}
                       </span>
                     )}
                   </div>
 
                   {/* Name */}
-                  <h3 className="text-xl font-bold text-white mb-3 group-hover:text-vortex-blue transition-colors">
+                  <h3 className="text-base sm:text-xl font-bold text-white mb-2 sm:mb-3 group-hover:text-vortex-blue transition-colors line-clamp-1">
                     {sponsor.name}
                   </h3>
 
                   {/* Description */}
-                  <p className="text-white/70 text-sm mb-4 line-clamp-3">
+                  <p className="text-white/70 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-2 sm:line-clamp-3">
                     {sponsor.description}
                   </p>
 
                   {/* Contact Info */}
-                  <div className="space-y-2 mb-4">
+                  <div className="space-y-1.5 mb-3 sm:mb-4">
                     {sponsor.contactPerson && (
                       <div className="flex items-center text-xs text-white/50">
-                        <Building className="h-4 w-4 mr-2" />
-                        {sponsor.contactPerson}
+                        <Building className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
+                        <span className="truncate">{sponsor.contactPerson}</span>
                       </div>
                     )}
                     {sponsor.contactEmail && (
                       <div className="flex items-center text-xs text-white/50">
-                        <Mail className="h-4 w-4 mr-2" />
-                        {sponsor.contactEmail}
+                        <Mail className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
+                        <span className="truncate">{sponsor.contactEmail}</span>
                       </div>
                     )}
                     {sponsor.phone && (
                       <div className="flex items-center text-xs text-white/50">
-                        <Phone className="h-4 w-4 mr-2" />
+                        <Phone className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
                         {sponsor.phone}
                       </div>
                     )}
@@ -237,8 +235,8 @@ const Sponsors = () => {
 
                   {/* Partnership Duration */}
                   {sponsor.startDate && (
-                    <div className="flex items-center text-xs text-white/40 mb-4">
-                      <Calendar className="h-4 w-4 mr-2" />
+                    <div className="flex items-center text-xs text-white/40 mb-3 sm:mb-4">
+                      <Calendar className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
                       Partner since {new Date(sponsor.startDate).getFullYear()}
                     </div>
                   )}
@@ -249,10 +247,10 @@ const Sponsors = () => {
                       href={sponsor.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center text-vortex-blue hover:text-vortex-orange transition-colors text-sm font-medium"
+                      className="inline-flex items-center text-vortex-blue hover:text-vortex-orange transition-colors text-xs sm:text-sm font-medium py-1 touch-manipulation"
                     >
                       Visit Website
-                      <ExternalLink className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                      <ExternalLink className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1" />
                     </a>
                   )}
                 </div>

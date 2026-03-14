@@ -199,14 +199,42 @@ router.get('/:id', async (req, res) => {
 // @desc    Create a new event
 router.post('/', async (req, res) => {
     try {
-        console.log('Creating event with data:', JSON.stringify(req.body, null, 2));
-        const event = new Event(req.body);
+        const body = { ...req.body };
+
+        // Sanitize: free events should not have paymentGateway
+        if (!body.price || Number(body.price) === 0) {
+            body.paymentGateway = '';
+            body.upiId = '';
+            body.upiQrCode = '';
+            body.offlineInstructions = '';
+            body.paymentReceiverName = '';
+            body.paymentContactNumber = '';
+        }
+
+        // Sanitize: ensure numeric fields are numbers
+        body.price = Number(body.price) || 0;
+        body.capacity = Number(body.capacity) || 0;
+        body.waitlistCapacity = Number(body.waitlistCapacity) || 0;
+        body.gstPercent = Number(body.gstPercent) || 18;
+
+        // Sanitize: ensure arrays are arrays
+        if (!Array.isArray(body.images)) body.images = [];
+        if (!Array.isArray(body.tags)) body.tags = [];
+        if (!Array.isArray(body.offlineMethods)) body.offlineMethods = [];
+
+        // Sanitize: remove undefined/null strings that could fail enum validation
+        const enumFields = ['eventType', 'category', 'registrationType', 'status', 'paymentGateway', 'feeType'];
+        enumFields.forEach(field => {
+            if (body[field] === null || body[field] === undefined) {
+                delete body[field]; // Let schema default kick in
+            }
+        });
+
+        const event = new Event(body);
         const newEvent = await event.save();
-        console.log('Event created successfully:', newEvent._id);
         res.status(201).json(newEvent);
     } catch (err) {
-        console.error('Event creation error:', err);
-        console.error('Request body:', JSON.stringify(req.body, null, 2));
+        console.error('Event creation error:', err.message);
         res.status(400).json({
             message: err.message,
             details: err.errors ? Object.keys(err.errors).map(key => ({
@@ -498,7 +526,23 @@ router.put('/:id', async (req, res) => {
         const event = await Event.findById(req.params.id);
         if (!event) return res.status(404).json({ message: 'Event not found' });
 
-        Object.assign(event, req.body);
+        const body = { ...req.body };
+
+        // Same sanitization as POST
+        if (!body.price || Number(body.price) === 0) {
+            body.paymentGateway = '';
+        }
+        body.price = Number(body.price) || 0;
+        body.capacity = Number(body.capacity) || 0;
+        body.waitlistCapacity = Number(body.waitlistCapacity) || 0;
+
+        // Don't overwrite registrations/waitlist from form data
+        delete body.registrations;
+        delete body.waitlist;
+        delete body._id;
+        delete body.__v;
+
+        Object.assign(event, body);
         await event.save();
         res.json(event);
     } catch (err) {

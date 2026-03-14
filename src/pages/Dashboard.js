@@ -75,7 +75,7 @@ const Dashboard = () => {
         autoCloseOnCapacity: true,
         enableWaitlist: true,
         // Eligibility
-        eligibility: { participants: [], minAge: '', maxAge: '', requiredDocs: [] },
+        eligibility: { participantType: 'open', participants: [], minAge: '', maxAge: '', requiredDocs: [], restrictBranches: false, allowedBranches: [], restrictYears: false, allowedYears: [], noAgeRestriction: false },
         // Organizer
         organizer: { name: '', email: '', phone: '', department: '' },
         // Rules & Tags
@@ -83,14 +83,16 @@ const Dashboard = () => {
         rulebookUrl: '',
         tags: [],
         // Phase 2: Payment & Coupons
-        paymentGateway: 'UPI',
+        paymentGateway: '',
         upiId: '',
         upiQrCode: '',
         paymentReceiverName: '',
+        paymentContactNumber: '',
         offlineMethods: [],
         bankDetails: { bankName: '', accountName: '', accountNumber: '', ifscCode: '' },
         cashDetails: { location: '' },
         enableOfflinePayment: false,
+        googleFormPayment: { enabled: false, formUrl: '', buttonText: 'Complete Payment via Google Form', instructions: 'Click the button below to open the payment form and complete your registration.' },
         gstEnabled: false,
         gstPercent: 18,
         gstNumber: '',
@@ -153,38 +155,35 @@ const Dashboard = () => {
             setLoading(true);
             try {
                 const timestamp = new Date().getTime();
-                const [evRes, teamRes, settingsRes, sponsorsRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/api/events?t=${timestamp}`, {
-                        cache: 'no-store',
-                        headers: { 'Cache-Control': 'no-cache' }
-                    }),
-                    fetch(`${API_BASE_URL}/api/team?t=${timestamp}`, {
-                        cache: 'no-store',
-                        headers: { 'Cache-Control': 'no-cache' }
-                    }),
-                    fetch(`${API_BASE_URL}/api/settings?t=${timestamp}`, {
-                        cache: 'no-store',
-                        headers: { 'Cache-Control': 'no-cache' }
-                    }),
-                    fetch(`${API_BASE_URL}/api/sponsors?t=${timestamp}`, {
-                        cache: 'no-store',
-                        headers: { 'Cache-Control': 'no-cache' }
-                    })
+                // Load events first (most critical) — use short cache for speed
+                const evRes = await fetch(`${API_BASE_URL}/api/events?t=${timestamp}`, {
+                    headers: { 'Cache-Control': 'max-age=30' }
+                });
+                const evData = await evRes.json();
+                setEvents(Array.isArray(evData) ? evData : []);
+                setLoading(false); // Show UI as soon as events load
+
+                // Load remaining data in parallel (non-blocking)
+                const [teamRes, settingsRes, sponsorsRes, statsRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/api/team?t=${timestamp}`),
+                    fetch(`${API_BASE_URL}/api/settings?t=${timestamp}`),
+                    fetch(`${API_BASE_URL}/api/sponsors?t=${timestamp}`),
+                    fetch(`${API_BASE_URL}/api/events/stats?t=${timestamp}`)
                 ]);
 
-                setEvents(await evRes.json());
-                setTeamMembers(await teamRes.json());
-                setClubSettings(await settingsRes.json());
-                setSponsors(await sponsorsRes.json());
+                const [teamData, settingsData, sponsorsData, statsData] = await Promise.all([
+                    teamRes.json(),
+                    settingsRes.json(),
+                    sponsorsRes.json(),
+                    statsRes.json()
+                ]);
 
-                const statsRes = await fetch(`${API_BASE_URL}/api/events/stats?t=${timestamp}`, {
-                    cache: 'no-store',
-                    headers: { 'Cache-Control': 'no-cache' }
-                });
-                setEventStats(await statsRes.json());
+                if (Array.isArray(teamData)) setTeamMembers(teamData);
+                if (settingsData && typeof settingsData === 'object') setClubSettings(s => ({ ...s, ...settingsData }));
+                if (Array.isArray(sponsorsData)) setSponsors(sponsorsData);
+                if (Array.isArray(statsData)) setEventStats(statsData);
             } catch (err) {
                 console.error("Failed to fetch dashboard data:", err);
-            } finally {
                 setLoading(false);
             }
         };
@@ -235,11 +234,23 @@ const Dashboard = () => {
         e.preventDefault();
         const url = editingEventId ? `${API_BASE_URL}/api/events/${editingEventId}` : `${API_BASE_URL}/api/events`;
         const method = editingEventId ? 'PUT' : 'POST';
+        const isFree = Number(newEvent.price) === 0;
         const eventData = {
             ...newEvent,
             price: Number(newEvent.price) || 0,
             capacity: Number(newEvent.capacity) || 0,
-            images: Array.isArray(newEvent.images) ? newEvent.images : (newEvent.images?.split(',').map(img => img.trim()).filter(img => img) || [])
+            waitlistCapacity: Number(newEvent.waitlistCapacity) || 0,
+            gstPercent: Number(newEvent.gstPercent) || 18,
+            images: Array.isArray(newEvent.images) ? newEvent.images : (newEvent.images?.split(',').map(img => img.trim()).filter(img => img) || []),
+            // Free events: clear all payment fields
+            paymentGateway: isFree ? '' : (newEvent.paymentGateway || ''),
+            upiId: isFree ? '' : (newEvent.upiId || ''),
+            upiQrCode: isFree ? '' : (newEvent.upiQrCode || ''),
+            paymentReceiverName: isFree ? '' : (newEvent.paymentReceiverName || ''),
+            paymentContactNumber: isFree ? '' : (newEvent.paymentContactNumber || ''),
+            offlineInstructions: isFree ? '' : (newEvent.offlineInstructions || ''),
+            googleFormPayment: isFree ? { enabled: false, formUrl: '', buttonText: '', instructions: '' } : (newEvent.googleFormPayment || { enabled: false, formUrl: '' }),
+            feeType: isFree ? '' : (newEvent.feeType || 'per_person'),
         };
 
         try {
@@ -249,7 +260,10 @@ const Dashboard = () => {
                 body: JSON.stringify(eventData)
             });
 
-            if (!res.ok) throw new Error("Failed to save event");
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.message || errData.msg || errData.error || "Failed to save event");
+            }
 
             setShowEventForm(false);
             setEditingEventId(null);
@@ -260,12 +274,12 @@ const Dashboard = () => {
                 earlyBirdDiscount: { enabled: false, discountPercent: 0, validUntil: '', limitedTo: 0 },
                 capacity: 100, registrationType: 'Solo', minTeamSize: 1, maxTeamSize: 1,
                 registrationOpens: '', registrationCloses: '', autoCloseOnCapacity: true, enableWaitlist: true,
-                eligibility: { participants: [], minAge: '', maxAge: '', requiredDocs: [] },
+                eligibility: { participantType: 'open', participants: [], minAge: '', maxAge: '', requiredDocs: [], restrictBranches: false, allowedBranches: [], restrictYears: false, allowedYears: [], noAgeRestriction: false },
                 organizer: { name: '', email: '', phone: '', department: '' },
                 rules: '', rulebookUrl: '', tags: [],
-                paymentGateway: 'UPI', upiId: '', upiQrCode: '', paymentReceiverName: '', offlineMethods: [],
+                paymentGateway: '', upiId: '', upiQrCode: '', paymentReceiverName: '', paymentContactNumber: '', offlineMethods: [],
                 bankDetails: { bankName: '', accountName: '', accountNumber: '', ifscCode: '' },
-                cashDetails: { location: '' }, enableOfflinePayment: false, gstEnabled: false, gstPercent: 18, gstNumber: '',
+                cashDetails: { location: '' }, enableOfflinePayment: false, googleFormPayment: { enabled: false, formUrl: '', buttonText: 'Complete Payment via Google Form', instructions: 'Click the button below to open the payment form and complete your registration.' }, gstEnabled: false, gstPercent: 18, gstNumber: '',
                 coupons: [], isMultiRound: false, rounds: [], judgingCriteria: [], prizes: [],
                 participationCertificate: true, winnerCertificate: true,
                 socialLinks: { website: '', facebook: '', instagram: '', whatsapp: '', linkedin: '' },
@@ -287,7 +301,23 @@ const Dashboard = () => {
             date: ev.date ? new Date(ev.date).toISOString().slice(0, 10) : '',
             registrationOpens: ev.registrationOpens ? new Date(ev.registrationOpens).toISOString().slice(0, 16) : '',
             registrationCloses: ev.registrationCloses ? new Date(ev.registrationCloses).toISOString().slice(0, 16) : '',
-            images: ev.images || []
+            images: ev.images || [],
+            eligibility: {
+                participantType: 'open',
+                participants: [],
+                minAge: '',
+                maxAge: '',
+                requiredDocs: [],
+                restrictBranches: false,
+                allowedBranches: [],
+                restrictYears: false,
+                allowedYears: [],
+                noAgeRestriction: false,
+                ...(ev.eligibility || {})
+            },
+            googleFormPayment: ev.googleFormPayment || { enabled: false, formUrl: '', buttonText: 'Complete Payment via Google Form', instructions: 'Click the button below to open the payment form and complete your registration.' },
+            paymentContactNumber: ev.paymentContactNumber || '',
+            feeType: ev.feeType || 'per_person',
         });
         setEditingEventId(ev._id);
         setShowEventForm(true);
@@ -416,7 +446,14 @@ const Dashboard = () => {
         { id: 'settings', label: 'Settings', icon: Settings }
     ];
 
-    if (loading) return <div className="min-h-screen pt-24 text-center text-white">Loading Dashboard...</div>;
+    if (loading) return (
+        <div className="min-h-screen bg-dark-bg flex items-center justify-center px-4">
+            <div className="text-center space-y-3">
+                <div className="w-8 h-8 border-2 border-vortex-blue border-t-transparent rounded-full animate-spin mx-auto"></div>
+                <p className="text-white/40 text-sm">Loading Dashboard...</p>
+            </div>
+        </div>
+    );
 
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -431,30 +468,17 @@ const Dashboard = () => {
 
     return (
         <div className="min-h-screen bg-dark-bg">
-            {/* Dashboard Header - Replaces Navbar */}
+            {/* Dashboard Header - Minimal Design */}
             <header className="fixed top-0 left-0 right-0 z-30 glass-card border-b border-white/10">
-                <div className="px-3 sm:px-4 py-2 sm:py-3 md:py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                        <button
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="p-1.5 sm:p-2 glass-card rounded-lg hover:bg-white/10 active:scale-95 transition-all flex-shrink-0"
-                            aria-label="Toggle Menu"
-                        >
-                            {sidebarOpen ? <X className="w-4 h-4 sm:w-5 sm:h-5 text-white" /> : <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-white" />}
-                        </button>
-                        <h1 className="text-sm sm:text-base md:text-xl font-bold gradient-text truncate">TEAM VORTEX</h1>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="hidden sm:block text-right">
-                            <p className="text-white text-sm font-medium">Admin</p>
-                            <p className="text-white/60 text-xs">{user?.email}</p>
-                        </div>
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-vortex-blue to-vortex-orange flex items-center justify-center flex-shrink-0">
-                            <span className="text-black font-bold text-sm sm:text-base">
-                                {user?.email?.charAt(0).toUpperCase()}
-                            </span>
-                        </div>
-                    </div>
+                <div className="px-3 sm:px-4 py-2 sm:py-3">
+                    {/* Hamburger Menu Only */}
+                    <button
+                        onClick={() => setSidebarOpen(!sidebarOpen)}
+                        className="p-2 glass-card rounded-lg hover:bg-white/10 active:scale-95 transition-all"
+                        aria-label="Toggle Menu"
+                    >
+                        {sidebarOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
+                    </button>
                 </div>
             </header>
 
@@ -654,7 +678,7 @@ const Dashboard = () => {
                                     setShowEventForm(true);
                                     setEditingEventId(null);
                                     setNewEvent({
-                                        title: '', description: '', date: '', location: '', price: 0, capacity: 50, images: [], registrationType: 'Solo', maxTeamSize: 1, paymentGateway: 'UPI',
+                                        title: '', description: '', date: '', location: '', price: 0, capacity: 50, images: [], registrationType: 'Solo', maxTeamSize: 1, paymentGateway: '',
                                         upiId: '', upiQrCode: '', paymentReceiverName: '', offlineMethods: [], bankDetails: { bankName: '', accountName: '', accountNumber: '', ifscCode: '' }, cashDetails: { location: '' },
                                         offlineInstructions: '', registrationOpens: '', registrationCloses: ''
                                     });

@@ -61,7 +61,8 @@ app.use(cors({
     optionsSuccessStatus: 200
 }));
 
-app.use(express.json({ limit: '10kb' })); // Body parser, reading data from body into req.body (limited to 10kb for security)
+app.use(express.json({ limit: '25mb' })); // Body parser, reading data from body into req.body
+app.use(express.urlencoded({ limit: '25mb', extended: true }));
 
 app.use(xss()); // Data sanitization against XSS
 app.use('/api/', globalLimiter); // Apply to all API routes

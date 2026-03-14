@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X, AlertCircle, Mail, Plus, CreditCard, Download } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
 import PaymentFlow from '../components/PaymentFlow';
+import SmartImage from '../components/SmartImage';
 import GoogleFormPayment from '../components/GoogleFormPayment';
 import MultiEventRegistration from '../components/MultiEventRegistration';
 import { generateRegistrationPDF, downloadPDF } from '../utils/pdfGenerator';
@@ -867,7 +868,7 @@ const Events = () => {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8"
             >
               {upcomingEvents.map((event, eventIndex) => {
                 // Safety check
@@ -895,7 +896,7 @@ const Events = () => {
                 >
                   <div className="h-48 overflow-hidden relative">
                     {event.images && event.images.length > 0 ? (
-                      <img src={event.images[0]} alt={event.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                      <SmartImage src={event.images[0]} alt={event.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-vortex-blue/20 to-vortex-orange/20 flex items-center justify-center">
                         <Calendar className="h-16 w-16 text-white/10" />
@@ -1989,7 +1990,7 @@ const Events = () => {
                         <div className="md:flex">
                           <div className="md:w-1/2 h-64 md:h-auto overflow-hidden relative">
                             {event.images && event.images.length > 0 ? (
-                              <img src={event.images[0]} alt={event.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                              <SmartImage src={event.images[0]} alt={event.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-vortex-blue/20 to-vortex-orange/20 flex items-center justify-center">
                                 <Calendar className="h-16 w-16 text-white/10" />
@@ -2160,7 +2161,7 @@ const Events = () => {
                     <div className="grid grid-cols-2 gap-4">
                       {selectedSubEvent.images.map((img, index) => (
                         <div key={index} className="aspect-video rounded-xl overflow-hidden">
-                          <img src={img} alt={`${selectedSubEvent.title} ${index + 1}`} className="w-full h-full object-cover" />
+                          <SmartImage src={img} alt={`${selectedSubEvent.title} ${index + 1}`} className="w-full h-full object-cover" />
                         </div>
                       ))}
                     </div>
@@ -2224,14 +2225,14 @@ const Events = () => {
               </div>
 
               {selectedEventGallery.images && selectedEventGallery.images.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-8">
                   {selectedEventGallery.images.map((img, i) => (
                     <motion.div
                       key={i}
                       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                      className="aspect-video rounded-3xl overflow-hidden glass-card group cursor-zoom-in relative"
+                      className="aspect-video rounded-xl sm:rounded-3xl overflow-hidden glass-card group cursor-zoom-in relative"
                     >
-                      <img src={img} alt={`${selectedEventGallery.title} ${i}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                      <SmartImage src={img} alt={`${selectedEventGallery.title} ${i}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </motion.div>
                   ))}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Plus, X, Calendar } from 'lucide-react';
+import SmartImage from '../SmartImage';
 
 const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editingEventId }) => {
     // Safety check: Ensure newEvent exists with default values
@@ -104,11 +105,11 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                         </div>
                         <div className="flex flex-col gap-3 text-sm">
                             <label className="flex items-start gap-3 cursor-pointer p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors touch-manipulation min-h-[56px]">
-                                <input type="checkbox" checked={newEvent.autoCloseOnCapacity} onChange={e => setNewEvent({ ...newEvent, autoCloseOnCapacity: e.target.checked })} className="w-6 h-6 sm:w-5 sm:h-5 accent-vortex-blue flex-shrink-0 mt-0.5" />
+                                <input type="checkbox" checked={newEvent.autoCloseOnCapacity} onChange={e => setNewEvent({ ...newEvent, autoCloseOnCapacity: e.target.checked })} className="flex-shrink-0 mt-0.5" />
                                 <span className="text-white leading-relaxed">Auto-close on capacity</span>
                             </label>
                             <label className="flex items-start gap-3 cursor-pointer p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors touch-manipulation min-h-[56px]">
-                                <input type="checkbox" checked={newEvent.enableWaitlist} onChange={e => setNewEvent({ ...newEvent, enableWaitlist: e.target.checked })} className="w-6 h-6 sm:w-5 sm:h-5 accent-vortex-blue flex-shrink-0 mt-0.5" />
+                                <input type="checkbox" checked={newEvent.enableWaitlist} onChange={e => setNewEvent({ ...newEvent, enableWaitlist: e.target.checked })} className="flex-shrink-0 mt-0.5" />
                                 <span className="text-white leading-relaxed">Enable Waitlist</span>
                             </label>
                         </div>
@@ -147,7 +148,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                                 allowedYears: []
                                             } 
                                         })}
-                                        className="accent-purple-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-1"
+                                        className="flex-shrink-0 mt-1"
                                         required
                                     />
                                     <div className="flex-1 min-w-0">
@@ -169,7 +170,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                                 participantType: 'engineering' 
                                             } 
                                         })}
-                                        className="accent-purple-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-1"
+                                        className="flex-shrink-0 mt-1"
                                         required
                                     />
                                     <div className="flex-1 min-w-0">
@@ -197,7 +198,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                                     allowedBranches: e.target.checked ? (newEvent.eligibility?.allowedBranches || []) : []
                                                 } 
                                             })}
-                                            className="accent-purple-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-0.5"
+                                            className="flex-shrink-0 mt-0.5"
                                         />
                                         <span className="font-medium leading-relaxed">Restrict to specific branches</span>
                                     </label>
@@ -231,7 +232,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                                                     });
                                                                 }
                                                             }}
-                                                            className="accent-purple-400 w-5 h-5 sm:w-4 sm:h-4 flex-shrink-0"
+                                                            className="flex-shrink-0"
                                                         />
                                                         <span className="leading-tight">{branch}</span>
                                                     </label>
@@ -255,7 +256,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                                     allowedYears: e.target.checked ? (newEvent.eligibility?.allowedYears || []) : []
                                                 } 
                                             })}
-                                            className="accent-purple-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-0.5"
+                                            className="flex-shrink-0 mt-0.5"
                                         />
                                         <span className="font-medium leading-relaxed">Restrict to specific years</span>
                                     </label>
@@ -287,7 +288,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                                                 });
                                                             }
                                                         }}
-                                                        className="accent-purple-400 w-5 h-5 sm:w-4 sm:h-4 flex-shrink-0"
+                                                        className="flex-shrink-0"
                                                     />
                                                     <span className="leading-tight">{year}</span>
                                                 </label>
@@ -338,7 +339,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                             maxAge: e.target.checked ? '' : newEvent.eligibility?.maxAge
                                         } 
                                     })}
-                                    className="accent-purple-400 w-5 h-5 sm:w-4 sm:h-4 flex-shrink-0"
+                                    className="flex-shrink-0"
                                 />
                                 <span className="leading-tight">No age restriction</span>
                             </label>
@@ -377,7 +378,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                                     });
                                                 }
                                             }}
-                                            className="accent-purple-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0"
+                                            className="flex-shrink-0"
                                         />
                                         <span className="leading-relaxed">{doc.label}</span>
                                     </label>
@@ -415,8 +416,8 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                     type="radio"
                                     name="eventPricing"
                                     checked={!newEvent.price || newEvent.price === 0}
-                                    onChange={() => setNewEvent({ ...newEvent, price: 0 })}
-                                    className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0"
+                                    onChange={() => setNewEvent({ ...newEvent, price: 0, paymentGateway: '', upiId: '', upiQrCode: '', offlineInstructions: '', paymentReceiverName: '', paymentContactNumber: '' })}
+                                    className="flex-shrink-0"
                                 />
                                 <span className="text-white flex-1">Free Event</span>
                             </label>
@@ -426,7 +427,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                     name="eventPricing"
                                     checked={newEvent.price > 0}
                                     onChange={() => setNewEvent({ ...newEvent, price: newEvent.price || 100 })}
-                                    className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0"
+                                    className="flex-shrink-0"
                                 />
                                 <span className="text-white flex-1">Paid Event</span>
                             </label>
@@ -527,7 +528,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                         value="perPerson"
                                         checked={!newEvent.teamPricing?.perTeam}
                                         onChange={e => setNewEvent({ ...newEvent, teamPricing: { ...newEvent.teamPricing, perTeam: false } })}
-                                        className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-0.5"
+                                        className="flex-shrink-0 mt-0.5"
                                     />
                                     <span className="flex-1 leading-relaxed">Per Person</span>
                                 </label>
@@ -538,7 +539,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                         value="perTeam"
                                         checked={newEvent.teamPricing?.perTeam}
                                         onChange={e => setNewEvent({ ...newEvent, teamPricing: { ...newEvent.teamPricing, perTeam: true } })}
-                                        className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-0.5"
+                                        className="flex-shrink-0 mt-0.5"
                                     />
                                     <span className="flex-1 leading-relaxed">Per Team (Flat Rate)</span>
                                 </label>
@@ -552,7 +553,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                     type="checkbox"
                                     checked={newEvent.earlyBirdDiscount?.enabled}
                                     onChange={e => setNewEvent({ ...newEvent, earlyBirdDiscount: { ...newEvent.earlyBirdDiscount, enabled: e.target.checked } })}
-                                    className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-0.5"
+                                    className="flex-shrink-0 mt-0.5"
                                 />
                                 <span className="flex-1">Enable Early Bird Discount</span>
                             </label>
@@ -625,6 +626,8 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                         <textarea className="input-glass p-4 rounded-xl w-full h-40 resize-none" placeholder="Enter event details, prerequisites, and what to expect..." value={newEvent.description} onChange={e => setNewEvent({ ...newEvent, description: e.target.value })} required />
                     </div>
 
+                    {/* Payment Configuration - Only for Paid Events */}
+                    {newEvent.price > 0 && (
                     <div className="p-4 bg-gradient-to-br from-green-500/10 rounded-xl border border-green-500/20 space-y-4">
                         <label className="text-[10px] text-green-400 uppercase font-black block">💳 Payment Configuration & Fee Collection</label>
 
@@ -639,7 +642,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                         value="UPI"
                                         checked={newEvent.paymentGateway === 'UPI'}
                                         onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
-                                        className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-1"
+                                        className="flex-shrink-0 mt-1"
                                     />
                                     <div className="flex-1 min-w-0">
                                         <div className="text-base sm:text-sm font-semibold text-white leading-tight">UPI Payment Only</div>
@@ -653,7 +656,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                         value="Offline"
                                         checked={newEvent.paymentGateway === 'Offline'}
                                         onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
-                                        className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-1"
+                                        className="flex-shrink-0 mt-1"
                                     />
                                     <div className="flex-1 min-w-0">
                                         <div className="text-base sm:text-sm font-semibold text-white leading-tight">Offline Payment Only</div>
@@ -667,7 +670,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                         value="GoogleForm"
                                         checked={newEvent.paymentGateway === 'GoogleForm'}
                                         onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
-                                        className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-1"
+                                        className="flex-shrink-0 mt-1"
                                     />
                                     <div className="flex-1 min-w-0">
                                         <div className="text-base sm:text-sm font-semibold text-white leading-tight">Google Form Payment</div>
@@ -681,7 +684,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                         value="Both"
                                         checked={newEvent.paymentGateway === 'Both'}
                                         onChange={e => setNewEvent({ ...newEvent, paymentGateway: e.target.value })}
-                                        className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 mt-1"
+                                        className="flex-shrink-0 mt-1"
                                     />
                                     <div className="flex-1 min-w-0">
                                         <div className="text-base sm:text-sm font-semibold text-white leading-tight">Both UPI & Offline</div>
@@ -736,7 +739,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                             onChange={e => setNewEvent({ ...newEvent, upiQrCode: e.target.value })}
                                             required={newEvent.paymentGateway === 'UPI' || newEvent.paymentGateway === 'Both'}
                                         />
-                                        <div className="text-[8px] text-white/30 mt-1">Upload QR code image to a hosting service and paste the direct image URL</div>
+                                        <div className="text-[8px] text-white/30 mt-1">Paste a direct image URL (must end in .jpg, .png, .gif). For ibb.co: open image → right-click → "Copy image address"</div>
                                     </div>
                                 </div>
 
@@ -744,20 +747,19 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                 {newEvent.upiId && newEvent.upiQrCode && (
                                     <div className="p-3 bg-white/5 rounded-lg border border-white/5">
                                         <div className="text-[8px] text-green-400 uppercase font-bold mb-2">Preview</div>
-                                        <div className="flex items-center gap-3">
-                                            <img
-                                                src={newEvent.upiQrCode}
-                                                alt="QR Code Preview"
-                                                className="w-12 h-12 rounded border border-white/10"
-                                                onError={(e) => {
-                                                    e.target.style.display = 'none';
-                                                    e.target.nextSibling.style.display = 'block';
-                                                }}
-                                            />
-                                            <div className="hidden text-[10px] text-red-400 bg-red-500/10 px-2 py-1 rounded">Invalid Image URL</div>
-                                            <div className="text-xs text-white/70">
-                                                <div className="font-medium">UPI ID: {newEvent.upiId}</div>
-                                                <div className="text-[10px] text-white/50">QR Code will be displayed to users</div>
+                                        <div className="flex flex-col xs:flex-row items-start xs:items-center gap-3">
+                                            <div className="w-20 h-20 xs:w-16 xs:h-16 rounded border border-white/10 overflow-hidden flex-shrink-0">
+                                                <SmartImage
+                                                    src={newEvent.upiQrCode}
+                                                    alt="QR Code"
+                                                    className="w-full h-full object-cover"
+                                                    showErrorHint={true}
+                                                />
+                                            </div>
+                                            <div className="text-xs text-white/70 flex-1 min-w-0">
+                                                <div className="font-medium truncate">UPI: {newEvent.upiId}</div>
+                                                <div className="text-[10px] text-white/50 mt-0.5">QR Code shown to users at payment</div>
+                                                <div className="text-[9px] text-yellow-400/70 mt-1 leading-snug">💡 ibb.co: open image → right-click → "Copy image address" for direct .jpg URL</div>
                                             </div>
                                         </div>
                                     </div>
@@ -865,7 +867,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                                     type="checkbox"
                                     checked={newEvent.gstEnabled}
                                     onChange={e => setNewEvent({ ...newEvent, gstEnabled: e.target.checked })}
-                                    className="accent-green-400 w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0"
+                                    className="flex-shrink-0"
                                 />
                                 <span className="flex-1">Include GST in pricing</span>
                             </label>
@@ -888,6 +890,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                             )}
                         </div>
                     </div>
+                    )} {/* End: Payment Configuration - Only for Paid Events */}
 
                     <div className="p-4 bg-gradient-to-br from-blue-500/10 rounded-xl border border-blue-500/20 space-y-3">
                         <div className="flex justify-between items-center px-1">

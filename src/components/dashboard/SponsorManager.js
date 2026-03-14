@@ -1,5 +1,6 @@
 import React from 'react';
 import { Plus, Edit2, Trash2, ExternalLink, ToggleLeft, ToggleRight } from 'lucide-react';
+import SmartImage from '../SmartImage';
 
 const SponsorManager = React.memo(({
     sponsors,
@@ -127,21 +128,31 @@ const SponsorManager = React.memo(({
                         </div>
 
                         {/* Logo and Website */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4">
                             <div className="space-y-1">
                                 <label className="text-[10px] text-white/30 uppercase font-black ml-1">Logo URL *</label>
                                 <input
-                                    className="input-glass p-3 rounded-xl w-full"
+                                    className="input-glass p-3 rounded-xl w-full text-sm"
                                     placeholder="https://example.com/logo.png"
                                     value={newSponsor.logo}
                                     onChange={e => setNewSponsor({ ...newSponsor, logo: e.target.value })}
                                     required
                                 />
+                                {newSponsor.logo && (
+                                    <div className="mt-2 w-20 h-20 rounded-lg border border-white/10 overflow-hidden bg-white/5">
+                                        <SmartImage
+                                            src={newSponsor.logo}
+                                            alt="Logo preview"
+                                            className="w-full h-full object-contain p-1"
+                                            showErrorHint={true}
+                                        />
+                                    </div>
+                                )}
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[10px] text-white/30 uppercase font-black ml-1">Website</label>
                                 <input
-                                    className="input-glass p-3 rounded-xl w-full"
+                                    className="input-glass p-3 rounded-xl w-full text-sm"
                                     placeholder="https://company.com"
                                     value={newSponsor.website}
                                     onChange={e => setNewSponsor({ ...newSponsor, website: e.target.value })}
@@ -269,55 +280,59 @@ const SponsorManager = React.memo(({
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
                 {sponsors.map(sponsor => (
-                    <div key={sponsor._id} className="glass-card p-4 flex flex-col sm:flex-row gap-4 group transition-all hover:bg-white/[0.02] border border-white/5">
-                        <div className="flex-1 space-y-2">
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="text-lg">{getSponsorTypeIcon(sponsor.type)}</span>
-                                <span className={`text-xs font-bold uppercase tracking-wider ${getSponsorTypeColor(sponsor.type)}`}>
-                                    {sponsor.type}
-                                </span>
-                                <button
-                                    onClick={() => onToggleStatus(sponsor._id)}
-                                    className={`ml-auto p-1 rounded transition-colors ${sponsor.isActive ? 'text-green-400 hover:text-green-300' : 'text-red-400 hover:text-red-300'}`}
-                                    title={sponsor.isActive ? 'Active - Click to deactivate' : 'Inactive - Click to activate'}
-                                >
-                                    {sponsor.isActive ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
-                                </button>
-                            </div>
-                            <h3 className="font-bold text-white text-lg group-hover:text-vortex-blue transition-colors line-clamp-1">{sponsor.name}</h3>
-                            <p className="text-white/40 text-xs line-clamp-2 leading-relaxed">{sponsor.description}</p>
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-bold">
-                                {sponsor.industry && (
-                                    <>
-                                        <span className="uppercase text-vortex-blue bg-vortex-blue/10 px-1.5 py-0.5 rounded">{sponsor.industry}</span>
-                                        <span className="text-white/20">•</span>
-                                    </>
-                                )}
-                                <span className="text-white/40">Since {new Date(sponsor.startDate).getFullYear()}</span>
-                                {sponsor.sponsorshipAmount > 0 && (
-                                    <>
-                                        <span className="text-white/20">•</span>
-                                        <span className="text-green-400">${sponsor.sponsorshipAmount.toLocaleString()}</span>
-                                    </>
-                                )}
-                            </div>
-                            {sponsor.website && (
-                                <a
-                                    href={sponsor.website}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center text-vortex-blue hover:text-vortex-orange transition-colors text-xs"
-                                >
-                                    <ExternalLink size={12} className="mr-1" />
-                                    Visit Website
-                                </a>
+                    <div key={sponsor._id} className="glass-card p-4 flex flex-col gap-4 group transition-all hover:bg-white/[0.02] border border-white/5">
+                        {/* Logo + header row */}
+                        <div className="flex items-start gap-3">
+                            {sponsor.logo ? (
+                                <div className="w-14 h-14 rounded-lg border border-white/10 overflow-hidden bg-white/5 flex-shrink-0">
+                                    <SmartImage
+                                        src={sponsor.logo}
+                                        alt={sponsor.name}
+                                        className="w-full h-full object-contain p-1"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="w-14 h-14 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center flex-shrink-0 text-2xl">
+                                    {getSponsorTypeIcon(sponsor.type)}
+                                </div>
                             )}
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider ${getSponsorTypeColor(sponsor.type)}`}>
+                                        {getSponsorTypeIcon(sponsor.type)} {sponsor.type}
+                                    </span>
+                                    <button
+                                        onClick={() => onToggleStatus(sponsor._id)}
+                                        className={`ml-auto p-1 rounded transition-colors touch-manipulation ${sponsor.isActive ? 'text-green-400' : 'text-red-400'}`}
+                                        title={sponsor.isActive ? 'Active' : 'Inactive'}
+                                    >
+                                        {sponsor.isActive ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                                    </button>
+                                </div>
+                                <h3 className="font-bold text-white text-base leading-tight truncate">{sponsor.name}</h3>
+                                <p className="text-white/40 text-xs line-clamp-2 mt-1 leading-relaxed">{sponsor.description}</p>
+                            </div>
                         </div>
-                        <div className="flex sm:flex-col gap-2 justify-end border-t sm:border-t-0 sm:border-l border-white/5 pt-3 sm:pt-0 sm:pl-4">
-                            <button onClick={() => onEdit(sponsor)} className="p-2.5 hover:bg-vortex-blue/20 rounded-xl text-vortex-blue transition-colors flex items-center justify-center"><Edit2 size={18} /></button>
-                            <button onClick={() => onDelete(sponsor._id)} className="p-2.5 hover:bg-red-500/20 rounded-xl text-red-400 transition-colors flex items-center justify-center"><Trash2 size={18} /></button>
+
+                        {/* Meta + actions row */}
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold min-w-0">
+                                {sponsor.industry && (
+                                    <span className="uppercase text-vortex-blue bg-vortex-blue/10 px-1.5 py-0.5 rounded truncate max-w-[100px]">{sponsor.industry}</span>
+                                )}
+                                {sponsor.website && (
+                                    <a href={sponsor.website} target="_blank" rel="noopener noreferrer"
+                                        className="inline-flex items-center text-vortex-blue text-[10px] touch-manipulation">
+                                        <ExternalLink size={10} className="mr-0.5" />Website
+                                    </a>
+                                )}
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                                <button onClick={() => onEdit(sponsor)} className="p-2.5 hover:bg-vortex-blue/20 rounded-xl text-vortex-blue transition-colors touch-manipulation"><Edit2 size={16} /></button>
+                                <button onClick={() => onDelete(sponsor._id)} className="p-2.5 hover:bg-red-500/20 rounded-xl text-red-400 transition-colors touch-manipulation"><Trash2 size={16} /></button>
+                            </div>
                         </div>
                     </div>
                 ))}

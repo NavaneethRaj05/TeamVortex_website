@@ -117,12 +117,12 @@ const eventSchema = new mongoose.Schema({
     // Event Type & Category
     eventType: {
         type: String,
-        enum: ['Inter-College', 'Intra-College', 'Open', 'Workshop'],
+        enum: ['Inter-College', 'Intra-College', 'Open', 'Workshop', 'Corporate'],
         default: 'Inter-College'
     },
     category: {
         type: String,
-        enum: ['Technical', 'Cultural', 'Sports', 'Gaming'],
+        enum: ['Technical', 'Cultural', 'Sports', 'Gaming', 'Business', 'Academic'],
         default: 'Technical'
     },
 
@@ -198,10 +198,19 @@ const eventSchema = new mongoose.Schema({
     tags: [{ type: String }],
 
     // Payment & Fee Collection
-    paymentGateway: { type: String, enum: ['Razorpay', 'UPI', 'Offline', 'Both'], default: 'Razorpay' },
+    paymentGateway: { type: String, enum: ['Razorpay', 'UPI', 'Offline', 'Both', 'GoogleForm', ''], default: '' },
+    
+    // Fee Type
+    feeType: { type: String, enum: ['per_person', 'per_team', ''], default: 'per_person' },
+    
+    // Payment Receiver Contact
+    paymentContactNumber: { type: String },
+    
+    // Waitlist Capacity
+    waitlistCapacity: { type: Number, default: 0 }, // 0 = unlimited
     
     // Razorpay Configuration
-    razorpayEnabled: { type: Boolean, default: true },
+    razorpayEnabled: { type: Boolean, default: false },
     razorpayKeyId: { type: String },
     razorpayKeySecret: { type: String },
     
@@ -212,9 +221,9 @@ const eventSchema = new mongoose.Schema({
     
     // Offline Payment Configuration
     offlineInstructions: { type: String },
-    enableOfflinePayment: { type: Boolean, default: true },
+    enableOfflinePayment: { type: Boolean, default: false },
     
-    // Google Form Payment Option (Legacy - keeping for backward compatibility)
+    // Google Form Payment Option
     googleFormPayment: {
         enabled: { type: Boolean, default: false },
         formUrl: { type: String },
