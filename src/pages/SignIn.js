@@ -156,13 +156,14 @@ const SignIn = () => {
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40 pointer-events-none" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40 pointer-events-none z-10" />
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-4 glass-card border border-dark-border rounded-xl bg-transparent text-white placeholder-white/50 focus:outline-none focus:border-vortex-blue focus:ring-2 focus:ring-vortex-blue/50 transition-all"
+                  className="w-full pr-4 py-4 glass-card border border-dark-border rounded-xl bg-transparent text-white placeholder-white/50 focus:outline-none focus:border-vortex-blue focus:ring-2 focus:ring-vortex-blue/50 transition-all"
+                  style={{ paddingLeft: '3rem' }}
                   placeholder="teamvortexnce@gmail.com"
                   required
                 />
@@ -175,13 +176,14 @@ const SignIn = () => {
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40 pointer-events-none" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40 pointer-events-none z-10" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full pl-12 pr-12 py-4 glass-card border border-dark-border rounded-xl bg-transparent text-white placeholder-white/50 focus:outline-none focus:border-vortex-blue focus:ring-2 focus:ring-vortex-blue/50 transition-all"
+                  className="w-full pr-12 py-4 glass-card border border-dark-border rounded-xl bg-transparent text-white placeholder-white/50 focus:outline-none focus:border-vortex-blue focus:ring-2 focus:ring-vortex-blue/50 transition-all"
+                  style={{ paddingLeft: '3rem' }}
                   placeholder="Enter your password"
                   required
                 />

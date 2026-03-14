@@ -1080,7 +1080,8 @@ textarea:focus-visible {
   /* Better Form Inputs - Larger Touch Targets */
   input, textarea, select {
     font-size: 16px !important; /* Prevents zoom on iOS */
-    padding: 1rem;
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
     border-radius: 0.875rem;
     line-height: 1.5;
   }

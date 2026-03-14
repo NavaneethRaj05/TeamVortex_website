@@ -8,8 +8,9 @@ const { sendNotification } = require('../utils/notificationService');
 // @desc    Get lightweight events data for fast loading (minimal fields)
 router.get('/lightweight', async (req, res) => {
     try {
-        // Set aggressive cache headers for lightweight data
-        res.set('Cache-Control', 'public, max-age=600'); // Cache for 10 minutes
+        // No long-term caching — events must appear immediately after creation
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.set('Pragma', 'no-cache');
         
         const events = await Event.aggregate([
             { $sort: { priority: -1, date: 1 } }, // Sort by priority (descending) then date (ascending)
@@ -58,8 +59,9 @@ router.get('/lightweight', async (req, res) => {
 // @desc    Get all events (Optimized for performance with caching)
 router.get('/', async (req, res) => {
     try {
-        // Set cache headers for better performance
-        res.set('Cache-Control', 'public, max-age=300'); // Cache for 5 minutes
+        // No long-term caching — events must appear immediately after creation
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.set('Pragma', 'no-cache');
         
         // Exclude registrations, waitlist and feedback from list view to reduce payload size
         const events = await Event.aggregate([

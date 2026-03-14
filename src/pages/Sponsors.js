@@ -118,13 +118,14 @@ const Sponsors = () => {
         >
           {/* Search Bar */}
           <div className="relative mb-6 max-w-md mx-auto">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-white/40 pointer-events-none" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40 pointer-events-none z-10" />
             <input
               type="text"
               placeholder="Search sponsors..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 glass-card border border-dark-border rounded-lg bg-transparent text-white text-sm sm:text-base placeholder-white/40 focus:outline-none focus:border-vortex-blue transition-colors"
+              className="w-full pl-11 pr-4 py-3 glass-card border border-dark-border rounded-lg bg-transparent text-white text-sm sm:text-base placeholder-white/40 focus:outline-none focus:border-vortex-blue transition-colors"
+              style={{ paddingLeft: '2.75rem' }}
             />
           </div>
 

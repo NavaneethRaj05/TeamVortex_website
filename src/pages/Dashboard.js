@@ -56,12 +56,16 @@ const Dashboard = () => {
         location: '',
         startTime: '',
         endTime: '',
-        images: '',
+        images: [],
+        galleryDriveLink: '',
+        status: 'published',
+        priority: 0,
         // Event Type & Category
         eventType: 'Inter-College',
         category: 'Technical',
         // Pricing
         price: 0,
+        feeType: 'per_person',
         teamPricing: { perTeam: true, pricePerMember: 0 },
         earlyBirdDiscount: { enabled: false, discountPercent: 0, validUntil: '', limitedTo: 0 },
         // Capacity & Team
@@ -108,6 +112,7 @@ const Dashboard = () => {
         socialLinks: { website: '', facebook: '', instagram: '', whatsapp: '', linkedin: '' },
         sponsors: [],
         faqs: [],
+        subEvents: [],
         // Phase 5: Check-in
         enableQrCheckin: false,
         certificateTemplate: ''
@@ -268,7 +273,8 @@ const Dashboard = () => {
             setShowEventForm(false);
             setEditingEventId(null);
             setNewEvent({
-                title: '', description: '', date: '', location: '', startTime: '', endTime: '', images: '',
+                title: '', description: '', date: '', location: '', startTime: '', endTime: '', images: [],
+                galleryDriveLink: '', status: 'published', priority: 0,
                 eventType: 'Inter-College', category: 'Technical', price: 0,
                 teamPricing: { perTeam: true, pricePerMember: 0 },
                 earlyBirdDiscount: { enabled: false, discountPercent: 0, validUntil: '', limitedTo: 0 },
@@ -302,6 +308,11 @@ const Dashboard = () => {
             registrationOpens: ev.registrationOpens ? new Date(ev.registrationOpens).toISOString().slice(0, 16) : '',
             registrationCloses: ev.registrationCloses ? new Date(ev.registrationCloses).toISOString().slice(0, 16) : '',
             images: ev.images || [],
+            tags: ev.tags || [],
+            subEvents: ev.subEvents || [],
+            status: ev.status || 'published',
+            priority: ev.priority || 0,
+            galleryDriveLink: ev.galleryDriveLink || '',
             eligibility: {
                 participantType: 'open',
                 participants: [],
@@ -468,19 +479,14 @@ const Dashboard = () => {
 
     return (
         <div className="min-h-screen bg-dark-bg">
-            {/* Dashboard Header - Minimal Design */}
-            <header className="fixed top-0 left-0 right-0 z-30 glass-card border-b border-white/10">
-                <div className="px-3 sm:px-4 py-2 sm:py-3">
-                    {/* Hamburger Menu Only */}
-                    <button
-                        onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="p-2 glass-card rounded-lg hover:bg-white/10 active:scale-95 transition-all"
-                        aria-label="Toggle Menu"
-                    >
-                        {sidebarOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
-                    </button>
-                </div>
-            </header>
+            {/* Hamburger Button - Floating, no full-width bar */}
+            <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="fixed top-3 left-3 z-50 w-11 h-11 flex items-center justify-center rounded-xl bg-[rgba(15,15,15,0.85)] backdrop-blur-md border border-white/10 hover:bg-white/10 active:scale-95 transition-all"
+                aria-label="Toggle Menu"
+            >
+                {sidebarOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
+            </button>
 
             {/* Sidebar Overlay */}
             <AnimatePresence>
@@ -547,7 +553,7 @@ const Dashboard = () => {
             </AnimatePresence>
 
             {/* Main Content */}
-            <div className="pt-16 sm:pt-20 md:pt-24 pb-24 sm:pb-12 px-4 lg:px-8">
+            <div className="pt-16 sm:pt-16 md:pt-16 pb-24 sm:pb-12 px-4 lg:px-8">
                 <div className="max-w-7xl mx-auto space-y-8">
                     {/* Page Header */}
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -678,9 +684,24 @@ const Dashboard = () => {
                                     setShowEventForm(true);
                                     setEditingEventId(null);
                                     setNewEvent({
-                                        title: '', description: '', date: '', location: '', price: 0, capacity: 50, images: [], registrationType: 'Solo', maxTeamSize: 1, paymentGateway: '',
-                                        upiId: '', upiQrCode: '', paymentReceiverName: '', offlineMethods: [], bankDetails: { bankName: '', accountName: '', accountNumber: '', ifscCode: '' }, cashDetails: { location: '' },
-                                        offlineInstructions: '', registrationOpens: '', registrationCloses: ''
+                                        title: '', description: '', date: '', location: '', startTime: '', endTime: '',
+                                        images: [], galleryDriveLink: '', status: 'published', priority: 0,
+                                        eventType: 'Inter-College', category: 'Technical', price: 0,
+                                        teamPricing: { perTeam: true, pricePerMember: 0 },
+                                        earlyBirdDiscount: { enabled: false, discountPercent: 0, validUntil: '', limitedTo: 0 },
+                                        capacity: 100, registrationType: 'Solo', minTeamSize: 1, maxTeamSize: 1,
+                                        registrationOpens: '', registrationCloses: '', autoCloseOnCapacity: true, enableWaitlist: true,
+                                        eligibility: { participantType: 'open', participants: [], minAge: '', maxAge: '', requiredDocs: [], restrictBranches: false, allowedBranches: [], restrictYears: false, allowedYears: [], noAgeRestriction: false },
+                                        organizer: { name: '', email: '', phone: '', department: '' },
+                                        rules: '', rulebookUrl: '', tags: [],
+                                        paymentGateway: '', upiId: '', upiQrCode: '', paymentReceiverName: '', paymentContactNumber: '',
+                                        offlineMethods: [], bankDetails: { bankName: '', accountName: '', accountNumber: '', ifscCode: '' },
+                                        cashDetails: { location: '' }, enableOfflinePayment: false,
+                                        googleFormPayment: { enabled: false, formUrl: '', buttonText: 'Complete Payment via Google Form', instructions: '' },
+                                        gstEnabled: false, gstPercent: 18, gstNumber: '', coupons: [],
+                                        isMultiRound: false, rounds: [], judgingCriteria: [], prizes: [],
+                                        participationCertificate: true, winnerCertificate: true,
+                                        sponsors: [], faqs: [], subEvents: [], enableQrCheckin: false, certificateTemplate: ''
                                     });
                                 }}
                                     className="glass-button bg-vortex-blue/10 text-vortex-blue border-vortex-blue/20 flex items-center gap-2 text-xs sm:text-sm px-4 py-2 hover:bg-vortex-blue hover:text-black transition-all duration-300">

@@ -8,13 +8,19 @@ const participantSchema = new mongoose.Schema({
     email: { type: String, required: true },
     phone: { type: String },
     college: { type: String },
-    idNumber: { type: String },
-    department: { type: String },
-    year: { type: String },
-    age: { type: Number },
+    collegeType: { type: String, enum: ['VTU Affiliated', 'Autonomous', 'Deemed University', 'Other', ''], default: '' },
+    idNumber: { type: String },   // Student ID / USN
+    department: { type: String }, // Branch
+    year: { type: String },       // Year of Study
     state: { type: String },
     city: { type: String },
-    idCardUrl: { type: String }
+    idCardUrl: { type: String },
+    tshirtSize: { type: String, enum: ['XS', 'S', 'M', 'L', 'XL', 'XXL', ''], default: '' },
+    dietaryPreference: { type: String, enum: ['Vegetarian', 'Non-Vegetarian', 'Vegan', ''], default: '' },
+    emergencyContactName: { type: String },
+    emergencyContactPhone: { type: String },
+    specialRequirements: { type: String },
+    age: { type: Number }
 });
 
 const registrationSchema = new mongoose.Schema({

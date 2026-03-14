@@ -1,35 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, MapPin, Clock, X, User, Mail, GraduationCap, Plus, Users, Zap } from 'lucide-react';
+import { Calendar, MapPin, Clock, X, Users, Zap } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
+import RegistrationForm from '../components/RegistrationForm';
 import PaymentFlow from '../components/PaymentFlow';
-import GoogleFormPayment from '../components/GoogleFormPayment';
 
 const Contests = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [activeContestTab, setActiveContestTab] = useState('overview');
-  const [regData, setRegData] = useState({
-    teamName: '',
-    members: [{
-      name: '',
-      email: '',
-      studentId: '',
-      college: '',
-      phone: '',
-      department: '',
-      year: '',
-      state: '',
-      city: '',
-      age: ''
-    }]
-  });
   const [submitting, setSubmitting] = useState(false);
   const [regSuccess, setRegSuccess] = useState(false);
   const [showingPayment, setShowingPayment] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState(null);
-  const [emailValidation, setEmailValidation] = useState({});
+  const [lastSubmittedEmail, setLastSubmittedEmail] = useState('');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -39,8 +24,13 @@ const Contests = () => {
 
   const fetchEvents = async (signal) => {
     try {
-      // Use lightweight endpoint for faster loading
-      const res = await fetch(`${API_BASE_URL}/api/events/lightweight`, { signal });
+      // Cache-bust to always get fresh data
+      const t = Date.now();
+      const res = await fetch(`${API_BASE_URL}/api/events/lightweight?t=${t}`, {
+        signal,
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+      });
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       
       const data = await res.json();
@@ -70,176 +60,32 @@ const Contests = () => {
     }
   };
 
-  // Email validation function (same as Events.js)
-  const validateEmail = (email, memberIndex) => {
-    const validationResult = {
-      isValid: false,
-      errors: [],
-      warnings: []
-    };
-
-    // Basic format validation
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email)) {
-      validationResult.errors.push('Invalid email format');
-      return validationResult;
-    }
-
-    // Extract domain and local part
-    const [localPart, domain] = email.split('@');
-    const domainLower = domain.toLowerCase();
-
-    // Check for common typos in popular domains
-    const commonDomains = {
-      'gmail.com': ['gmai.com', 'gmial.com', 'gmail.co', 'gmaill.com', 'gmil.com'],
-      'yahoo.com': ['yaho.com', 'yahoo.co', 'yahooo.com', 'yhoo.com'],
-      'hotmail.com': ['hotmai.com', 'hotmial.com', 'hotmail.co'],
-      'outlook.com': ['outlok.com', 'outlook.co', 'outloo.com'],
-      'college.edu': ['colege.edu', 'college.ed', 'collge.edu']
-    };
-
-    let suggestedDomain = null;
-    for (const [correct, typos] of Object.entries(commonDomains)) {
-      if (typos.includes(domainLower)) {
-        suggestedDomain = correct;
-        break;
-      }
-    }
-
-    if (suggestedDomain) {
-      validationResult.errors.push(`Did you mean ${localPart}@${suggestedDomain}?`);
-      return validationResult;
-    }
-
-    // Check for suspicious patterns
-    const suspiciousPatterns = [
-      /test/i, /fake/i, /dummy/i, /temp/i, /example/i, /sample/i,
-      /^[a-z]{1,3}@/, /^\d+@/, /^[a-z]+\d{1,2}@/
-    ];
-
-    const isSuspicious = suspiciousPatterns.some(pattern => pattern.test(email));
-    if (isSuspicious) {
-      validationResult.warnings.push('Email appears suspicious. Please use your real email address.');
-    }
-
-    // Check for duplicate emails in the same registration
-    const currentEmails = regData.members.map(m => m.email.toLowerCase()).filter(e => e);
-    const duplicateCount = currentEmails.filter(e => e === email.toLowerCase()).length;
-    if (duplicateCount > 1) {
-      validationResult.errors.push('This email is already used by another team member');
-    }
-
-    // Basic validation checks
-    if (localPart.length < 3) {
-      validationResult.errors.push('Email username too short (minimum 3 characters)');
-    }
-
-    if (email.includes('..') || email.includes('@@')) {
-      validationResult.errors.push('Invalid email format (consecutive special characters)');
-    }
-
-    // If no errors, mark as valid
-    if (validationResult.errors.length === 0) {
-      validationResult.isValid = true;
-    }
-
-    return validationResult;
-  };
-
-  // Real-time email validation
-  const handleEmailChange = (memberIndex, email) => {
-    const newMembers = [...regData.members];
-    newMembers[memberIndex].email = email;
-    setRegData({ ...regData, members: newMembers });
-    
-    if (email.length > 3) {
-      const validation = validateEmail(email, memberIndex);
-      setEmailValidation(prev => ({
-        ...prev,
-        [memberIndex]: validation
-      }));
-    } else {
-      setEmailValidation(prev => ({
-        ...prev,
-        [memberIndex]: { isValid: false, errors: [], warnings: [] }
-      }));
-    }
-  };
-
   useEffect(() => {
-    if (!selectedEvent) {
-      setRegData({
-        teamName: '',
-        members: [{
-          name: '',
-          email: '',
-          studentId: '',
-          college: '',
-          phone: '',
-          department: '',
-          year: '',
-          state: '',
-          city: '',
-          age: ''
-        }]
-      });
-      setActiveContestTab('overview');
-    }
+    if (!selectedEvent) setActiveContestTab('overview');
   }, [selectedEvent]);
 
-  const addMember = () => {
-    const maxSize = selectedEvent.registrationType === 'Solo' ? 1
-      : (selectedEvent.registrationType === 'Duo' ? 2
-        : (selectedEvent.maxTeamSize || 1));
-
-    if (regData.members.length < maxSize) {
-      setRegData({
-        ...regData,
-        members: [...regData.members, {
-          name: '', email: '', studentId: '', college: '', phone: '',
-          department: '', year: '', state: '', city: '', age: ''
-        }]
-      });
-    }
-  };
-
-  const removeMember = (index) => {
-    if (regData.members.length > 1) {
-      const newMembers = regData.members.filter((_, i) => i !== index);
-      setRegData({ ...regData, members: newMembers });
-    }
-  };
-
-  const updateMember = (index, field, value) => {
-    const newMembers = [...regData.members];
-    newMembers[index][field] = value;
-    setRegData({ ...regData, members: newMembers });
-  };
-
-  const handleRegister = async (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-
-    // Check minimum team size
-    const minSize = selectedEvent.registrationType === 'Solo' ? 1
-      : (selectedEvent.registrationType === 'Duo' ? 2
-        : (selectedEvent.minTeamSize || 1));
-
-    if (regData.members.length < minSize) {
-      alert(`This event requires at least ${minSize} members.`);
-      return;
-    }
-
+  const handleRegister = async ({ teamName, members }) => {
     setSubmitting(true);
+    setLastSubmittedEmail(members[0]?.email || '');
     try {
       const registrationData = {
-        teamName: regData.teamName,
+        teamName,
         country: 'India',
-        institutionName: regData.members[0].college,
-        department: regData.members[0].department,
-        yearOfStudy: regData.members[0].year,
-        members: regData.members,
-        paid: false,
-        paymentId: ''
+        institutionName: members[0].college,
+        department: members[0].department,
+        yearOfStudy: members[0].year,
+        members: members.map(m => ({
+          name: m.name, email: m.email, phone: m.phone,
+          college: m.college, collegeType: m.collegeType,
+          idNumber: m.idNumber, department: m.department, year: m.year,
+          age: m.age || '',
+          state: m.state, city: m.city,
+          tshirtSize: m.tshirtSize, dietaryPreference: m.dietaryPreference,
+          emergencyContactName: m.emergencyContactName,
+          emergencyContactPhone: m.emergencyContactPhone,
+          specialRequirements: m.specialRequirements,
+        })),
+        paid: false, paymentId: ''
       };
 
       const res = await fetch(`${API_BASE_URL}/api/events/${selectedEvent._id}/register`, {
@@ -248,7 +94,6 @@ const Contests = () => {
         body: JSON.stringify(registrationData)
       });
 
-      // Check if response is JSON
       const contentType = res.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         throw new Error('Server returned non-JSON response. Please check your connection and try again.');
@@ -257,25 +102,16 @@ const Contests = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
-      // If it's a paid contest, show the payment flow
-      if (selectedEvent.price > 0 && !showingPayment) {
-        // Check if Google Form payment is enabled
-        if (selectedEvent.paymentGateway === 'GoogleForm' && selectedEvent.googleFormPayment?.enabled) {
+      if (selectedEvent.price > 0) {
+        try {
+          const payInfoRes = await fetch(`${API_BASE_URL}/api/events/${selectedEvent._id}/payment-info`);
+          const payInfoData = await payInfoRes.json();
+          setPaymentInfo(payInfoData);
           setShowingPayment(true);
           setSubmitting(false);
-        } else {
-          // Regular UPI/Offline payment flow
-          try {
-            const payInfoRes = await fetch(`${API_BASE_URL}/api/events/${selectedEvent._id}/payment-info`);
-            const payInfoData = await payInfoRes.json();
-            setPaymentInfo(payInfoData);
-            setShowingPayment(true);
-            setSubmitting(false);
-          } catch (err) {
-            console.error('Failed to fetch payment info:', err);
-            setRegSuccess(true);
-            setSubmitting(false);
-          }
+        } catch (err) {
+          setRegSuccess(true);
+          setSubmitting(false);
         }
       } else {
         setRegSuccess(true);
@@ -284,13 +120,6 @@ const Contests = () => {
           setRegSuccess(false);
           setShowingPayment(false);
           setSelectedEvent(null);
-          setRegData({
-            teamName: '',
-            members: [{
-              name: '', email: '', studentId: '', college: '', phone: '',
-              department: '', year: '', state: '', city: '', age: ''
-            }]
-          });
           fetchEvents();
         }, 3000);
       }
@@ -303,19 +132,12 @@ const Contests = () => {
 
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.05 }
-    }
+    visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
   }), []);
 
   const itemVariants = useMemo(() => ({
     hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.3 }
-    }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
   }), []);
 
   return (
@@ -506,55 +328,23 @@ const Contests = () => {
                   </div>
                 </div>
               ) : showingPayment ? (
-                <>
-                  {selectedEvent.paymentGateway === 'GoogleForm' && selectedEvent.googleFormPayment?.enabled ? (
-                    <GoogleFormPayment
-                      event={selectedEvent}
-                      onComplete={() => {
-                        setShowingPayment(false);
-                        setRegSuccess(true);
-                        setTimeout(() => {
-                          setRegSuccess(false);
-                          setSelectedEvent(null);
-                          setRegData({
-                            teamName: '',
-                            members: [{
-                              name: '', email: '', studentId: '', college: '', phone: '',
-                              department: '', year: '', state: '', city: '', age: ''
-                            }]
-                          });
-                          fetchEvents();
-                        }, 3000);
-                      }}
-                      onCancel={() => setShowingPayment(false)}
-                    />
-                  ) : (
-                    <PaymentFlow
-                      eventId={selectedEvent._id}
-                      eventTitle={selectedEvent.title}
-                      amount={selectedEvent.price}
-                      paymentInfo={paymentInfo}
-                      userEmail={regData.members[0].email}
-                      onComplete={() => {
-                        setShowingPayment(false);
-                        setRegSuccess(true);
-                        setTimeout(() => {
-                          setRegSuccess(false);
-                          setSelectedEvent(null);
-                          setRegData({
-                            teamName: '',
-                            members: [{
-                              name: '', email: '', studentId: '', college: '', phone: '',
-                              department: '', year: '', state: '', city: '', age: ''
-                            }]
-                          });
-                          fetchEvents();
-                        }, 3000);
-                      }}
-                      onCancel={() => setShowingPayment(false)}
-                    />
-                  )}
-                </>
+                <PaymentFlow
+                  eventId={selectedEvent._id}
+                  eventTitle={selectedEvent.title}
+                  amount={selectedEvent.price}
+                  paymentInfo={paymentInfo}
+                  userEmail={lastSubmittedEmail}
+                  onComplete={() => {
+                    setShowingPayment(false);
+                    setRegSuccess(true);
+                    setTimeout(() => {
+                      setRegSuccess(false);
+                      setSelectedEvent(null);
+                      fetchEvents();
+                    }, 3000);
+                  }}
+                  onCancel={() => setShowingPayment(false)}
+                />
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* Left Column - Event Information */}
@@ -779,270 +569,11 @@ const Contests = () => {
                       )}
                     </div>
 
-                    <form onSubmit={handleRegister} className="space-y-4">
-                      <div className="space-y-6 max-h-[55vh] overflow-y-auto pr-2 custom-scrollbar">
-                        {regData.members.map((member, idx) => (
-                          <motion.div
-                            key={idx}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="relative p-5 bg-white/5 rounded-2xl border border-white/5 space-y-4"
-                          >
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-[10px] font-black bg-vortex-blue text-black px-2 py-0.5 rounded shrink-0">
-                                MEMBER {idx + 1} {idx === 0 && '(LEAD)'}
-                              </span>
-                              {idx === 0 && (selectedEvent.registrationType === 'Team' || selectedEvent.registrationType === 'Duo') && (
-                                <div className="flex-1 ml-4 border-l-2 border-vortex-blue/20 pl-4 py-1">
-                                  <label className="block text-[8px] font-black text-vortex-blue uppercase tracking-widest mb-1 opacity-60">Team Identity</label>
-                                  <input
-                                    className="w-full bg-transparent border-b border-vortex-blue/40 focus:border-vortex-blue outline-none text-xs py-1 uppercase font-bold text-white placeholder-white/20"
-                                    placeholder="ENTER TEAM NAME"
-                                    value={regData.teamName}
-                                    onChange={e => setRegData({ ...regData, teamName: e.target.value.toUpperCase() })}
-                                    required
-                                  />
-                                </div>
-                              )}
-                              {idx > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() => removeMember(idx)}
-                                  className="text-red-400/50 hover:text-red-400 transition-colors"
-                                >
-                                  <X size={14} />
-                                </button>
-                              )}
-                            </div>
-
-                            <div className="relative">
-                              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={16} />
-                              <input
-                                className="w-full input-glass pl-10 p-2.5 rounded-lg text-sm"
-                                placeholder="Full Name"
-                                value={member.name}
-                                onChange={e => updateMember(idx, 'name', e.target.value)}
-                                required
-                              />
-                            </div>
-
-                            <div className="relative">
-                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={16} />
-                              <input
-                                className={`w-full input-glass pl-10 p-2.5 rounded-lg text-sm ${
-                                  emailValidation[idx]?.isValid === false 
-                                    ? 'border-red-400 focus:border-red-400' 
-                                    : emailValidation[idx]?.isValid === true 
-                                      ? 'border-green-400 focus:border-green-400' 
-                                      : 'focus:border-vortex-blue'
-                                }`}
-                                type="email"
-                                placeholder="Email Address"
-                                value={member.email}
-                                onChange={e => handleEmailChange(idx, e.target.value)}
-                                required
-                              />
-                              {emailValidation[idx]?.isValid === true && (
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-400">
-                                  ✓
-                                </div>
-                              )}
-                              {emailValidation[idx]?.isValid === false && (
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400">
-                                  ✗
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Email Validation Feedback */}
-                            {emailValidation[idx] && (emailValidation[idx].errors.length > 0 || emailValidation[idx].warnings.length > 0) && (
-                              <div className="mt-2 space-y-1">
-                                {emailValidation[idx].errors.map((error, errorIdx) => (
-                                  <div key={errorIdx} className="text-red-400 text-xs flex items-center gap-2">
-                                    <span className="w-1 h-1 bg-red-400 rounded-full"></span>
-                                    {error}
-                                  </div>
-                                ))}
-                                {emailValidation[idx].warnings.map((warning, warningIdx) => (
-                                  <div key={warningIdx} className="text-yellow-400 text-xs flex items-center gap-2">
-                                    <span className="w-1 h-1 bg-yellow-400 rounded-full"></span>
-                                    {warning}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            
-                            <div className="relative">
-                              <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={16} />
-                              <input
-                                className="w-full input-glass pl-10 p-2.5 rounded-lg text-sm"
-                                placeholder="Student ID / USN (e.g., 4YG23AD002)"
-                                value={member.studentId}
-                                onChange={e => updateMember(idx, 'studentId', e.target.value)}
-                                minLength={6}
-                                maxLength={15}
-                                pattern="[A-Za-z0-9]+"
-                                title="Please enter alphanumeric USN (letters and numbers only)"
-                                required
-                              />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3">
-                              <input
-                                className="w-full input-glass p-2.5 rounded-lg text-sm"
-                                placeholder="College"
-                                value={member.college}
-                                onChange={e => updateMember(idx, 'college', e.target.value)}
-                                required
-                              />
-                              <input
-                                className="w-full input-glass p-2.5 rounded-lg text-sm"
-                                placeholder="Phone (10 Digits)"
-                                value={member.phone}
-                                onChange={e => updateMember(idx, 'phone', e.target.value)}
-                                minLength={10}
-                                maxLength={10}
-                                pattern="\d{10}"
-                                title="Please enter exactly 10 digits"
-                                required
-                              />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3">
-                              <input
-                                className="w-full input-glass p-2.5 rounded-lg text-sm"
-                                placeholder="Department"
-                                value={member.department}
-                                onChange={e => updateMember(idx, 'department', e.target.value)}
-                                required
-                              />
-                              <input
-                                className="w-full input-glass p-2.5 rounded-lg text-sm"
-                                placeholder="Year of Study"
-                                value={member.year}
-                                onChange={e => updateMember(idx, 'year', e.target.value)}
-                                required
-                              />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3">
-                              <input
-                                className="w-full input-glass p-2.5 rounded-lg text-sm"
-                                placeholder="State"
-                                value={member.state}
-                                onChange={e => updateMember(idx, 'state', e.target.value)}
-                                required
-                              />
-                              <input
-                                className="w-full input-glass p-2.5 rounded-lg text-sm"
-                                placeholder="City"
-                                value={member.city}
-                                onChange={e => updateMember(idx, 'city', e.target.value)}
-                                required
-                              />
-                            </div>
-
-                            <input
-                              className="w-full input-glass p-2.5 rounded-lg text-sm"
-                              type="number"
-                              placeholder="Age"
-                              value={member.age}
-                              onChange={e => updateMember(idx, 'age', e.target.value)}
-                              min={selectedEvent.eligibility?.minAge || 1}
-                              max={selectedEvent.eligibility?.maxAge || 100}
-                              required
-                            />
-                          </motion.div>
-                        ))}
-
-                        {/* Add Member Button */}
-                        {regData.members.length < (selectedEvent.registrationType === 'Solo' ? 1 : (selectedEvent.registrationType === 'Duo' ? 2 : (selectedEvent.maxTeamSize || 1))) && (
-                          <button
-                            type="button"
-                            onClick={addMember}
-                            className="w-full py-3 border-2 border-dashed border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/40 hover:border-vortex-blue/30 hover:text-vortex-blue transition-all flex items-center justify-center gap-2 group"
-                          >
-                            <Plus size={14} className="group-hover:rotate-90 transition-transform" />
-                            Add Team Member ({regData.members.length}/{(selectedEvent.registrationType === 'Solo' ? 1 : (selectedEvent.registrationType === 'Duo' ? 2 : (selectedEvent.maxTeamSize || 1)))})
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Intra-college validation */}
-                      {selectedEvent.eventType === 'Intra-College' && selectedEvent.allowedCollege && (
-                        <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-                          <div className="text-orange-400 text-xs font-bold uppercase tracking-wider mb-1">Intra-College Event</div>
-                          <p className="text-white/70 text-xs">Only students from <strong>{selectedEvent.allowedCollege}</strong> can participate</p>
-                        </div>
-                      )}
-
-                      {/* Conditional Fee and Submit Button based on Min Team Size */}
-                      {(() => {
-                        const minSize = selectedEvent.registrationType === 'Solo' ? 1
-                          : (selectedEvent.registrationType === 'Duo' ? 2
-                            : (selectedEvent.minTeamSize || 1));
-
-                        if (regData.members.length >= minSize) {
-                          return (
-                            <>
-                              {/* Fee breakdown for paid events */}
-                              {selectedEvent.price > 0 && (
-                                <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                                  <div className="text-green-400 text-xs font-bold uppercase tracking-wider mb-2">Fee Details</div>
-                                  <div className="space-y-1 text-xs">
-                                    <div className="flex justify-between">
-                                      <span className="text-white/70">Registration Fee</span>
-                                      <span className="text-white">₹{selectedEvent.price}</span>
-                                    </div>
-                                    {selectedEvent.gstEnabled && (
-                                      <div className="flex justify-between">
-                                        <span className="text-white/70">GST ({selectedEvent.gstPercent}%)</span>
-                                        <span className="text-white">₹{Math.round(selectedEvent.price * (selectedEvent.gstPercent / 100))}</span>
-                                      </div>
-                                    )}
-                                    <div className="border-t border-white/10 pt-1 flex justify-between font-bold">
-                                      <span className="text-white">Total</span>
-                                      <span className="text-green-400">
-                                        ₹{selectedEvent.gstEnabled ?
-                                          Math.round(selectedEvent.price * (1 + selectedEvent.gstPercent / 100)) :
-                                          selectedEvent.price}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              <button
-                                type="submit"
-                                disabled={submitting}
-                                className={`w-full glass-button font-bold py-3 mt-4 disabled:opacity-50 ${selectedEvent.capacity > 0 && selectedEvent.registrationCount >= selectedEvent.capacity
-                                  ? 'bg-vortex-orange text-black'
-                                  : 'bg-vortex-blue text-black'
-                                  }`}
-                              >
-                                {submitting ? 'PROCESSING...' : (
-                                  selectedEvent.capacity > 0 && selectedEvent.registrationCount >= selectedEvent.capacity
-                                    ? 'JOIN WAITLIST'
-                                    : (selectedEvent.price > 0 ? 'PROCEED TO PAYMENT' : 'CONFIRM REGISTRATION')
-                                )}
-                              </button>
-                            </>
-                          );
-                        } else {
-                          return (
-                            <div className="p-4 bg-vortex-blue/5 border border-dashed border-vortex-blue/20 rounded-xl text-center">
-                              <p className="text-white/40 text-[10px] uppercase font-bold tracking-widest">
-                                Add {minSize - regData.members.length} more member{minSize - regData.members.length > 1 ? 's' : ''} to proceed
-                              </p>
-                            </div>
-                          );
-                        }
-                      })()}
-
-                      <p className="text-[10px] text-white/30 text-center uppercase tracking-widest mt-2">
-                        By registering, you agree to participate in the event at the scheduled time.
-                      </p>
-                    </form>
+                    <RegistrationForm
+                      event={selectedEvent}
+                      onSubmit={handleRegister}
+                      submitting={submitting}
+                    />
                   </div>
                 </div>
               )}
