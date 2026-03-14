@@ -46,6 +46,7 @@ const Sponsors = lazy(() => import('./pages/Sponsors'));
 const Events = lazy(() => import('./pages/Events'));
 const Contests = lazy(() => import('./pages/Contests'));
 const SignIn = lazy(() => import('./pages/SignIn'));
+const PaymentCallback = lazy(() => import('./pages/PaymentCallback'));
 
 // Loading component
 const PageLoader = () => (
@@ -77,6 +78,7 @@ function App() {
             <Route path="/events" element={<Events />} />
             <Route path="/contests" element={<Contests />} />
             <Route path="/signin" element={<SignIn />} />
+            <Route path="/payment-callback" element={<PaymentCallback />} />
           </Routes>
         </Suspense>
         <ConditionalFooter />

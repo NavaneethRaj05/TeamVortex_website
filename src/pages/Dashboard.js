@@ -289,7 +289,8 @@ const Dashboard = () => {
                 coupons: [], isMultiRound: false, rounds: [], judgingCriteria: [], prizes: [],
                 participationCertificate: true, winnerCertificate: true,
                 socialLinks: { website: '', facebook: '', instagram: '', whatsapp: '', linkedin: '' },
-                sponsors: [], faqs: [], enableQrCheckin: false, certificateTemplate: ''
+                sponsors: [], faqs: [], enableQrCheckin: false, certificateTemplate: '',
+                parentEventId: null
             });
             fetchEvents();
             alert(`Event ${editingEventId ? 'updated' : 'created'} successfully!`);
@@ -299,7 +300,23 @@ const Dashboard = () => {
         }
     };
 
-    const handleDeleteEvent = async (id) => { if (!window.confirm('Delete this event?')) return; await fetch(`${API_BASE_URL}/api/events/${id}`, { method: 'DELETE' }); fetchEvents(); };
+    const handleDeleteEvent = async (id) => {
+        const eventToDelete = events.find(e => e._id === id);
+        const childEvents = events.filter(e => String(e.parentEventId) === String(id));
+
+        if (childEvents.length > 0) {
+            const choice = window.confirm(
+                `"${eventToDelete?.title}" has ${childEvents.length} sub-event(s):\n${childEvents.map(c => `  • ${c.title}`).join('\n')}\n\nClick OK to DELETE all sub-events too.\nClick Cancel to CONVERT sub-events to main events.`
+            );
+            if (choice === null) return; // user closed dialog somehow
+            const res = await fetch(`${API_BASE_URL}/api/events/${id}?orphanAction=${choice ? 'cascade' : 'convert'}`, { method: 'DELETE' });
+            if (!res.ok) { alert('Failed to delete event'); return; }
+        } else {
+            if (!window.confirm('Delete this event?')) return;
+            await fetch(`${API_BASE_URL}/api/events/${id}`, { method: 'DELETE' });
+        }
+        fetchEvents();
+    };
 
     const startEditEvent = (ev) => {
         setNewEvent({
@@ -716,28 +733,49 @@ const Dashboard = () => {
                                     onSubmit={handleSaveEvent}
                                     onCancel={() => { setShowEventForm(false); setEditingEventId(null); }}
                                     editingEventId={editingEventId}
+                                    events={events}
                                 />
                             )}
 
                             <div className="grid gap-4">
-                                {upcomingContests.map(event => (
-                                    <div key={event._id} className="glass-card p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-vortex-blue/30 transition-all group">
-                                        <div className="space-y-1">
-                                            <h3 className="font-bold text-white text-lg group-hover:text-vortex-blue transition-colors line-clamp-1">{event.title}</h3>
-                                            <div className="text-white/40 text-xs flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                                                <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(event.date).toLocaleDateString()}</span>
-                                                <span className="flex items-center gap-1"><MapPin size={12} /> {event.location}</span>
-                                                <span className="text-vortex-blue flex items-center gap-1 font-bold"><Users size={12} /> {event.registrationCount || 0} Joined</span>
+                                {(() => {
+                                    // Group: parents first, then their children indented
+                                    const parents = upcomingContests.filter(e => !e.parentEventId);
+                                    const children = upcomingContests.filter(e => !!e.parentEventId);
+                                    const rows = [];
+                                    parents.forEach(parent => {
+                                        rows.push({ event: parent, isChild: false });
+                                        children
+                                            .filter(c => String(c.parentEventId) === String(parent._id))
+                                            .sort((a, b) => new Date(a.date) - new Date(b.date))
+                                            .forEach(child => rows.push({ event: child, isChild: true }));
+                                    });
+                                    // Orphaned children (parent not in upcomingContests)
+                                    children.filter(c => !parents.find(p => String(p._id) === String(c.parentEventId)))
+                                        .forEach(child => rows.push({ event: child, isChild: true }));
+
+                                    return rows.map(({ event, isChild }) => (
+                                        <div key={event._id} className={`glass-card p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-vortex-blue/30 transition-all group ${isChild ? 'ml-6 border-l-2 border-blue-500/30' : ''}`}>
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    {isChild && <span className="text-[9px] font-bold uppercase tracking-widest bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">Sub-Event</span>}
+                                                    <h3 className="font-bold text-white text-lg group-hover:text-vortex-blue transition-colors line-clamp-1">{event.title}</h3>
+                                                </div>
+                                                <div className="text-white/40 text-xs flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                                                    <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(event.date).toLocaleDateString()}</span>
+                                                    <span className="flex items-center gap-1"><MapPin size={12} /> {event.location}</span>
+                                                    <span className="text-vortex-blue flex items-center gap-1 font-bold"><Users size={12} /> {event.registrationCount || 0} Joined</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-1 sm:gap-2 w-full sm:w-auto border-t sm:border-t-0 border-white/5 pt-3 sm:pt-0 justify-end">
+                                                <button onClick={() => handleSendReminders(event._id)} className="p-2.5 hover:bg-purple-500/20 rounded-xl text-purple-400 transition-colors" title="Send Reminders"><Mail size={18} /></button>
+                                                <button onClick={() => startViewRegistrations(event._id)} className="p-2.5 hover:bg-green-500/20 rounded-xl text-green-400 transition-colors" title="View Registrations"><Users size={18} /></button>
+                                                <button onClick={() => startEditEvent(event)} className="p-2.5 hover:bg-vortex-blue/20 rounded-xl text-vortex-blue transition-colors"><Edit2 size={18} /></button>
+                                                <button onClick={() => handleDeleteEvent(event._id)} className="p-2.5 hover:bg-red-500/20 rounded-xl text-red-400 transition-colors"><Trash2 size={18} /></button>
                                             </div>
                                         </div>
-                                        <div className="flex gap-1 sm:gap-2 w-full sm:w-auto border-t sm:border-t-0 border-white/5 pt-3 sm:pt-0 justify-end">
-                                            <button onClick={() => handleSendReminders(event._id)} className="p-2.5 hover:bg-purple-500/20 rounded-xl text-purple-400 transition-colors" title="Send Reminders"><Mail size={18} /></button>
-                                            <button onClick={() => startViewRegistrations(event._id)} className="p-2.5 hover:bg-green-500/20 rounded-xl text-green-400 transition-colors" title="View Registrations"><Users size={18} /></button>
-                                            <button onClick={() => startEditEvent(event)} className="p-2.5 hover:bg-vortex-blue/20 rounded-xl text-vortex-blue transition-colors"><Edit2 size={18} /></button>
-                                            <button onClick={() => handleDeleteEvent(event._id)} className="p-2.5 hover:bg-red-500/20 rounded-xl text-red-400 transition-colors"><Trash2 size={18} /></button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ));
+                                })()}
                             </div>
                         </div>
                     )}

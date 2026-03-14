@@ -30,7 +30,7 @@ app.use(compression({
 // Rate Limiting - More lenient for better performance
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200, // Increased limit for better performance
+    max: 500, // Allow more requests for 1000 concurrent users
     standardHeaders: true,
     legacyHeaders: false,
     message: 'Too many requests from this IP, please try again after 15 minutes',
@@ -75,12 +75,14 @@ const connectDB = async () => {
     try {
         const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/team_vortex', {
             // Connection optimization options
-            maxPoolSize: 10, // Maintain up to 10 socket connections
+            maxPoolSize: 20, // Increased pool for 1000 concurrent users
+            minPoolSize: 5,  // Keep minimum connections warm
             serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
             socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
             // Additional performance optimizations
             maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
             compressors: 'zlib', // Enable compression for network traffic
+            waitQueueTimeoutMS: 10000, // Wait up to 10s for a connection from pool
         });
         
         console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
@@ -138,6 +140,7 @@ const sponsorRoutes = require('./routes/sponsors');
 const analyticsRoutes = require('./routes/analytics');
 const chatbotRoutes = require('./routes/chatbot');
 const clubStatsRoutes = require('./routes/clubStats');
+const paymentRoutes = require('./routes/payments');
 
 const apiRouter = express.Router();
 
@@ -149,6 +152,7 @@ apiRouter.use('/sponsors', sponsorRoutes);
 apiRouter.use('/analytics', analyticsRoutes);
 apiRouter.use('/chatbot', chatbotRoutes);
 apiRouter.use('/club-stats', clubStatsRoutes);
+apiRouter.use('/payments', paymentRoutes);
 
 // Mount the router on both paths to support local dev and Netlify functions
 app.use('/api', apiRouter);

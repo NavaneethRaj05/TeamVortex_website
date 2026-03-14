@@ -100,8 +100,14 @@ const Events = () => {
     paymentId: ''
   });
 
+  const [expandedSubEvents, setExpandedSubEvents] = useState({});
+
+  const toggleSubEvents = (eventId) => {
+    setExpandedSubEvents(prev => ({ ...prev, [eventId]: !prev[eventId] }));
+  };
   const [feedbackEvent, setFeedbackEvent] = useState(null);
   const [feedbackForm, setFeedbackForm] = useState({ studentId: '', name: '', rating: 5, comment: '' });
+
   const [emailValidation, setEmailValidation] = useState({});
 
   useEffect(() => {
@@ -402,14 +408,26 @@ const Events = () => {
     return new Date(b.date) - new Date(a.date);
   });
 
+  // Group past events: parent events get their children attached, children are excluded from top level
+  const groupedPastEvents = useMemo(() => {
+    return pastEvents
+      .filter(e => !e.parentEventId) // only top-level events
+      .map(e => ({
+        ...e,
+        childEvents: pastEvents
+          .filter(c => String(c.parentEventId) === String(e._id))
+          .sort((a, b) => new Date(a.date) - new Date(b.date)) // sort sub-events by date
+      }));
+  }, [pastEvents]);
+
   const nextSlide = () => {
-    if (pastEvents.length === 0) return;
-    setCurrentSlide((prev) => (prev + 1) % pastEvents.length);
+    if (groupedPastEvents.length === 0) return;
+    setCurrentSlide((prev) => (prev + 1) % groupedPastEvents.length);
   };
 
   const prevSlide = () => {
-    if (pastEvents.length === 0) return;
-    setCurrentSlide((prev) => (prev - 1 + pastEvents.length) % pastEvents.length);
+    if (groupedPastEvents.length === 0) return;
+    setCurrentSlide((prev) => (prev - 1 + groupedPastEvents.length) % groupedPastEvents.length);
   };
 
   const containerVariants = useMemo(() => ({
@@ -1446,7 +1464,7 @@ const Events = () => {
         </AnimatePresence>
 
         {/* Past Events with Gallery */}
-        {pastEvents.length > 0 && (
+        {groupedPastEvents.length > 0 && (
           <section className="mb-16">
             <motion.h2
               initial={{ opacity: 0, x: -20 }}
@@ -1467,7 +1485,7 @@ const Events = () => {
                   className="flex transition-transform duration-500 ease-in-out"
                   style={{ transform: `translateX(-${currentSlide * 100}%)` }}
                 >
-                  {pastEvents.map((event, index) => {
+                  {groupedPastEvents.map((event, index) => {
                     // Safety check
                     if (!event || !event._id || !event.title) {
                       console.warn('Invalid past event data:', event);
@@ -1541,30 +1559,65 @@ const Events = () => {
                                   const eventDate = new Date(event.date);
                                   const eventEnd = new Date(eventDate);
                                   eventEnd.setHours(23, 59, 59, 999);
-                                  
                                   if (event.endTime) {
                                     const [h, m] = event.endTime.split(':').map(num => parseInt(num, 10));
-                                    if (!isNaN(h) && !isNaN(m)) {
-                                      eventEnd.setHours(h, m, 0, 0);
-                                    }
+                                    if (!isNaN(h) && !isNaN(m)) eventEnd.setHours(h, m, 0, 0);
                                   }
-                                  
-                                  const hasEnded = now > eventEnd;
-                                  
-                                  return hasEnded ? (
+                                  return now > eventEnd ? (
                                     <button
                                       onClick={() => setFeedbackEvent(event)}
                                       className="glass-button text-purple-400 border border-purple-400/30 hover:bg-purple-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"
                                     >
-                                      ðŸ’¬ Feedback
+                                      Feedback
                                     </button>
                                   ) : null;
-                                } catch (err) {
-                                  console.error('Error checking event end time:', err);
-                                  return null;
-                                }
+                                } catch (err) { return null; }
                               })()}
                             </div>
+
+                            {/* Child sub-events grouped under this parent */}
+                            {event.childEvents && event.childEvents.length > 0 && (
+                              <div className="mt-6 pt-6 border-t border-white/10">
+                                <button
+                                  onClick={() => toggleSubEvents(event._id)}
+                                  className="flex items-center gap-2 text-xs font-bold text-white/60 hover:text-white transition-colors mb-3"
+                                >
+                                  <span className="text-blue-400">
+                                    {expandedSubEvents[event._id] ? '▼' : '▶'}
+                                  </span>
+                                  {expandedSubEvents[event._id] ? 'Hide' : 'View'} Sub Events ({event.childEvents.length})
+                                </button>
+                                {expandedSubEvents[event._id] && (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {event.childEvents.map(child => (
+                                      <div key={child._id} className="p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all hover:scale-[1.02] hover:border-blue-500/30">
+                                        {child.images && child.images.length > 0 && (
+                                          <div className="w-full h-20 rounded-lg overflow-hidden mb-2">
+                                            <SmartImage src={child.images[0]} alt={child.title} className="w-full h-full object-cover" />
+                                          </div>
+                                        )}
+                                        <div className="font-semibold text-white text-sm mb-1">{child.title}</div>
+                                        <div className="text-[10px] text-white/50 mb-2">
+                                          {new Date(child.date).toLocaleDateString()} &middot; {child.registrationCount || 0} participants
+                                        </div>
+                                        <div className="flex flex-wrap gap-3">
+                                          {child.images && child.images.length > 0 && (
+                                            <button onClick={() => setSelectedEventGallery(child)}
+                                              className="text-[10px] text-vortex-blue hover:underline">📸 Photos</button>
+                                          )}
+                                          {child.galleryDriveLink && (
+                                            <button onClick={() => window.open(child.galleryDriveLink, '_blank')}
+                                              className="text-[10px] text-green-400 hover:underline">📁 Drive</button>
+                                          )}
+                                          <button onClick={() => setFeedbackEvent(child)}
+                                            className="text-[10px] text-purple-400 hover:underline">Feedback</button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1590,7 +1643,7 @@ const Events = () => {
 
               {/* Dots Indicator */}
               <div className="flex justify-center mt-6 space-x-2">
-                {pastEvents.map((_, index) => (
+                {groupedPastEvents.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentSlide(index)}

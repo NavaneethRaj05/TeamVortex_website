@@ -334,6 +334,9 @@ const eventSchema = new mongoose.Schema({
         createdAt: { type: Date, default: Date.now }
     }],
 
+    // Parent Event (for sub-events of a parent event like PRAYOG 1.0)
+    parentEventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', default: null },
+
     // Status
     status: {
         type: String,
@@ -371,5 +374,6 @@ eventSchema.index({ priority: -1, date: 1 }); // Index for priority-based sortin
 eventSchema.index({ registrationOpens: 1, registrationCloses: 1 }); // Index for registration timing
 eventSchema.index({ createdAt: -1 }); // Index for recent events
 eventSchema.index({ 'registrations.multiEventGroupId': 1 }); // Index for multi-event registrations
+eventSchema.index({ parentEventId: 1 }); // Index for sub-event queries (orphan handling)
 
 module.exports = mongoose.model('Event', eventSchema);

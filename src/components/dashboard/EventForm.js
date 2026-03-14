@@ -54,11 +54,17 @@ const A = {
 };
 
 // ─── Main Component ────────────────────────────────────────────────────────────
-const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editingEventId }) => {
+const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editingEventId, events = [] }) => {
   if (!newEvent) return null;
 
   const set = (patch) => setNewEvent(prev => ({ ...prev, ...patch }));
   const setElig = (patch) => set({ eligibility: { ...newEvent.eligibility, ...patch } });
+
+  // Only main events (no parentEventId) can be parents
+  const mainEvents = events.filter(ev => !ev.parentEventId && ev._id !== editingEventId);
+  // Check if current event already has children (can't make it a sub-event then)
+  const hasChildren = editingEventId && events.some(ev => String(ev.parentEventId) === String(editingEventId));
+  const isSubEvent = !!newEvent.parentEventId;
 
   // Derived
   const isPaid = newEvent.price > 0;
@@ -108,6 +114,53 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
           <Lbl>Event Title *</Lbl>
           <Inp placeholder="Enter a compelling title..." value={newEvent.title}
             onChange={e => set({ title: e.target.value })} required />
+        </div>
+
+        {/* Event Type Toggle: Main Event vs Sub Event */}
+        <div>
+          <Lbl>Event Type *</Lbl>
+          {hasChildren ? (
+            <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/30 text-xs text-amber-400">
+              ⚠️ This event has sub-events and cannot be converted to a sub-event itself.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <RadioRow name="eventKind" value="main" checked={!isSubEvent}
+                onChange={() => set({ parentEventId: null })}
+                title="Main Event" sub="Standalone or parent event" />
+              <RadioRow name="eventKind" value="sub" checked={isSubEvent}
+                onChange={() => {
+                  if (mainEvents.length === 0) {
+                    alert('No main events available. Create a main event first.');
+                    return;
+                  }
+                  set({ parentEventId: mainEvents[0]._id });
+                }}
+                title="Sub Event" sub="Grouped under a parent event" />
+            </div>
+          )}
+
+          {isSubEvent && !hasChildren && (
+            <div className="mt-3">
+              <Lbl>Parent Event *</Lbl>
+              {mainEvents.length === 0 ? (
+                <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/30 text-xs text-red-400">
+                  No main events found. Create a main event first.
+                </div>
+              ) : (
+                <Sel value={newEvent.parentEventId || ''} onChange={e => set({ parentEventId: e.target.value || null })}>
+                  {mainEvents.map(ev => (
+                    <option key={ev._id} value={ev._id}>
+                      {ev.title} ({new Date(ev.date).toLocaleDateString()})
+                    </option>
+                  ))}
+                </Sel>
+              )}
+              <div className="text-[9px] text-blue-400/70 mt-1 px-1">
+                This event will be grouped under its parent in the past events section
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -4,6 +4,20 @@ const Event = require('../models/Event');
 const PaymentLog = require('../models/PaymentLog');
 const { sendNotification } = require('../utils/notificationService');
 
+// @route   GET /api/events/main-only
+// @desc    Get only main events (no parentEventId) for EventForm parent dropdown
+router.get('/main-only', async (req, res) => {
+    try {
+        const events = await Event.find({ parentEventId: null })
+            .select('title date')
+            .sort({ date: -1 })
+            .lean();
+        res.json(events);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // @route   GET /api/events/lightweight
 // @desc    Get lightweight events data for fast loading (minimal fields)
 router.get('/lightweight', async (req, res) => {
@@ -499,22 +513,28 @@ router.post('/:id/feedback', async (req, res) => {
 });
 
 // @route   DELETE /api/events/:id
-// @desc    Delete an event
+// @desc    Delete an event (with orphan handling for sub-events)
 router.delete('/:id', async (req, res) => {
     try {
-        console.log(`Attempting to delete event with ID: ${req.params.id}`);
-        
         const event = await Event.findById(req.params.id);
-        if (!event) {
-            console.log(`Event not found: ${req.params.id}`);
-            return res.status(404).json({ message: 'Event not found' });
+        if (!event) return res.status(404).json({ message: 'Event not found' });
+
+        // Handle orphaned sub-events
+        const orphanAction = req.query.orphanAction; // 'cascade' or 'convert'
+        const childEvents = await Event.find({ parentEventId: req.params.id });
+
+        if (childEvents.length > 0) {
+            if (orphanAction === 'cascade') {
+                // Delete all sub-events too
+                await Event.deleteMany({ parentEventId: req.params.id });
+            } else {
+                // Convert sub-events to main events (remove parentEventId)
+                await Event.updateMany({ parentEventId: req.params.id }, { $set: { parentEventId: null } });
+            }
         }
 
-        console.log(`Deleting event: ${event.title}`);
         await event.deleteOne();
-        
-        console.log(`Event deleted successfully: ${req.params.id}`);
-        res.json({ message: 'Event removed', eventId: req.params.id });
+        res.json({ message: 'Event removed', eventId: req.params.id, childrenHandled: childEvents.length });
     } catch (err) {
         console.error('Error deleting event:', err);
         res.status(500).json({ message: err.message || 'Failed to delete event' });
