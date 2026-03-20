@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, X, Instagram } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const INSTA_URL = 'https://www.instagram.com/vortex_nce?igsh=MXM1djkybGdwaXc5bw==';
 

@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X, Download } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
 import PaymentFlow from '../components/PaymentFlow';
 import SmartImage from '../components/SmartImage';
@@ -108,7 +108,7 @@ const Events = () => {
   const [feedbackEvent, setFeedbackEvent] = useState(null);
   const [feedbackForm, setFeedbackForm] = useState({ studentId: '', name: '', rating: 5, comment: '' });
 
-  const [emailValidation, setEmailValidation] = useState({});
+
 
   useEffect(() => {
     if (!rsvpEvent) {
@@ -175,137 +175,6 @@ const Events = () => {
           });
       });
   }, []);
-
-  // Email validation function
-  const validateEmail = (email, memberIndex) => {
-    const validationResult = {
-      isValid: false,
-      errors: [],
-      warnings: []
-    };
-
-    // Basic format validation
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email)) {
-      validationResult.errors.push('Invalid email format');
-      return validationResult;
-    }
-
-    // Extract domain and local part
-    const [localPart, domain] = email.split('@');
-    const domainLower = domain.toLowerCase();
-
-    // Check for common typos in popular domains
-    const commonDomains = {
-      'gmail.com': ['gmai.com', 'gmial.com', 'gmail.co', 'gmaill.com', 'gmil.com'],
-      'yahoo.com': ['yaho.com', 'yahoo.co', 'yahooo.com', 'yhoo.com'],
-      'hotmail.com': ['hotmai.com', 'hotmial.com', 'hotmail.co'],
-      'outlook.com': ['outlok.com', 'outlook.co', 'outloo.com'],
-      'college.edu': ['colege.edu', 'college.ed', 'collge.edu']
-    };
-
-    let suggestedDomain = null;
-    for (const [correct, typos] of Object.entries(commonDomains)) {
-      if (typos.includes(domainLower)) {
-        suggestedDomain = correct;
-        break;
-      }
-    }
-
-    if (suggestedDomain) {
-      validationResult.errors.push(`Did you mean ${localPart}@${suggestedDomain}?`);
-      return validationResult;
-    }
-
-    // Check for suspicious patterns
-    const suspiciousPatterns = [
-      /test/i,
-      /fake/i,
-      /dummy/i,
-      /temp/i,
-      /example/i,
-      /sample/i,
-      /^[a-z]{1,3}@/,  // Very short local parts
-      /^\d+@/,         // Only numbers in local part
-      /^[a-z]+\d{1,2}@/, // Simple pattern like abc1@
-    ];
-
-    const isSuspicious = suspiciousPatterns.some(pattern => pattern.test(email));
-    if (isSuspicious) {
-      validationResult.warnings.push('Email appears suspicious. Please use your real email address.');
-    }
-
-    // Check for educational domains (preferred for students)
-    const eduDomains = ['.edu', '.ac.', '.edu.', 'college', 'university', 'institute', 'school'];
-    const isEduDomain = eduDomains.some(edu => domainLower.includes(edu));
-    
-    // Validate domain exists (basic check)
-    if (!domainLower.includes('.') || domainLower.endsWith('.') || domainLower.startsWith('.')) {
-      validationResult.errors.push('Invalid domain format');
-      return validationResult;
-    }
-
-    // Check for minimum length requirements
-    if (localPart.length < 3) {
-      validationResult.errors.push('Email username too short (minimum 3 characters)');
-    }
-
-    if (domain.length < 4) {
-      validationResult.errors.push('Domain name too short');
-    }
-
-    // Check for consecutive dots or special characters
-    if (email.includes('..') || email.includes('@@')) {
-      validationResult.errors.push('Invalid email format (consecutive special characters)');
-    }
-
-    // Check for valid TLD
-    const tld = domain.split('.').pop().toLowerCase();
-    const validTlds = ['com', 'org', 'net', 'edu', 'gov', 'mil', 'int', 'co', 'in', 'uk', 'de', 'fr', 'jp', 'au', 'ca', 'br', 'ru', 'cn', 'it', 'es', 'nl', 'se', 'no', 'dk', 'fi', 'pl', 'be', 'ch', 'at', 'ie', 'nz', 'za', 'mx', 'ar', 'cl', 'pe', 'co', 'kr', 'th', 'sg', 'my', 'ph', 'id', 'vn', 'bd', 'pk', 'lk', 'np', 'mm', 'kh', 'la', 'bn', 'mv'];
-    
-    if (!validTlds.includes(tld)) {
-      validationResult.warnings.push('Uncommon domain extension. Please verify your email is correct.');
-    }
-
-    // Additional validation for educational events
-    if (rsvpEvent && rsvpEvent.eventType === 'Intra-College') {
-      if (!isEduDomain && !email.toLowerCase().includes('navkis')) {
-        validationResult.warnings.push('For college events, please use your college email if available.');
-      }
-    }
-
-    // Check for duplicate emails in the same registration
-    const currentEmails = rsvpForm.members.map(m => m.email.toLowerCase()).filter(e => e);
-    const duplicateCount = currentEmails.filter(e => e === email.toLowerCase()).length;
-    if (duplicateCount > 1) {
-      validationResult.errors.push('This email is already used by another team member');
-    }
-
-    // If no errors, mark as valid
-    if (validationResult.errors.length === 0) {
-      validationResult.isValid = true;
-    }
-
-    return validationResult;
-  };
-
-  // Real-time email validation
-  const handleEmailChange = (memberIndex, email) => {
-    updateMember(memberIndex, 'email', email);
-    
-    if (email.length > 3) {
-      const validation = validateEmail(email, memberIndex);
-      setEmailValidation(prev => ({
-        ...prev,
-        [memberIndex]: validation
-      }));
-    } else {
-      setEmailValidation(prev => ({
-        ...prev,
-        [memberIndex]: { isValid: false, errors: [], warnings: [] }
-      }));
-    }
-  };
 
   const now = new Date();
 
@@ -537,54 +406,6 @@ const Events = () => {
     handleRsvpSubmit(null, submitData);
   };
 
-  // Validate registration form
-  const validateRegistrationForm = () => {
-    // Email validation
-    const emailErrors = [];
-    rsvpForm.members.forEach((member, index) => {
-      if (member.email) {
-        const validation = validateEmail(member.email, index);
-        if (!validation.isValid) {
-          emailErrors.push(`Member ${index + 1}: ${validation.errors.join(', ')}`);
-        }
-      }
-    });
-
-    if (emailErrors.length > 0) {
-      return {
-        isValid: false,
-        error: `Please fix email errors:\n${emailErrors.join('\n')}`
-      };
-    }
-
-    // Required fields validation
-    const requiredFields = ['name', 'email', 'phone'];
-    for (const member of rsvpForm.members) {
-      for (const field of requiredFields) {
-        if (!member[field] || member[field].trim() === '') {
-          return {
-            isValid: false,
-            error: `Please fill in all required fields for all members`
-          };
-        }
-      }
-    }
-
-    // Team size validation
-    const minSize = rsvpEvent.registrationType === 'Solo' ? 1
-      : (rsvpEvent.registrationType === 'Duo' ? 2
-        : (rsvpEvent.minTeamSize || 1));
-    
-    if (rsvpForm.members.length < minSize) {
-      return {
-        isValid: false,
-        error: `Please add ${minSize - rsvpForm.members.length} more member(s)`
-      };
-    }
-
-    return { isValid: true };
-  };
-
   // Initiate payment flow
   const initiatePaymentFlow = async (registrationData) => {
     try {
@@ -705,35 +526,6 @@ const Events = () => {
       canSubmit: true,
       error: 'Payment cancelled. You can try again.'
     }));
-  };
-
-  const addMember = () => {
-    const max = rsvpEvent.registrationType === 'Solo' ? 1 : (rsvpEvent.registrationType === 'Duo' ? 2 : (rsvpEvent.maxTeamSize || 1));
-    if (rsvpForm.members.length < max) {
-      setRsvpForm({
-        ...rsvpForm,
-        members: [...rsvpForm.members, {
-          name: '',
-          email: '',
-          phone: '',
-          college: '',
-          idNumber: '',
-          department: '',
-          year: '',
-          age: '',
-          state: '',
-          city: '',
-          idCardFile: ''
-        }]
-      });
-    }
-  };
-
-  const removeMember = (index) => {
-    if (rsvpForm.members.length > 1) {
-      const newMembers = rsvpForm.members.filter((_, i) => i !== index);
-      setRsvpForm({ ...rsvpForm, members: newMembers });
-    }
   };
 
   const updateMember = (index, field, value) => {

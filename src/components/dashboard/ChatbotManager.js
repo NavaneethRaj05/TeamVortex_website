@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Bot, Plus, Edit2, Trash2, Save, X, MessageCircle, TrendingUp, CheckCircle, Brain, RefreshCw } from 'lucide-react';
 import API_BASE_URL from '../../apiConfig';
 
@@ -14,15 +14,16 @@ const ChatbotManager = () => {
   const [approveAnswer, setApproveAnswer] = useState('');
   const [newFAQ, setNewFAQ] = useState({ question: '', answer: '', keywords: '', category: 'general', enabled: true });
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
-
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     await Promise.all([fetchChatbotConfig(), fetchLearned(), fetchImprovementSuggestions()]);
     setLoading(false);
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   const fetchChatbotConfig = async () => {
     try {

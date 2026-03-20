@@ -703,4 +703,4 @@ const PaymentFlow = ({
     );
 };
 
-export default PaymentFlow;
+export default React.memo(PaymentFlow);

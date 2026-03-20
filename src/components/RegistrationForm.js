@@ -567,4 +567,4 @@ const RegistrationForm = ({ event, onSubmit, submitting }) => {
   );
 };
 
-export default RegistrationForm;
+export default React.memo(RegistrationForm);
