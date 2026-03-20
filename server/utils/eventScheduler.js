@@ -215,11 +215,10 @@ const startScheduler = () => {
             sendFeedbackRequests();
         }
 
-        // Run payment reminders at 6:00 PM
-        if (hour === 18 && minute === 0) {
-            console.log('⏰ Triggering payment reminder job');
-            sendPaymentReminders();
-        }
+        // Run payment reminders at 6:00 PM — DISABLED (payment required at registration)
+        // if (hour === 18 && minute === 0) {
+        //     sendPaymentReminders();
+        // }
     }, 60000); // Check every minute
 
     console.log('✅ Event scheduler started successfully');

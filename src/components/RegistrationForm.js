@@ -38,7 +38,7 @@ const emptyMember = () => ({
   name: '', email: '', phone: '', college: '', collegeType: '',
   idNumber: '', department: '', year: '', state: 'Karnataka', city: '',
   idCardFile: null, idCardFileName: '',
-  tshirtSize: 'M', dietaryPreference: 'Vegetarian',
+  tshirtSize: '', dietaryPreference: '',
   emergencyContactName: '', emergencyContactPhone: '',
   specialRequirements: '',
 });
@@ -54,9 +54,70 @@ function validateEmail(email) {
   return { isValid: true, error: null };
 }
 
+// ─── USN / Student ID field with VTU format validation ────────────────────────
+// VTU USN format: digit + 2letters + 2digits + 2letters + 3digits  e.g. 4AD23CS075
+const USN_REGEX = /^\d[A-Z]{2}\d{2}[A-Z]{2}\d{3}$/;
+
+const UsnField = ({ value, onChange }) => {
+  const [touched, setTouched] = useState(false);
+  const isValid = USN_REGEX.test(value);
+  const showError = touched && value.length > 0 && !isValid;
+
+  const handleChange = (e) => {
+    // Only allow alphanumeric, strip everything else, uppercase
+    const raw = e.target.value.replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 10);
+    onChange(raw);
+  };
+
+  return (
+    <div className="space-y-1">
+      <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">
+        Student ID / USN *
+      </label>
+      <div className="relative">
+        <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" size={15} />
+        <input
+          type="text"
+          required
+          className={`w-full input-glass pl-9 pr-8 p-3 rounded-lg text-sm uppercase tracking-widest font-mono ${
+            showError ? 'border-red-400/60' : isValid && value ? 'border-green-400/60' : ''
+          }`}
+          placeholder="e.g. 1XX23XX000"
+          value={value}
+          onChange={handleChange}
+          onBlur={() => setTouched(true)}
+          maxLength={10}
+        />
+        {isValid && value && (
+          <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 text-green-400" size={14} />
+        )}
+        {showError && (
+          <X className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400" size={14} />
+        )}
+      </div>
+      {/* Format hint always visible */}
+      <p className="text-[10px] text-white/30 ml-1 font-mono tracking-wider">
+        Format: <span className="text-white/50">1</span>
+        <span className="text-vortex-blue">XX</span>
+        <span className="text-white/50">23</span>
+        <span className="text-vortex-blue">XX</span>
+        <span className="text-white/50">000</span>
+        <span className="text-white/20 ml-2 not-italic font-sans normal-case tracking-normal">
+          (digit · college code · year · branch · roll no)
+        </span>
+      </p>
+      {showError && (
+        <p className="text-red-400 text-[10px] ml-1">
+          Invalid USN format — expected like 4AD23CS075
+        </p>
+      )}
+    </div>
+  );
+};
+
 // ─── Single member card ────────────────────────────────────────────────────────
 
-const MemberCard = ({ member, index, isPrimary, canRemove, onChange, onRemove, showAge }) => {
+const MemberCard = ({ member, index, isPrimary, canRemove, onChange, onRemove, showAge, showTshirt, showDietary }) => {
   const [emailState, setEmailState] = useState({ isValid: null, error: null });
 
   const handleEmailBlur = () => {
@@ -209,20 +270,7 @@ const MemberCard = ({ member, index, isPrimary, canRemove, onChange, onRemove, s
         </div>
 
         {/* USN */}
-        <div className="space-y-1">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">Student ID / USN *</label>
-          <div className="relative">
-            <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" size={15} />
-            <input
-              type="text" required
-              className="w-full input-glass pl-9 p-3 rounded-lg text-sm uppercase"
-              placeholder="Student ID / USN"
-              value={member.idNumber}
-              onChange={e => onChange('idNumber', e.target.value.toUpperCase())}
-              minLength={6} maxLength={15}
-            />
-          </div>
-        </div>
+        <UsnField value={member.idNumber} onChange={val => onChange('idNumber', val)} />
 
         {/* Branch + Year */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -285,25 +333,29 @@ const MemberCard = ({ member, index, isPrimary, canRemove, onChange, onRemove, s
         )}
       </div>
 
-      {/* Optional fields */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-white/5">
-        {selectField('T-Shirt Size', 'tshirtSize', TSHIRT_SIZES)}
-        <div className="space-y-1">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">Dietary Preference</label>
-          <div className="flex flex-wrap gap-2 pt-1">
-            {DIETARY.map(d => (
-              <label key={d} className="flex items-center gap-1.5 cursor-pointer touch-manipulation">
-                <input type="radio" name={`diet-${index}`} value={d}
-                  checked={member.dietaryPreference === d}
-                  onChange={() => onChange('dietaryPreference', d)}
-                  className="flex-shrink-0"
-                />
-                <span className="text-xs text-white/70">{d.split('-')[0]}</span>
-              </label>
-            ))}
-          </div>
+      {/* Optional fields — only shown if event admin enabled them */}
+      {(showTshirt || showDietary) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-white/5">
+          {showTshirt && selectField('T-Shirt Size', 'tshirtSize', TSHIRT_SIZES)}
+          {showDietary && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">Dietary Preference</label>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {DIETARY.map(d => (
+                  <label key={d} className="flex items-center gap-1.5 cursor-pointer touch-manipulation">
+                    <input type="radio" name={`diet-${index}`} value={d}
+                      checked={member.dietaryPreference === d}
+                      onChange={() => onChange('dietaryPreference', d)}
+                      className="flex-shrink-0"
+                    />
+                    <span className="text-xs text-white/70">{d.split('-')[0]}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Emergency Contact */}
       <div className="space-y-2 pt-1 border-t border-white/5">
@@ -336,6 +388,8 @@ const RegistrationForm = ({ event, onSubmit, submitting }) => {
   const minMembers = isSolo ? 1 : isDuo ? 2 : (event.minTeamSize || 2);
   const maxMembers = isSolo ? 1 : isDuo ? 2 : (event.maxTeamSize || 5);
   const showAge = !!(event.eligibility?.minAge || event.eligibility?.maxAge);
+  const showTshirt = !!event.collectTshirtSize;
+  const showDietary = !!event.collectDietaryPreference;
 
   const [teamName, setTeamName] = useState('');
   const [members, setMembers] = useState([emptyMember()]);
@@ -367,6 +421,11 @@ const RegistrationForm = ({ event, onSubmit, submitting }) => {
     const missingId = members.findIndex(m => !m.idCardFileName);
     if (missingId !== -1) {
       alert(`Please upload the College ID card for Member ${missingId + 1}.`);
+      return;
+    }
+    const invalidUsn = members.findIndex(m => !USN_REGEX.test(m.idNumber));
+    if (invalidUsn !== -1) {
+      alert(`Invalid USN for Member ${invalidUsn + 1}. Expected format like 4AD23CS075`);
       return;
     }
     onSubmit({ teamName: isSolo ? '' : teamName, members });
@@ -434,6 +493,8 @@ const RegistrationForm = ({ event, onSubmit, submitting }) => {
             onChange={(key, val) => updateMember(idx, key, val)}
             onRemove={() => removeMember(idx)}
             showAge={showAge}
+            showTshirt={showTshirt}
+            showDietary={showDietary}
           />
         ))}
       </AnimatePresence>

@@ -5,11 +5,15 @@ const nodemailer = require('nodemailer');
 // ============================================
 
 const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.mailtrap.io',
-    port: process.env.EMAIL_PORT || 2525,
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT) || 587,
+    secure: false, // TLS
     auth: {
         user: process.env.EMAIL_USER || '',
         pass: process.env.EMAIL_PASS || ''
+    },
+    tls: {
+        rejectUnauthorized: false
     }
 });
 
@@ -211,11 +215,15 @@ const emailTemplates = {
 
 // Send Email Function
 const sendEmail = async (to, templateName, data) => {
+    if (!process.env.EMAIL_USER || process.env.EMAIL_USER === 'your_email@gmail.com') {
+        console.warn(`⚠️  Email not configured — skipping email to ${to} (${templateName})`);
+        return { success: false, error: 'Email not configured' };
+    }
     try {
         const template = emailTemplates[templateName](data);
         
         const mailOptions = {
-            from: '"Team Vortex" <no-reply@teamvortex.com>',
+            from: process.env.EMAIL_FROM || `"Team Vortex" <${process.env.EMAIL_USER}>`,
             to,
             subject: template.subject,
             text: template.text,
@@ -223,10 +231,10 @@ const sendEmail = async (to, templateName, data) => {
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Email sent to ${to}: ${template.subject}`);
+        console.log(`✅ Email sent to ${to}: ${template.subject} [${info.messageId}]`);
         return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error('❌ Error sending email:', error);
+        console.error(`❌ Email failed to ${to} (${templateName}):`, error.message);
         return { success: false, error: error.message };
     }
 };

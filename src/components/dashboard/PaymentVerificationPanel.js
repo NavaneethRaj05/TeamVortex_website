@@ -140,6 +140,7 @@ const PaymentVerificationPanel = ({ selectedEventId = null }) => {
 
     const handleVerifyPayment = async (regIndex, action) => {
         setActionLoading(true);
+        setError('');
         try {
             const body = { action };
             if (action === 'reject') {
@@ -155,11 +156,11 @@ const PaymentVerificationPanel = ({ selectedEventId = null }) => {
             const data = await res.json();
             if (!res.ok) throw new Error(data.message);
 
-            // Refresh list
-            fetchPendingPayments();
-            setViewingPayment(null);
+            // Close all modals first, then refresh
             setShowRejectModal(false);
+            setViewingPayment(null);
             setRejectionReason('');
+            await fetchPendingPayments();
         } catch (err) {
             setError(err.message);
         } finally {

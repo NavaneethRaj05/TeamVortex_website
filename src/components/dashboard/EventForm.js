@@ -53,6 +53,45 @@ const A = {
   pink:   { border: 'border-pink-500/30',   text: 'text-pink-400'   },
 };
 
+// ─── QR Preview with load state ───────────────────────────────────────────────
+const QrPreview = ({ upiId, upiQrCode }) => {
+  const [imgStatus, setImgStatus] = React.useState('loading');
+  React.useEffect(() => { setImgStatus('loading'); }, [upiQrCode]);
+
+  return (
+    <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg border border-white/5">
+      <div className="w-16 h-16 rounded border border-white/10 overflow-hidden flex-shrink-0 bg-white/5 flex items-center justify-center">
+        {imgStatus !== 'error' && (
+          <img
+            src={upiQrCode}
+            alt="QR"
+            className={`w-full h-full object-cover transition-opacity duration-200 ${imgStatus === 'loaded' ? 'opacity-100' : 'opacity-0 absolute'}`}
+            onLoad={() => setImgStatus('loaded')}
+            onError={() => setImgStatus('error')}
+          />
+        )}
+        {imgStatus === 'loading' && <div className="w-full h-full animate-pulse bg-white/10 rounded" />}
+        {imgStatus === 'error' && (
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 3l18 18" />
+          </svg>
+        )}
+      </div>
+      <div className="text-xs text-white/60 flex-1 min-w-0">
+        <div className="font-medium truncate">UPI: {upiId}</div>
+        <div className="text-[10px] text-white/40 mt-0.5">QR shown to users at payment</div>
+        {imgStatus === 'error' && (
+          <div className="mt-1.5 text-[10px] text-yellow-400 leading-tight">
+            ⚠ URL didn't load as an image. Upload your QR to{' '}
+            <a href="https://imgbb.com" target="_blank" rel="noopener noreferrer" className="underline">imgbb.com</a>{' '}
+            and paste the direct link (ends in .jpg/.png)
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ─── Main Component ────────────────────────────────────────────────────────────
 const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editingEventId, events = [] }) => {
   if (!newEvent) return null;
@@ -277,6 +316,14 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                 onChange={e => set({ waitlistCapacity: e.target.value })} />
             </div>
           )}
+          <CheckRow checked={newEvent.collectTshirtSize}
+            onChange={e => set({ collectTshirtSize: e.target.checked })}>
+            Collect T-Shirt size from participants
+          </CheckRow>
+          <CheckRow checked={newEvent.collectDietaryPreference}
+            onChange={e => set({ collectDietaryPreference: e.target.checked })}>
+            Collect dietary preference from participants
+          </CheckRow>
         </div>
       </Section>
 
@@ -459,18 +506,14 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                 <Lbl>QR Code Image URL *</Lbl>
                 <Inp placeholder="https://i.ibb.co/xxx/qr.jpg" value={newEvent.upiQrCode || ''}
                   onChange={e => set({ upiQrCode: e.target.value })} />
-                <div className="text-[8px] text-white/30 mt-1">Supports ibb.co, imgur, postimages, Google Drive, or any direct image URL</div>
+                <div className="text-[8px] text-white/30 mt-1">
+                  Use a <span className="text-yellow-400 font-bold">direct image URL</span> ending in .jpg/.png — upload to{' '}
+                  <a href="https://imgbb.com" target="_blank" rel="noopener noreferrer" className="text-vortex-blue underline">imgbb.com</a> or{' '}
+                  <a href="https://imgur.com" target="_blank" rel="noopener noreferrer" className="text-vortex-blue underline">imgur.com</a> and copy the direct link
+                </div>
               </div>
               {newEvent.upiId && newEvent.upiQrCode && (
-                <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg border border-white/5">
-                  <div className="w-16 h-16 rounded border border-white/10 overflow-hidden flex-shrink-0">
-                    <SmartImage src={newEvent.upiQrCode} alt="QR" className="w-full h-full object-cover" showErrorHint />
-                  </div>
-                  <div className="text-xs text-white/60">
-                    <div className="font-medium">UPI: {newEvent.upiId}</div>
-                    <div className="text-[10px] text-white/40 mt-0.5">QR shown to users at payment</div>
-                  </div>
-                </div>
+                <QrPreview upiId={newEvent.upiId} upiQrCode={newEvent.upiQrCode} />
               )}
             </div>
           )}

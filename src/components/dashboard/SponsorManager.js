@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Edit2, Trash2, ExternalLink, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, ExternalLink, ToggleLeft, ToggleRight, Instagram } from 'lucide-react';
 import SmartImage from '../SmartImage';
 
 const SponsorManager = React.memo(({
@@ -156,6 +156,15 @@ const SponsorManager = React.memo(({
                                     placeholder="https://company.com"
                                     value={newSponsor.website}
                                     onChange={e => setNewSponsor({ ...newSponsor, website: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] text-white/30 uppercase font-black ml-1">Instagram URL</label>
+                                <input
+                                    className="input-glass p-3 rounded-xl w-full text-sm"
+                                    placeholder="https://instagram.com/company"
+                                    value={newSponsor.socialLinks?.instagram || ''}
+                                    onChange={e => setNewSponsor({ ...newSponsor, socialLinks: { ...newSponsor.socialLinks, instagram: e.target.value } })}
                                 />
                             </div>
                         </div>
@@ -326,6 +335,12 @@ const SponsorManager = React.memo(({
                                     <a href={sponsor.website} target="_blank" rel="noopener noreferrer"
                                         className="inline-flex items-center text-vortex-blue text-[10px] touch-manipulation">
                                         <ExternalLink size={10} className="mr-0.5" />Website
+                                    </a>
+                                )}
+                                {sponsor.socialLinks?.instagram && (
+                                    <a href={sponsor.socialLinks.instagram} target="_blank" rel="noopener noreferrer"
+                                        className="inline-flex items-center text-pink-400 text-[10px] touch-manipulation">
+                                        <Instagram size={10} className="mr-0.5" />Instagram
                                     </a>
                                 )}
                             </div>

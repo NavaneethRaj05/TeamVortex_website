@@ -170,6 +170,23 @@
     @apply glass-card border border-white/20 bg-white/5 text-white placeholder-white/50 focus:outline-none focus:border-vortex-blue focus:bg-white/10 transition-all duration-300;
     backdrop-filter: blur(20px);
   }
+
+  /* Override browser autofill white background */
+  .input-glass:-webkit-autofill,
+  .input-glass:-webkit-autofill:hover,
+  .input-glass:-webkit-autofill:focus,
+  .input-glass:-webkit-autofill:active,
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #0d0d0d inset !important;
+    box-shadow: 0 0 0 1000px #0d0d0d inset !important;
+    -webkit-text-fill-color: #ffffff !important;
+    caret-color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    transition: background-color 9999s ease-in-out 0s;
+  }
   
   /* Accessibility: Enhanced focus for inputs */
   .input-glass:focus-visible {

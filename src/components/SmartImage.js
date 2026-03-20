@@ -88,8 +88,10 @@ const SmartImage = ({
 
             {/* Error state */}
             {status === 'error' && (
-                <div className={`absolute inset-0 bg-red-500/10 border border-red-500/20 rounded flex flex-col items-center justify-center gap-1 p-2 ${fallbackClassName}`}>
-                    <span className="text-red-400 text-[10px] sm:text-xs font-medium text-center">Failed to load</span>
+                <div className={`absolute inset-0 bg-white/5 rounded flex flex-col items-center justify-center gap-1 p-2 ${fallbackClassName}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 3l18 18M3.75 3.75h16.5a.75.75 0 01.75.75v15a.75.75 0 01-.75.75H3.75a.75.75 0 01-.75-.75v-15a.75.75 0 01.75-.75z" />
+                    </svg>
                     {showErrorHint && (
                         <span className="text-white/30 text-[9px] text-center leading-tight">
                             Try: ibb.co, imgur, or any direct .jpg/.png URL

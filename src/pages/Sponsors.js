@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Search, ExternalLink, Mail, Phone, Building, Calendar } from 'lucide-react';
+import { Search, ExternalLink, Mail, Phone, Building, Calendar, Instagram } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
 import SmartImage from '../components/SmartImage';
 
@@ -252,6 +252,18 @@ const Sponsors = () => {
                     >
                       Visit Website
                       <ExternalLink className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1" />
+                    </a>
+                  )}
+                  {/* Instagram Link */}
+                  {sponsor.socialLinks?.instagram && (
+                    <a
+                      href={sponsor.socialLinks.instagram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-pink-400 hover:text-pink-300 transition-colors text-xs sm:text-sm font-medium py-1 touch-manipulation ml-4"
+                    >
+                      <Instagram className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
+                      Instagram
                     </a>
                   )}
                 </div>

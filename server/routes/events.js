@@ -777,51 +777,42 @@ router.post('/:id/verify-payment/:regIndex', async (req, res) => {
         }
 
         const primaryMember = registration.members[0];
+        const prevStatus = registration.paymentStatus;
 
         if (action === 'approve') {
             registration.paymentStatus = 'verified';
             registration.paid = true;
+            registration.registrationStatus = 'confirmed';
             registration.verifiedAt = new Date();
             registration.verifiedBy = verifiedBy || 'admin';
 
-            // Create Payment Log
-            await PaymentLog.create({
+            // Create Payment Log (non-blocking — don't let log failure crash verification)
+            PaymentLog.create({
                 eventId: event._id,
                 registrationIndex: regIndex,
                 teamName: registration.teamName,
-                leadEmail: primaryMember.email,
+                leadEmail: primaryMember?.email || 'unknown',
                 action: 'verified',
-                previousStatus: 'submitted',
+                previousStatus: prevStatus,
                 newStatus: 'verified',
                 amount: registration.paymentProof?.amountPaid || event.price,
                 utrNumber: registration.paymentProof?.utrNumber,
                 performedBy: verifiedBy || 'admin',
                 ipAddress: req.ip
-            });
+            }).catch(e => console.error('PaymentLog create error:', e));
 
-            // Send approval notification via email and WhatsApp
+            // Send approval notification
             try {
                 const notificationData = {
-                    name: primaryMember.name,
+                    name: primaryMember?.name,
                     eventTitle: event.title,
                     amount: registration.paymentProof?.amountPaid || event.price,
                     utrNumber: registration.paymentProof?.utrNumber,
-                    date: new Date(event.date).toLocaleDateString('en-US', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                    }),
-                    time: `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`,
+                    date: event.date ? new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '',
+                    time: event.startTime ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}` : '',
                     location: event.location
                 };
-
-                await sendNotification(
-                    ['email'],
-                    { email: primaryMember.email },
-                    'paymentApproved',
-                    notificationData
-                );
+                await sendNotification(['email'], { email: primaryMember?.email }, 'paymentApproved', notificationData);
             } catch (notifErr) {
                 console.error('Notification Error:', notifErr);
             }
@@ -829,48 +820,48 @@ router.post('/:id/verify-payment/:regIndex', async (req, res) => {
             registration.paymentStatus = 'rejected';
             registration.rejectionReason = rejectionReason || 'Payment verification failed';
 
-            // Create Payment Log
-            await PaymentLog.create({
+            // Create Payment Log (non-blocking)
+            PaymentLog.create({
                 eventId: event._id,
                 registrationIndex: regIndex,
                 teamName: registration.teamName,
-                leadEmail: primaryMember.email,
+                leadEmail: primaryMember?.email || 'unknown',
                 action: 'rejected',
-                previousStatus: 'submitted',
+                previousStatus: prevStatus,
                 newStatus: 'rejected',
                 rejectionReason: registration.rejectionReason,
                 performedBy: verifiedBy || 'admin',
                 ipAddress: req.ip
-            });
+            }).catch(e => console.error('PaymentLog create error:', e));
 
-            // Send rejection notification via email and WhatsApp
+            // Send rejection notification
             try {
                 const notificationData = {
-                    name: primaryMember.name,
+                    name: primaryMember?.name,
                     eventTitle: event.title,
                     reason: rejectionReason || 'Payment verification failed'
                 };
-
-                await sendNotification(
-                    ['email'],
-                    { email: primaryMember.email },
-                    'paymentRejected',
-                    notificationData
-                );
+                await sendNotification(['email'], { email: primaryMember?.email }, 'paymentRejected', notificationData);
             } catch (notifErr) {
                 console.error('Notification Error:', notifErr);
             }
         }
 
-        await event.save();
+        // Use $set on the specific registration to bypass full-document validation
+        const updatePath = `registrations.${regIndex}`;
+        await Event.updateOne(
+            { _id: event._id },
+            { $set: { [updatePath]: registration.toObject() } }
+        );
 
         res.json({
             message: action === 'approve' ? 'Payment verified successfully' : 'Payment rejected',
             status: registration.paymentStatus
         });
+
     } catch (err) {
-        console.error('Payment Verification Error:', err);
-        res.status(500).json({ message: 'Server error during payment verification' });
+        console.error('Payment Verification Error:', err.message, err.errors ? JSON.stringify(err.errors) : '');
+        res.status(500).json({ message: err.message || 'Server error during payment verification' });
     }
 });
 

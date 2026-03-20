@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     QrCode, Copy, Check, X, ArrowRight, ArrowLeft,
@@ -50,6 +50,23 @@ const PaymentFlow = ({
         paidFrom: '',
         userNotes: ''
     });
+
+    // Dedicated UTR setter — avoids full object spread on every keystroke (fixes focus loss)
+    const setUtr = useCallback((val) => {
+        setProofData(prev => ({ ...prev, utrNumber: val.toUpperCase().replace(/[^A-Z0-9]/g, '') }));
+    }, []);
+
+    // UTR validation: UPI/IMPS = 12 digits, NEFT = 16 chars, RTGS = 22 chars, Card = 12-18 alphanum
+    const utrValue = proofData.utrNumber;
+    const utrLen = utrValue.length;
+    const utrValid = utrLen >= 12 && utrLen <= 22;
+    const utrHint = utrLen === 0 ? '' :
+        utrLen < 12 ? `Too short — min 12 characters (${utrLen}/12)` :
+        utrLen === 12 ? '✓ Valid — UPI/IMPS/RRN (12 digits)' :
+        utrLen === 16 ? '✓ Valid — NEFT/UTR (16 characters)' :
+        utrLen === 22 ? '✓ Valid — RTGS (22 characters)' :
+        utrLen <= 18 ? '✓ Valid — Card payment reference' :
+        'Too long — max 22 characters';
 
     const copyToClipboard = (text) => {
         navigator.clipboard.writeText(text);
@@ -497,15 +514,29 @@ const PaymentFlow = ({
             {/* UTR/Transaction ID */}
             <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                    UTR / Transaction ID *
+                    UTR / Transaction ID <span className="text-red-400">*</span>
                 </label>
                 <input
                     type="text"
                     value={proofData.utrNumber}
-                    onChange={(e) => setProofData({ ...proofData, utrNumber: e.target.value })}
-                    placeholder="Enter 12-digit UTR number"
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50"
+                    onChange={(e) => setUtr(e.target.value)}
+                    placeholder="12–22 character transaction ID"
+                    maxLength={22}
+                    className={`w-full px-4 py-3 bg-black/40 border rounded-xl text-white font-mono placeholder-gray-500 focus:outline-none transition-colors ${
+                        utrLen === 0 ? 'border-white/10 focus:border-purple-500/50' :
+                        utrValid ? 'border-green-500/50 focus:border-green-500' :
+                        'border-red-500/50 focus:border-red-500'
+                    }`}
                 />
+                <div className={`text-xs mt-1.5 ${
+                    utrLen === 0 ? 'text-gray-500' :
+                    utrValid ? 'text-green-400' : 'text-red-400'
+                }`}>
+                    {utrLen === 0
+                        ? 'UPI/IMPS: 12 digits · NEFT: 16 chars · RTGS: 22 chars · Card: 12–18 chars'
+                        : utrHint
+                    }
+                </div>
             </div>
 
             {/* Transaction Date */}
@@ -574,7 +605,7 @@ const PaymentFlow = ({
                 </button>
                 <button
                     onClick={handleSubmitProof}
-                    disabled={isSubmitting || !canSubmit || !screenshot || !proofData.utrNumber}
+                    disabled={isSubmitting || !canSubmit || !screenshot || !proofData.utrNumber || !utrValid}
                     className="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold hover:from-purple-600 hover:to-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                     {isSubmitting ? (

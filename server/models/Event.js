@@ -37,7 +37,7 @@ const registrationSchema = new mongoose.Schema({
     // NEW: Enhanced Payment Tracking
     paymentStatus: {
         type: String,
-        enum: ['none', 'partial', 'full_paid', 'overpaid', 'refunded'],
+        enum: ['none', 'pending', 'submitted', 'partial', 'full_paid', 'overpaid', 'refunded', 'verified'],
         default: 'none'
     },
     
@@ -160,6 +160,8 @@ const eventSchema = new mongoose.Schema({
     registrationCloses: { type: Date },
     autoCloseOnCapacity: { type: Boolean, default: true },
     enableWaitlist: { type: Boolean, default: true },
+    collectTshirtSize: { type: Boolean, default: false },
+    collectDietaryPreference: { type: Boolean, default: false },
 
     // Eligibility & Restrictions - Enhanced
     eligibility: {
