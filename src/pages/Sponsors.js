@@ -118,14 +118,13 @@ const Sponsors = () => {
         >
           {/* Search Bar */}
           <div className="relative mb-6 max-w-md mx-auto">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40 pointer-events-none z-10" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none z-10" />
             <input
               type="text"
               placeholder="Search sponsors..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 glass-card border border-dark-border rounded-lg bg-transparent text-white text-sm sm:text-base placeholder-white/40 focus:outline-none focus:border-vortex-blue transition-colors"
-              style={{ paddingLeft: '2.75rem' }}
+              className="w-full pl-10 pr-4 py-3 glass-card border border-dark-border rounded-lg bg-transparent text-white text-sm placeholder-white/40 focus:outline-none focus:border-vortex-blue transition-colors"
             />
           </div>
 
@@ -260,10 +259,15 @@ const Sponsors = () => {
                       href={sponsor.socialLinks.instagram}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-pink-400 hover:text-pink-300 transition-colors text-xs sm:text-sm font-medium py-1 touch-manipulation ml-4"
+                      className="inline-flex items-center gap-1 text-xs sm:text-sm font-medium py-1 touch-manipulation ml-4 transition-opacity hover:opacity-80"
                     >
-                      <Instagram className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
-                      Instagram
+                      <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-md flex-shrink-0"
+                        style={{ background: 'radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%)' }}>
+                        <Instagram className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
+                      </span>
+                      <span style={{ background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        Instagram
+                      </span>
                     </a>
                   )}
                 </div>

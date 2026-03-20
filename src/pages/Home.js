@@ -367,11 +367,7 @@ const Home = () => {
                     <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">
                       {prayogDisplay.venue}
                     </span>
-                    {prayogEvent.priority > 0 && (
-                      <span className="px-4 py-2 rounded-full bg-yellow-500/20 text-yellow-400 text-sm font-bold">
-                        Priority {prayogEvent.priority}
-                      </span>
-                    )}
+                    {prayogEvent.priority > 0 && null}
                   </div>
                 </div>
 

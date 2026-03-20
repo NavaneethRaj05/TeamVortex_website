@@ -233,7 +233,9 @@ const AIChatbot = () => {
             initial={{ opacity: 0, y: 100, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.8 }}
-            className="glass-card rounded-2xl shadow-2xl flex flex-col overflow-hidden border-2 border-cyan-500/30 fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] w-[calc(100vw-2rem)] sm:w-96 max-w-[calc(100vw-2rem)] sm:max-w-96 h-[calc(100vh-2rem)] sm:h-[600px] max-h-[calc(100vh-2rem)] sm:max-h-[600px]"
+            className="glass-card flex flex-col overflow-hidden border-2 border-cyan-500/30 fixed z-[9999]
+              inset-0 rounded-none
+              sm:inset-auto sm:rounded-2xl sm:bottom-6 sm:right-6 sm:w-96 sm:h-[600px] sm:max-h-[calc(100vh-5rem)]"
             style={{
               boxShadow: '0 0 40px rgba(6, 182, 212, 0.3), 0 20px 60px rgba(0, 0, 0, 0.5)'
             }}
@@ -267,10 +269,10 @@ const AIChatbot = () => {
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-white/80 hover:text-white active:scale-95 transition-all p-2 -m-2 touch-manipulation hover:bg-white/10 rounded-lg relative z-10"
+                className="text-white hover:text-white active:scale-95 transition-all p-2 touch-manipulation bg-white/20 hover:bg-white/30 rounded-xl relative z-10 flex-shrink-0"
                 aria-label="Close Chat"
               >
-                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -289,9 +291,9 @@ const AIChatbot = () => {
                     </div>
                   )}
                   
-                  <div className={`max-w-[80%] sm:max-w-[75%] ${message.sender === 'user' ? 'order-1' : ''}`}>
+                  <div className={`max-w-[85%] sm:max-w-[75%] ${message.sender === 'user' ? 'order-1' : ''}`}>
                     <div
-                      className={`rounded-2xl p-2.5 sm:p-3 ${
+                      className={`rounded-2xl px-3 py-2 sm:p-3 ${
                         message.sender === 'user'
                           ? 'bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 text-white shadow-lg shadow-cyan-500/20'
                           : message.isSystemMessage
