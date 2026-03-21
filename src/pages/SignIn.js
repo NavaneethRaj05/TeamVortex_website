@@ -216,14 +216,14 @@ const SignIn = () => {
               <label className="block text-white/80 text-sm font-medium mb-2">
                 Email Address
               </label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none z-10" />
+              <div className="flex items-center gap-2 px-3 h-14 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl focus-within:border-vortex-blue focus-within:ring-2 focus-within:ring-vortex-blue/50 transition-all">
+                <Mail className="h-4 w-4 text-white/40 flex-shrink-0" />
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-4 glass-card border border-dark-border rounded-xl bg-transparent text-white placeholder-white/50 focus:outline-none focus:border-vortex-blue focus:ring-2 focus:ring-vortex-blue/50 transition-all"
+                  className="flex-1 h-full bg-transparent text-white placeholder-white/50 focus:outline-none"
                   placeholder="teamvortexnce@gmail.com"
                   required
                 />
@@ -235,28 +235,24 @@ const SignIn = () => {
               <label className="block text-white/80 text-sm font-medium mb-2">
                 Password
               </label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none z-10" />
+              <div className="flex items-center gap-2 px-3 h-14 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl focus-within:border-vortex-blue focus-within:ring-2 focus-within:ring-vortex-blue/50 transition-all">
+                <Lock className="h-4 w-4 text-white/40 flex-shrink-0" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-12 py-4 glass-card border border-dark-border rounded-xl bg-transparent text-white placeholder-white/50 focus:outline-none focus:border-vortex-blue focus:ring-2 focus:ring-vortex-blue/50 transition-all"
+                  className="flex-1 h-full bg-transparent text-white placeholder-white/50 focus:outline-none"
                   placeholder="Enter your password"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors p-1"
+                  className="text-white/40 hover:text-white transition-colors p-1 flex-shrink-0"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>

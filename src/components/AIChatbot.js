@@ -234,14 +234,14 @@ const AIChatbot = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.8 }}
             className="glass-card flex flex-col overflow-hidden border-2 border-cyan-500/30 fixed z-[9999]
-              inset-0 rounded-none
-              sm:inset-auto sm:rounded-2xl sm:bottom-6 sm:right-6 sm:w-96 sm:h-[600px] sm:max-h-[calc(100vh-5rem)]"
+              left-0 right-0 bottom-0 top-0 rounded-none
+              sm:inset-auto sm:top-auto sm:rounded-2xl sm:bottom-6 sm:right-6 sm:left-auto sm:w-96 sm:h-[600px] sm:max-h-[calc(100vh-5rem)]"
             style={{
               boxShadow: '0 0 40px rgba(6, 182, 212, 0.3), 0 20px 60px rgba(0, 0, 0, 0.5)'
             }}
           >
             {/* Header with Unique Animated Gradient */}
-            <div className="bg-gradient-animated p-3 sm:p-4 flex items-center justify-between flex-shrink-0 relative overflow-hidden">
+            <div className="bg-gradient-animated p-3 pt-16 sm:p-4 flex items-center justify-between flex-shrink-0 relative overflow-hidden">
               {/* Animated wave background */}
               <div className="absolute inset-0 bg-wave-animated opacity-30"></div>
               
@@ -283,7 +283,7 @@ const AIChatbot = () => {
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex gap-2 ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex gap-2 items-start ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {message.sender === 'bot' && (
                     <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 ring-2 ring-cyan-400/30 animate-pulse-glow">
@@ -293,7 +293,7 @@ const AIChatbot = () => {
                   
                   <div className={`max-w-[85%] sm:max-w-[75%] ${message.sender === 'user' ? 'order-1' : ''}`}>
                     <div
-                      className={`rounded-2xl px-3 py-2 sm:p-3 ${
+                      className={`rounded-2xl p-3 ${
                         message.sender === 'user'
                           ? 'bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 text-white shadow-lg shadow-cyan-500/20'
                           : message.isSystemMessage
@@ -362,7 +362,7 @@ const AIChatbot = () => {
 
               {/* Typing Indicator with Unique Colors */}
               {isTyping && (
-                <div className="flex gap-2 justify-start">
+                <div className="flex gap-2 items-start justify-start">
                   <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 ring-2 ring-cyan-400/30 animate-pulse-glow">
                     <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>

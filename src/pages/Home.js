@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Rocket, Users, Award, Code, ArrowRight, Zap, Globe, Calendar, Trophy, Key, Gamepad2 } from 'lucide-react';
+import { Target, Rocket, Users, Award, ArrowRight, Zap, Globe, Trophy, Code } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ParticleBackground from '../components/ParticleBackground';
 import UpcomingEventsPopup from '../components/UpcomingEventsPopup';
@@ -9,9 +9,7 @@ import API_BASE_URL from '../apiConfig';
 const Home = () => {
 
   const [events, setEvents] = useState([]);
-  const [pastEvents, setPastEvents] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
-  const [prayogEvent, setPrayogEvent] = useState(null);
   const [settings, setSettings] = useState(null);
 
   useEffect(() => {
@@ -38,132 +36,32 @@ const Home = () => {
 
   const fetchEvents = useCallback(async () => {
     try {
-      // Add cache-busting timestamp to force fresh data
       const timestamp = new Date().getTime();
       const res = await fetch(`${API_BASE_URL}/api/events/lightweight?t=${timestamp}`, {
         cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
       });
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
-
-      // Ensure data is an array
-      if (!Array.isArray(data)) {
-        console.error('Events data is not an array:', data);
-        return;
-      }
+      if (!Array.isArray(data)) return;
 
       const now = new Date();
-
-      // Filter upcoming events
       const upcoming = data.filter(e => {
         if (!e || e.status === 'draft' || e.status === 'completed') return false;
         const eventDate = new Date(e.date);
         const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
-
         if (e.endTime) {
           const [h, m] = e.endTime.split(':');
           eventEnd.setHours(parseInt(h), parseInt(m), 0);
         }
-
         return now <= eventEnd;
       });
       setEvents(upcoming);
 
-      // Filter ALL past events (automatic detection)
-      const allPastEvents = data.filter(e => {
-        if (!e || e.status === 'draft') return false;
-        if (e.status === 'completed') return true;
-
-        const eventDate = new Date(e.date);
-        const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
-
-        if (e.endTime) {
-          const [h, m] = e.endTime.split(':');
-          eventEnd.setHours(parseInt(h), parseInt(m), 0);
-        }
-
-        return now > eventEnd;
-      }).sort((a, b) => {
-        // Sort by Priority (descending) first, then Date (descending)
-        if ((b.priority || 0) !== (a.priority || 0)) {
-          return (b.priority || 0) - (a.priority || 0);
-        }
-        return new Date(b.date) - new Date(a.date);
-      });
-
-      // Set the most recent past event as featured (first in sorted array)
-      const featuredEvent = allPastEvents[0] || null;
-      setPrayogEvent(featuredEvent);
-
-      // Set remaining past events for gallery (skip the featured one, limit to 4)
-      const remainingPastEvents = allPastEvents.slice(1, 5);
-      setPastEvents(remainingPastEvents);
-
-      // Check session storage to show popup only once per session
       const popupShown = sessionStorage.getItem('upcomingEventsPopupShown');
-      if (!popupShown && upcoming.length > 0) {
-        setShowPopup(true);
-      }
+      if (!popupShown && upcoming.length > 0) setShowPopup(true);
     } catch (err) {
       console.error('Error fetching events:', err);
-      // Fallback to regular endpoint
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/events`);
-        const data = await res.json();
-
-        const now = new Date();
-
-        const upcoming = data.filter(e => {
-          if (!e || e.status === 'draft' || e.status === 'completed') return false;
-          const eventDate = new Date(e.date);
-          const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
-
-          if (e.endTime) {
-            const [h, m] = e.endTime.split(':');
-            eventEnd.setHours(parseInt(h), parseInt(m), 0);
-          }
-
-          return now <= eventEnd;
-        });
-        setEvents(upcoming);
-
-        // Filter ALL past events for fallback
-        const allPastEvents = data.filter(e => {
-          if (!e || e.status === 'draft') return false;
-          if (e.status === 'completed') return true;
-
-          const eventDate = new Date(e.date);
-          const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
-
-          if (e.endTime) {
-            const [h, m] = e.endTime.split(':');
-            eventEnd.setHours(parseInt(h), parseInt(m), 0);
-          }
-
-          return now > eventEnd;
-        }).sort((a, b) => {
-          if ((b.priority || 0) !== (a.priority || 0)) {
-            return (b.priority || 0) - (a.priority || 0);
-          }
-          return new Date(b.date) - new Date(a.date);
-        });
-
-        // Set the most recent past event as featured
-        const featuredEvent = allPastEvents[0] || null;
-        setPrayogEvent(featuredEvent);
-
-        // Set remaining past events for gallery
-        const remainingPastEvents = allPastEvents.slice(1, 5);
-        setPastEvents(remainingPastEvents);
-      } catch (fallbackErr) {
-        console.error('Error fetching events (fallback):', fallbackErr);
-      }
     }
   }, []);
 
@@ -184,86 +82,6 @@ const Home = () => {
     hidden: { opacity: 0, y: 30 },
     show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 60, damping: 15 } }
   }), []);
-
-  const prayogFallback = useMemo(() => ({
-    title: 'No Past Events Yet',
-    date: 'Coming Soon',
-    venue: 'Navkis College of Engineering',
-    description1: 'We are excited to bring you amazing technical events! Our team is working hard to organize innovative competitions, workshops, and hackathons that will challenge your skills and expand your knowledge.',
-    description2: 'Stay tuned for upcoming events. Follow us on social media and check back regularly for updates on our latest activities and competitions. Join Team Vortex and be part of the tech revolution!'
-  }), []);
-
-  const prayogDisplay = useMemo(() => {
-    if (!prayogEvent) return prayogFallback;
-
-    const eventDateStr = prayogEvent.date
-      ? new Date(prayogEvent.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-      : prayogFallback.date;
-
-    const venueStr = (prayogEvent.location || '').trim() || prayogFallback.venue;
-
-    const rawDesc = (prayogEvent.description || '').trim();
-    const parts = rawDesc
-      ? rawDesc.split(/\n\s*\n+/g).map(p => p.trim()).filter(Boolean)
-      : [];
-
-    return {
-      title: (prayogEvent.title || '').trim() || prayogFallback.title,
-      date: eventDateStr,
-      venue: venueStr,
-      description1: parts[0] || rawDesc || prayogFallback.description1,
-      description2: parts[1] || prayogFallback.description2
-    };
-  }, [prayogEvent, prayogFallback]);
-
-  const prayogSubEventsFallback = useMemo(() => ([
-    {
-      title: 'Champions League',
-      description: 'Branch-wise competitive event where teams represented their respective departments.',
-      details: 'Champions League was a branch-wise competitive event where teams represented their respective departments. It focused on testing participants\' technical knowledge, logical thinking, and teamwork through multiple challenging rounds, fostering healthy competition among branches.',
-      icon: 'Trophy',
-      color: 'from-yellow-500 to-orange-500',
-      duration: 'Full Day',
-      participants: 'Branch-wise Teams'
-    },
-    {
-      title: 'Hackathon',
-      description: 'Inter-college team-based coding and innovation challenge.',
-      details: 'The Hackathon was an inter-college team-based coding and innovation challenge. Teams worked intensively to develop practical solutions to real-world problems within a limited time. This event emphasized innovation, problem-solving, coding skills, and collaboration.',
-      icon: 'Code',
-      color: 'from-vortex-blue to-cyan-400',
-      duration: 'Full Day',
-      participants: 'Inter-College Teams'
-    },
-    {
-      title: 'Eureka',
-      description: 'Idea and innovation-based event conducted within the college.',
-      details: 'Eureka was an idea and innovation-based event conducted within the college. Teams presented creative solutions and project ideas to real-world or technical problems, focusing on original thinking, feasibility, and impact.',
-      icon: 'Key',
-      color: 'from-purple-500 to-pink-500',
-      duration: 'Half Day',
-      participants: 'Intra-College Teams'
-    },
-    {
-      title: 'Gameathon',
-      description: 'Fun yet competitive intra-college event centered around strategic games.',
-      details: 'Gameathon was a fun yet competitive intra-college event centered around strategic and skill-based games. It tested participants\' decision-making, coordination, and analytical skills, making it both engaging and intellectually stimulating.',
-      icon: 'Gamepad2',
-      color: 'from-red-500 to-vortex-orange',
-      duration: 'Half Day',
-      participants: 'Intra-College Teams'
-    }
-  ]), []);
-
-  const prayogSubEvents = useMemo(() => {
-    if (prayogEvent?.subEvents?.length > 0) return prayogEvent.subEvents;
-    return prayogSubEventsFallback;
-  }, [prayogEvent, prayogSubEventsFallback]);
-
-  const getIconComponent = useMemo(() => (iconName) => {
-    const icons = { Trophy, Code, Key, Gamepad2, Users };
-    return icons[iconName] || Calendar;
-  }, []);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -338,111 +156,6 @@ const Home = () => {
             <div className="w-1 h-3 bg-current rounded-full"></div>
           </div>
         </motion.div>
-      </section>
-
-      <section className="py-24 px-4 relative z-10">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-6xl font-orbitron font-bold mb-4 tracking-wider">
-              <span className="gradient-text">EVENTS GALLERY</span>
-            </h2>
-            <p className="text-white/60 text-lg max-w-2xl mx-auto">
-              Explore our memories and past events. A showcase of our journey, potential, and the milestones we've achieved together.
-            </p>
-          </div>
-
-          {/* Featured Past Event - Automatically shows most recent */}
-          {prayogEvent && (
-            <div className="glass-card overflow-hidden bg-white/5 border border-white/10 mb-8 sm:mb-12">
-              <div className="p-4 sm:p-6 md:p-10">
-                <div className="text-center mb-4 sm:mb-6 md:mb-8">
-                  <h3 className="text-2xl sm:text-3xl md:text-4xl font-orbitron font-bold mb-2 sm:mb-3 md:mb-4 tracking-wider">
-                    <span className="gradient-text">{prayogDisplay.title}</span>
-                  </h3>
-                  <div className="flex flex-col md:flex-row items-center justify-center gap-2 sm:gap-3 md:gap-4 text-white/60">
-                    <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">
-                      {prayogDisplay.date}
-                    </span>
-                    <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm">
-                      {prayogDisplay.venue}
-                    </span>
-                    {prayogEvent.priority > 0 && null}
-                  </div>
-                </div>
-
-                <div className="text-white/80 max-w-4xl mx-auto leading-relaxed space-y-2 sm:space-y-3 md:space-y-4 text-justify text-sm sm:text-base">
-                  <p>{prayogDisplay.description1}</p>
-                  <p>{prayogDisplay.description2}</p>
-                </div>
-
-                {/* Gallery Links for PRAYOG */}
-                {(prayogDisplay.images?.length > 0 || prayogDisplay.galleryDriveLink) && (
-                  <div className="mt-4 sm:mt-6 md:mt-8 flex flex-wrap gap-2 sm:gap-3 md:gap-4 justify-center">
-                    {prayogDisplay.images?.length > 0 && (
-                      <button className="glass-button text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2">
-                        📸 View Photos ({prayogDisplay.images.length})
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </button>
-                    )}
-                    {prayogDisplay.galleryDriveLink && (
-                      <button
-                        onClick={() => window.open(prayogDisplay.galleryDriveLink, '_blank')}
-                        className="glass-button text-green-400 border border-green-400/30 hover:bg-green-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"
-                      >
-                        📁 Drive Gallery
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {prayogSubEvents.length > 0 && (
-                  <div className="mt-4 sm:mt-6 md:mt-10">
-                    <h4 className="text-lg sm:text-xl font-bold text-white/80 mb-2 sm:mb-3 md:mb-4 text-center">Sub-Events</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-                      {prayogSubEvents.map((subEvent, index) => {
-                        // Safety check for subEvent
-                        if (!subEvent || !subEvent.title) {
-                          console.warn('Invalid prayog subEvent data:', subEvent);
-                          return null;
-                        }
-
-                        const IconComponent = getIconComponent(subEvent.icon);
-                        return (
-                          <div
-                            key={`home-prayog-subevent-${subEvent.title || index}`}
-                            className="p-3 sm:p-4 bg-white/5 rounded-xl border border-white/10 text-left"
-                          >
-                            <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br ${subEvent.color || 'from-blue-500 to-purple-500'} rounded-xl flex items-center justify-center mb-2 sm:mb-3`}>
-                              <IconComponent className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                            </div>
-                            <div className="text-xs sm:text-sm font-semibold text-white leading-tight">{subEvent.title}</div>
-                            {subEvent.duration && (
-                              <div className="text-[10px] sm:text-xs text-white/50 mt-0.5 sm:mt-1">{subEvent.duration}</div>
-                            )}
-                            {subEvent.participants && (
-                              <div className="text-[9px] sm:text-[11px] text-white/40 mt-0.5 sm:mt-1 leading-tight">{subEvent.participants}</div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* No Past Events Message */}
-          {!prayogEvent && pastEvents.length === 0 && (
-            <div className="glass-card p-12 text-center">
-              <Calendar className="w-16 h-16 text-white/20 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-white mb-2">No Past Events Yet</h3>
-              <p className="text-white/60">Events will automatically appear here once their date/time has passed.</p>
-            </div>
-          )}
-        </div>
       </section>
 
       {/* Stats Section with Counter Effect */}

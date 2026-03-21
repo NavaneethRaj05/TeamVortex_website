@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, Phone, GraduationCap, MapPin, Plus, X, Trophy, Upload, CheckCircle } from 'lucide-react';
 
@@ -567,4 +567,5 @@ const RegistrationForm = ({ event, onSubmit, submitting }) => {
   );
 };
 
-export default React.memo(RegistrationForm);
+const RegistrationFormMemo = React.memo(RegistrationForm);
+export default RegistrationFormMemo;

@@ -117,15 +117,17 @@ const Sponsors = () => {
           className="mb-8"
         >
           {/* Search Bar */}
-          <div className="relative mb-6 max-w-md mx-auto">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none z-10" />
-            <input
-              type="text"
-              placeholder="Search sponsors..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 glass-card border border-dark-border rounded-lg bg-transparent text-white text-sm placeholder-white/40 focus:outline-none focus:border-vortex-blue transition-colors"
-            />
+          <div className="mb-6 max-w-md mx-auto">
+            <div className="flex items-center gap-2 px-3 h-12 bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg focus-within:border-vortex-blue transition-colors">
+              <Search className="h-4 w-4 text-white/40 flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Search sponsors..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 h-full bg-transparent text-white text-sm placeholder-white/40 focus:outline-none"
+              />
+            </div>
           </div>
 
           {/* Type Filter */}

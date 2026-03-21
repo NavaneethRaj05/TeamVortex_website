@@ -1,6 +1,6 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X, Download } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
 import PaymentFlow from '../components/PaymentFlow';
 import SmartImage from '../components/SmartImage';
@@ -528,11 +528,6 @@ const Events = () => {
     }));
   };
 
-  const updateMember = (index, field, value) => {
-    const newMembers = [...rsvpForm.members];
-    newMembers[index][field] = value;
-    setRsvpForm({ ...rsvpForm, members: newMembers });
-  };
 
   const handleFeedbackSubmit = async (e) => {
     e.preventDefault();
