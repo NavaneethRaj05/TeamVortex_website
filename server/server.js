@@ -69,40 +69,37 @@ app.use('/api/', globalLimiter); // Apply to all API routes
 app.use('/api/auth/login', authLimiter);
 app.use('/api/events/:id/register', authLimiter);
 
-// Optimized Database Connection
+// Optimized Database Connection with retry
 mongoose.set('strictQuery', false);
-const connectDB = async () => {
+const connectDB = async (retries = 5) => {
     try {
         const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/team_vortex', {
-            // Connection optimization options
-            maxPoolSize: 20, // Increased pool for 1000 concurrent users
-            minPoolSize: 5,  // Keep minimum connections warm
-            serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-            socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-            // Additional performance optimizations
-            maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-            compressors: 'zlib', // Enable compression for network traffic
-            waitQueueTimeoutMS: 10000, // Wait up to 10s for a connection from pool
+            maxPoolSize: 20,
+            minPoolSize: 5,
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
+            maxIdleTimeMS: 30000,
+            compressors: 'zlib',
+            waitQueueTimeoutMS: 10000,
         });
-        
         console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-        
-        // Enable connection monitoring
-        mongoose.connection.on('error', (err) => {
-            console.error('❌ MongoDB connection error:', err);
-        });
-        
+
+        mongoose.connection.on('error', (err) => { console.error('❌ MongoDB connection error:', err); });
         mongoose.connection.on('disconnected', () => {
-            console.log('⚠️ MongoDB disconnected');
+            console.log('⚠️ MongoDB disconnected — retrying in 5s...');
+            setTimeout(() => connectDB(3), 5000);
         });
-        
-        mongoose.connection.on('reconnected', () => {
-            console.log('✅ MongoDB reconnected');
-        });
-        
+        mongoose.connection.on('reconnected', () => { console.log('✅ MongoDB reconnected'); });
+
     } catch (error) {
-        console.error('❌ MongoDB Connection Error:', error);
-        process.exit(1);
+        console.error('❌ MongoDB Connection Error:', error.message);
+        if (retries > 0) {
+            console.log(`⏳ Retrying in 5 seconds... (${retries} attempts left)`);
+            setTimeout(() => connectDB(retries - 1), 5000);
+        } else {
+            console.error('❌ MongoDB connection failed after all retries. Exiting.');
+            process.exit(1);
+        }
     }
 };
 

@@ -1,240 +1,240 @@
 const Event = require('../models/Event');
-const { sendNotification } = require('./notificationService');
+const { sendToAllMembers } = require('./notificationService');
+
+const fmt = (date) => new Date(date).toLocaleDateString('en-IN', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+});
 
 // ============================================
-// AUTOMATED EVENT REMINDERS (24 HOURS BEFORE)
+// TRIGGER 5: 24-HOUR REMINDER (10:00 AM daily)
 // ============================================
 
 const send24HourReminders = async () => {
     try {
         console.log('🔔 Running 24-hour reminder check...');
-        
+
         const now = new Date();
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        // Find events happening tomorrow
-        const upcomingEvents = await Event.find({
-            date: {
-                $gte: new Date(tomorrow.setHours(0, 0, 0, 0)),
-                $lt: new Date(tomorrow.setHours(23, 59, 59, 999))
-            },
+        const tomorrowStart = new Date(now); tomorrowStart.setDate(tomorrowStart.getDate() + 1); tomorrowStart.setHours(0, 0, 0, 0);
+        const tomorrowEnd   = new Date(tomorrowStart); tomorrowEnd.setHours(23, 59, 59, 999);
+
+        const events = await Event.find({
+            date: { $gte: tomorrowStart, $lt: tomorrowEnd },
             status: 'published'
         });
 
-        console.log(`📅 Found ${upcomingEvents.length} events happening tomorrow`);
+        console.log(`📅 Found ${events.length} events happening tomorrow`);
 
-        for (const event of upcomingEvents) {
-            // Send reminders to all verified registrations
-            const verifiedRegistrations = event.registrations.filter(
-                reg => reg.paymentStatus === 'verified' || event.price === 0
-            );
+        for (const event of events) {
+            let dirty = false;
 
-            console.log(`📧 Sending reminders for "${event.title}" to ${verifiedRegistrations.length} participants`);
+            for (let i = 0; i < event.registrations.length; i++) {
+                const reg = event.registrations[i];
 
-            for (const registration of verifiedRegistrations) {
-                const primaryMember = registration.members[0];
-                
-                const notificationData = {
-                    name: primaryMember.name,
+                // Only confirmed/verified registrations; skip if already sent
+                if (reg.reminderSent) continue;
+                if (event.price > 0 && reg.paymentStatus !== 'verified') continue;
+
+                await sendToAllMembers(reg.members, 'eventReminder24h', {
+                    name: reg.members[0].name,
                     eventTitle: event.title,
-                    date: new Date(event.date).toLocaleDateString('en-US', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                    }),
+                    date: fmt(event.date),
                     time: `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`,
                     location: event.location,
-                    teamName: registration.teamName,
-                    isMultiEvent: !!registration.multiEventGroupId,
-                    selectedEvents: registration.selectedSubEvents?.map(subEventId => {
-                        const subEvent = event.subEvents.find(se => se.id === subEventId || se.title === subEventId);
-                        return subEvent?.title || subEventId;
-                    }) || [],
+                    teamName: reg.teamName,
+                    isMultiEvent: !!reg.multiEventGroupId,
+                    selectedEvents: (reg.selectedSubEvents || []).map(id => {
+                        const sub = event.subEvents?.find(s => s.id === id || s.title === id);
+                        return sub?.title || id;
+                    }),
                     requirements: event.eligibility?.requiredDocs || []
-                };
+                });
 
-                // Send via email only (free)
-                await sendNotification(
-                    ['email'],
-                    { email: primaryMember.email },
-                    'eventReminder24h',
-                    notificationData
-                );
+                event.registrations[i].reminderSent = true;
+                dirty = true;
+            }
+
+            if (dirty) {
+                await Event.updateOne({ _id: event._id }, { $set: { registrations: event.registrations } });
             }
         }
 
-        console.log('✅ 24-hour reminders sent successfully');
-    } catch (error) {
-        console.error('❌ Error sending 24-hour reminders:', error);
+        console.log('✅ 24-hour reminders done');
+    } catch (err) {
+        console.error('❌ 24-hour reminder job failed:', err);
     }
 };
 
 // ============================================
-// POST-EVENT FEEDBACK COLLECTION
+// TRIGGER 6: FEEDBACK REQUEST (11:00 AM daily)
 // ============================================
 
 const sendFeedbackRequests = async () => {
     try {
-        console.log('📝 Running post-event feedback check...');
-        
+        console.log('📝 Running feedback request check...');
+
         const now = new Date();
-        const yesterday = new Date(now);
-        yesterday.setDate(yesterday.getDate() - 1);
-        
-        // Find events that ended yesterday
-        const completedEvents = await Event.find({
-            date: {
-                $gte: new Date(yesterday.setHours(0, 0, 0, 0)),
-                $lt: new Date(yesterday.setHours(23, 59, 59, 999))
-            },
+        const yesterdayStart = new Date(now); yesterdayStart.setDate(yesterdayStart.getDate() - 1); yesterdayStart.setHours(0, 0, 0, 0);
+        const yesterdayEnd   = new Date(yesterdayStart); yesterdayEnd.setHours(23, 59, 59, 999);
+
+        const events = await Event.find({
+            date: { $gte: yesterdayStart, $lt: yesterdayEnd },
             status: 'published'
         });
 
-        console.log(`📊 Found ${completedEvents.length} events completed yesterday`);
+        console.log(`📊 Found ${events.length} events completed yesterday`);
 
-        for (const event of completedEvents) {
-            // Send feedback requests to all verified registrations
-            const verifiedRegistrations = event.registrations.filter(
-                reg => reg.paymentStatus === 'verified' || event.price === 0
-            );
+        for (const event of events) {
+            let dirty = false;
 
-            console.log(`📧 Sending feedback requests for "${event.title}" to ${verifiedRegistrations.length} participants`);
+            for (let i = 0; i < event.registrations.length; i++) {
+                const reg = event.registrations[i];
 
-            for (const registration of verifiedRegistrations) {
-                const primaryMember = registration.members[0];
-                
-                // Generate feedback URL (adjust based on your frontend routing)
-                const feedbackUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/events?feedback=${event._id}`;
-                
-                const notificationData = {
-                    name: primaryMember.name,
+                if (reg.feedbackEmailSent) continue;
+                if (event.price > 0 && reg.paymentStatus !== 'verified') continue;
+
+                const feedbackUrl = `${process.env.CLIENT_URL || 'https://teamvortexnce.netlify.app'}/events?feedback=${event._id}`;
+
+                await sendToAllMembers(reg.members, 'feedbackRequest', {
+                    name: reg.members[0].name,
                     eventTitle: event.title,
-                    feedbackUrl: feedbackUrl
-                };
+                    feedbackUrl
+                });
 
-                // Send via email only (free)
-                await sendNotification(
-                    ['email'],
-                    { email: primaryMember.email },
-                    'feedbackRequest',
-                    notificationData
-                );
+                event.registrations[i].feedbackEmailSent = true;
+                dirty = true;
             }
 
-            // Mark event as completed
-            event.status = 'completed';
-            await event.save();
+            if (dirty) {
+                event.status = 'completed';
+                await Event.updateOne({ _id: event._id }, {
+                    $set: { registrations: event.registrations, status: 'completed' }
+                });
+            }
         }
 
-        console.log('✅ Feedback requests sent successfully');
-    } catch (error) {
-        console.error('❌ Error sending feedback requests:', error);
+        console.log('✅ Feedback requests done');
+    } catch (err) {
+        console.error('❌ Feedback request job failed:', err);
     }
 };
 
 // ============================================
-// PAYMENT REMINDER FOR PENDING PAYMENTS
+// TRIGGER 7: PAYMENT NUDGE (6:00 PM daily)
 // ============================================
 
 const sendPaymentReminders = async () => {
     try {
-        console.log('💰 Running payment reminder check...');
-        
-        const now = new Date();
-        const threeDaysAgo = new Date(now);
+        console.log('💰 Running payment nudge check...');
+
+        const threeDaysAgo = new Date();
         threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-        
-        // Find events with pending payments older than 3 days
+
         const events = await Event.find({
             'registrations.paymentStatus': 'pending',
-            'registrations.registeredAt': { $lt: threeDaysAgo },
             status: 'published'
         });
 
         console.log(`💳 Found ${events.length} events with pending payments`);
 
         for (const event of events) {
-            const pendingRegistrations = event.registrations.filter(
-                reg => reg.paymentStatus === 'pending' && 
-                       new Date(reg.registeredAt) < threeDaysAgo
-            );
+            let dirty = false;
 
-            for (const registration of pendingRegistrations) {
-                const primaryMember = registration.members[0];
-                
-                const notificationData = {
-                    name: primaryMember.name,
+            for (let i = 0; i < event.registrations.length; i++) {
+                const reg = event.registrations[i];
+
+                if (reg.paymentNudgeSent) continue;
+                if (reg.paymentStatus !== 'pending') continue;
+                if (new Date(reg.registeredAt) >= threeDaysAgo) continue;
+
+                const leader = reg.members[0];
+                await sendToAllMembers([leader], 'paymentNudge', {
+                    name: leader.name,
                     eventTitle: event.title,
-                    amount: registration.pricing?.total || event.price,
-                    date: new Date(event.date).toLocaleDateString(),
+                    amount: reg.pricing?.total || event.price,
+                    date: fmt(event.date),
                     time: `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`,
-                    location: event.location,
-                    paymentPending: true
-                };
+                    location: event.location
+                });
 
-                // Send reminder via email (free)
-                await sendNotification(
-                    ['email'],
-                    { email: primaryMember.email },
-                    'registrationConfirmation',
-                    notificationData
-                );
+                event.registrations[i].paymentNudgeSent = true;
+                dirty = true;
+            }
+
+            if (dirty) {
+                await Event.updateOne({ _id: event._id }, { $set: { registrations: event.registrations } });
             }
         }
 
-        console.log('✅ Payment reminders sent successfully');
-    } catch (error) {
-        console.error('❌ Error sending payment reminders:', error);
+        console.log('✅ Payment nudges done');
+    } catch (err) {
+        console.error('❌ Payment nudge job failed:', err);
     }
 };
 
 // ============================================
-// SIMPLE SCHEDULER (NO EXTERNAL DEPENDENCIES)
+// RETRY FAILED EMAILS (every 2 hours)
+// ============================================
+
+const retryFailedEmails = async () => {
+    try {
+        const FailedEmail = require('../models/FailedEmail');
+        const { sendEmail } = require('./notificationService');
+
+        const pending = await FailedEmail.find({ status: 'pending', retryCount: { $lt: 3 } });
+        if (pending.length === 0) return;
+
+        console.log(`🔄 Retrying ${pending.length} failed email(s)...`);
+
+        for (const record of pending) {
+            let allSent = true;
+            for (const email of record.recipients) {
+                try {
+                    await sendEmail(email, record.emailType, { ...record.data, name: record.data.name });
+                    console.log(`✅ Retry sent to ${email} (${record.emailType})`);
+                } catch (err) {
+                    console.error(`❌ Retry failed for ${email}:`, err.message);
+                    allSent = false;
+                    record.lastError = err.message;
+                }
+            }
+
+            record.retryCount += 1;
+            record.lastRetryAt = new Date();
+            record.status = allSent ? 'sent' : (record.retryCount >= 3 ? 'failed_permanently' : 'pending');
+            await record.save();
+        }
+    } catch (err) {
+        console.error('❌ Email retry job error:', err.message);
+    }
+};
+
+// ============================================
+// SCHEDULER (checks every minute)
 // ============================================
 
 const startScheduler = () => {
     console.log('🚀 Starting event scheduler...');
 
-    // Check every hour and run tasks at specific times
     setInterval(() => {
         const now = new Date();
-        const hour = now.getHours();
-        const minute = now.getMinutes();
+        const h = now.getHours();
+        const m = now.getMinutes();
 
-        // Run 24-hour reminders at 10:00 AM
-        if (hour === 10 && minute === 0) {
-            console.log('⏰ Triggering 24-hour reminder job');
-            send24HourReminders();
-        }
+        if (h === 10 && m === 0) { console.log('⏰ Triggering 24h reminder job');   send24HourReminders(); }
+        if (h === 11 && m === 0) { console.log('⏰ Triggering feedback job');        sendFeedbackRequests(); }
+        if (h === 18 && m === 0) { console.log('⏰ Triggering payment nudge job');   sendPaymentReminders(); }
 
-        // Run feedback collection at 11:00 AM
-        if (hour === 11 && minute === 0) {
-            console.log('⏰ Triggering feedback collection job');
-            sendFeedbackRequests();
-        }
+        // Retry failed emails every 2 hours (at :00 of even hours)
+        if (m === 0 && h % 2 === 0) { retryFailedEmails(); }
+    }, 60000);
 
-        // Run payment reminders at 6:00 PM — DISABLED (payment required at registration)
-        // if (hour === 18 && minute === 0) {
-        //     sendPaymentReminders();
-        // }
-    }, 60000); // Check every minute
-
-    console.log('✅ Event scheduler started successfully');
-    console.log('📅 24-hour reminders: Daily at 10:00 AM');
-    console.log('📝 Feedback requests: Daily at 11:00 AM');
-    console.log('💰 Payment reminders: Daily at 6:00 PM');
-};
-
-// Manual trigger functions (for testing or admin dashboard)
-const manualTriggers = {
-    send24HourReminders,
-    sendFeedbackRequests,
-    sendPaymentReminders
+    console.log('📅 24h reminders:    10:00 AM daily');
+    console.log('📝 Feedback:         11:00 AM daily');
+    console.log('💰 Payment nudges:    6:00 PM daily');
+    console.log('🔄 Email retries:    Every 2 hours');
 };
 
 module.exports = {
     startScheduler,
-    manualTriggers
+    manualTriggers: { send24HourReminders, sendFeedbackRequests, sendPaymentReminders, retryFailedEmails }
 };

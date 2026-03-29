@@ -312,35 +312,72 @@ const PaymentVerificationPanel = ({ selectedEventId = null }) => {
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-black/20 text-[10px] text-white/30 uppercase tracking-widest font-black">
                                     <tr>
-                                        <th className="p-3">Time</th>
                                         <th className="p-3">Team/Lead</th>
-                                        <th className="p-3">Action</th>
-                                        <th className="p-3">Performed By</th>
+                                        <th className="p-3">User Action</th>
+                                        <th className="p-3">Submitted At</th>
+                                        <th className="p-3">Admin Action</th>
+                                        <th className="p-3">Actioned At</th>
                                         <th className="p-3">Details</th>
                                     </tr>
                                 </thead>
                                 <tbody className="text-white/60 text-xs">
-                                    {paymentLogs.map((log, li) => (
-                                        <tr key={li} className="border-t border-white/5 hover:bg-white/[0.02]">
-                                            <td className="p-3 whitespace-nowrap">{new Date(log.timestamp).toLocaleString()}</td>
-                                            <td className="p-3">
-                                                <div className="font-bold text-white/80">{log.teamName || 'Solo'}</div>
-                                                <div className="text-[10px] opacity-40">{log.leadEmail}</div>
-                                            </td>
-                                            <td className="p-3">
-                                                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${log.action === 'verified' ? 'bg-green-500/20 text-green-400' :
-                                                    log.action === 'rejected' ? 'bg-red-500/20 text-red-400' :
-                                                        'bg-blue-500/20 text-blue-400'
-                                                    }`}>
-                                                    {log.action}
-                                                </span>
-                                            </td>
-                                            <td className="p-3">{log.performedBy}</td>
-                                            <td className="p-3 italic">
-                                                {log.rejectionReason || (log.utrNumber ? `UTR: ${log.utrNumber}` : '---')}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {(() => {
+                                        // Group logs by registrationIndex (or leadEmail as fallback)
+                                        const grouped = {};
+                                        paymentLogs.forEach(log => {
+                                            const key = log.registrationIndex != null ? log.registrationIndex : log.leadEmail;
+                                            if (!grouped[key]) grouped[key] = { submitted: null, admin: null, teamName: log.teamName, leadEmail: log.leadEmail };
+                                            if (log.action === 'submitted') grouped[key].submitted = log;
+                                            else grouped[key].admin = log;
+                                        });
+
+                                        return Object.values(grouped).map((group, gi) => (
+                                            <tr key={gi} className="border-t border-white/5 hover:bg-white/[0.02]">
+                                                <td className="p-3">
+                                                    <div className="font-bold text-white/80">{group.teamName || 'Solo'}</div>
+                                                    <div className="text-[10px] opacity-40">{group.leadEmail}</div>
+                                                </td>
+                                                {/* User action */}
+                                                <td className="p-3">
+                                                    {group.submitted ? (
+                                                        <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-blue-500/20 text-blue-400">
+                                                            Submitted
+                                                        </span>
+                                                    ) : <span className="text-white/20">—</span>}
+                                                </td>
+                                                <td className="p-3 whitespace-nowrap text-white/40">
+                                                    {group.submitted ? new Date(group.submitted.timestamp).toLocaleString() : '—'}
+                                                </td>
+                                                {/* Admin action */}
+                                                <td className="p-3">
+                                                    {group.admin ? (
+                                                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                                            group.admin.action === 'verified'
+                                                                ? 'bg-green-500/20 text-green-400'
+                                                                : 'bg-red-500/20 text-red-400'
+                                                        }`}>
+                                                            {group.admin.action === 'verified' ? 'Approved' : 'Rejected'}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-yellow-500/20 text-yellow-400">
+                                                            Pending
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="p-3 whitespace-nowrap text-white/40">
+                                                    {group.admin ? new Date(group.admin.timestamp).toLocaleString() : '—'}
+                                                </td>
+                                                {/* Details */}
+                                                <td className="p-3 italic text-white/50">
+                                                    {group.admin?.rejectionReason
+                                                        ? <span className="text-red-400/70">{group.admin.rejectionReason}</span>
+                                                        : group.submitted?.utrNumber
+                                                        ? `UTR: ${group.submitted.utrNumber}`
+                                                        : '—'}
+                                                </td>
+                                            </tr>
+                                        ));
+                                    })()}
                                 </tbody>
                             </table>
                         ) : (

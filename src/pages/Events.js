@@ -347,11 +347,30 @@ const Events = () => {
     const submitData = forceData || rsvpForm;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/events/${rsvpEvent._id}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitData)
-      });
+      // Retry up to 3 times on network/server errors
+      let res, lastErr;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+          res = await fetch(`${API_BASE_URL}/api/events/${rsvpEvent._id}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(submitData),
+            signal: controller.signal
+          });
+          clearTimeout(timeout);
+          break; // success — exit retry loop
+        } catch (fetchErr) {
+          lastErr = fetchErr;
+          if (fetchErr.name === 'AbortError') {
+            lastErr = new Error('Request timed out. Please try again.');
+            break; // don't retry on timeout
+          }
+          if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 1000));
+        }
+      }
+      if (!res) throw new Error(lastErr?.message || 'Network error. Please check your connection and try again.');
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ message: 'Registration failed' }));

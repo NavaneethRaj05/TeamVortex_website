@@ -130,14 +130,18 @@ const SponsorManager = React.memo(({
                         {/* Logo and Website */}
                         <div className="grid grid-cols-1 gap-4">
                             <div className="space-y-1">
-                                <label className="text-[10px] text-white/30 uppercase font-black ml-1">Logo URL *</label>
+                                <label className="text-[10px] text-white/30 uppercase font-black ml-1">Logo URL</label>
                                 <input
                                     className="input-glass p-3 rounded-xl w-full text-sm"
-                                    placeholder="https://example.com/logo.png"
+                                    placeholder="https://i.ibb.co/xxxx/logo.png"
                                     value={newSponsor.logo}
                                     onChange={e => setNewSponsor({ ...newSponsor, logo: e.target.value })}
-                                    required
                                 />
+                                <p className="text-[10px] text-white/30 ml-1">
+                                    Upload your logo at{' '}
+                                    <a href="https://imgbb.com" target="_blank" rel="noopener noreferrer" className="text-vortex-blue underline">imgbb.com</a>
+                                    {' '}→ copy the "Direct link" and paste above.
+                                </p>
                                 {newSponsor.logo && (
                                     <div className="mt-2 w-20 h-20 rounded-lg border border-white/10 overflow-hidden bg-white/5">
                                         <SmartImage

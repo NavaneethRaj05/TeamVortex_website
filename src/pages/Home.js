@@ -158,6 +158,75 @@ const Home = () => {
         </motion.div>
       </section>
 
+      {/* Association Logos Slider — only shown when logo count meets the minimum */}
+      {(() => {
+        const logos = settings?.associationLogos || [];
+        const minRequired = settings?.associationSliderMinLogos ?? 3;
+        if (logos.length < minRequired) return null;
+        return (
+        <section className="relative z-10 overflow-hidden">
+          {/* Top divider with glow */}
+          <div className="h-px bg-gradient-to-r from-transparent via-vortex-blue/40 to-transparent" />
+
+          <div className="py-12 sm:py-20 bg-gradient-to-b from-black/80 via-black/60 to-black/80 backdrop-blur-md">
+            <p className="text-center text-sm sm:text-base font-bold tracking-[0.25em] sm:tracking-[0.3em] text-white/60 uppercase mb-8 sm:mb-14 px-4">
+              {settings?.associationSliderTitle || 'In Association With'}
+            </p>
+
+            <div className="relative overflow-hidden">
+              {/* Fade edges — narrower on mobile */}
+              <div className="absolute left-0 top-0 bottom-0 w-10 sm:w-32 z-10 bg-gradient-to-r from-black to-transparent pointer-events-none" />
+              <div className="absolute right-0 top-0 bottom-0 w-10 sm:w-32 z-10 bg-gradient-to-l from-black to-transparent pointer-events-none" />
+
+              <div className="logo-slider-wrapper">
+                {/* First set */}
+                <div className="logo-slider-set">
+                  {logos.map((logo, idx) => (
+                    <div key={idx} className="flex flex-col items-center justify-center flex-shrink-0 px-5 sm:px-16">
+                      <div className="h-16 w-32 sm:h-24 sm:w-48 flex items-center justify-center p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 hover:border-vortex-blue/40 hover:bg-white/10 transition-all duration-300">
+                        <img
+                          src={logo.url}
+                          alt={logo.label || `Partner ${idx + 1}`}
+                          className="max-h-10 sm:max-h-16 max-w-[6rem] sm:max-w-[9rem] w-auto object-contain opacity-70 hover:opacity-100 transition-opacity duration-300"
+                          onError={e => { e.target.parentElement.parentElement.style.display = 'none'; }}
+                        />
+                      </div>
+                      {logo.label && (
+                        <span className="text-[10px] sm:text-[11px] text-white/35 whitespace-nowrap tracking-widest uppercase mt-2 sm:mt-3">{logo.label}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {/* Clone — seamless loop */}
+                <div className="logo-slider-set" aria-hidden="true">
+                  {logos.map((logo, idx) => (
+                    <div key={idx} className="flex flex-col items-center justify-center flex-shrink-0 px-5 sm:px-16">
+                      <div className="h-16 w-32 sm:h-24 sm:w-48 flex items-center justify-center p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10">
+                        <img
+                          src={logo.url}
+                          alt=""
+                          className="max-h-10 sm:max-h-16 max-w-[6rem] sm:max-w-[9rem] w-auto object-contain opacity-70"
+                          onError={e => { e.target.parentElement.parentElement.style.display = 'none'; }}
+                        />
+                      </div>
+                      {logo.label && (
+                        <span className="text-[10px] sm:text-[11px] text-white/35 whitespace-nowrap tracking-widest uppercase mt-2 sm:mt-3">{logo.label}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom divider with glow */}
+          <div className="h-px bg-gradient-to-r from-transparent via-vortex-blue/40 to-transparent" />
+          {/* Extra breathing room before stats */}
+          <div className="h-10 sm:h-20 bg-gradient-to-b from-black/40 to-transparent" />
+        </section>
+        );
+      })()}
+
       {/* Stats Section with Counter Effect */}
       <section className="py-20 border-y border-white/5 bg-black/80 backdrop-blur-md z-10 relative">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">

@@ -107,7 +107,12 @@ const registrationSchema = new mongoose.Schema({
         multiEventDiscount: { type: Number, default: 0 },
         couponDiscount: { type: Number, default: 0 },
         total: { type: Number, default: 0 }
-    }
+    },
+
+    // Email tracking flags (prevent duplicate scheduled emails)
+    reminderSent: { type: Boolean, default: false },
+    feedbackEmailSent: { type: Boolean, default: false },
+    paymentNudgeSent: { type: Boolean, default: false }
 });
 
 const eventSchema = new mongoose.Schema({

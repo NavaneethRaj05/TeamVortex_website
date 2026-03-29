@@ -241,7 +241,7 @@ const AIChatbot = () => {
             }}
           >
             {/* Header with Unique Animated Gradient */}
-            <div className="bg-gradient-animated p-3 pt-16 sm:p-4 flex items-center justify-between flex-shrink-0 relative overflow-hidden">
+            <div className="bg-gradient-animated px-3 pt-16 pb-3 sm:p-4 flex items-center justify-between flex-shrink-0 relative overflow-hidden">
               {/* Animated wave background */}
               <div className="absolute inset-0 bg-wave-animated opacity-30"></div>
               
@@ -293,7 +293,7 @@ const AIChatbot = () => {
                   
                   <div className={`max-w-[85%] sm:max-w-[75%] ${message.sender === 'user' ? 'order-1' : ''}`}>
                     <div
-                      className={`rounded-2xl p-3 ${
+                      className={`rounded-xl px-3 py-2.5 min-w-[2.5rem] ${
                         message.sender === 'user'
                           ? 'bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 text-white shadow-lg shadow-cyan-500/20'
                           : message.isSystemMessage
@@ -301,7 +301,7 @@ const AIChatbot = () => {
                           : 'bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-purple-500/10 text-white border border-cyan-500/30 backdrop-blur-sm'
                       }`}
                     >
-                      <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-line">{message.text}</p>
+                      <p className="text-sm leading-relaxed whitespace-pre-line">{message.text}</p>
                     </div>
                     
                     {/* Feedback Buttons - Only for bot messages that ask for feedback */}

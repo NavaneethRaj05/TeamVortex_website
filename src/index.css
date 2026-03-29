@@ -2761,3 +2761,34 @@ label:has(input:disabled) {
 label:has(input:disabled):hover {
   background-color: transparent;
 }
+
+
+/* ========================================
+   ASSOCIATION LOGO SLIDER (MARQUEE)
+   ======================================== */
+
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.logo-slider-wrapper {
+  display: flex;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+}
+
+.logo-slider-wrapper:hover {
+  animation-play-state: paused;
+}
+
+.logo-slider-set {
+  display: flex;
+  flex-shrink: 0;
+}
+
+@media (max-width: 639px) {
+  .logo-slider-wrapper {
+    animation-duration: 20s;
+  }
+}

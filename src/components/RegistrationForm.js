@@ -74,26 +74,22 @@ const UsnField = ({ value, onChange }) => {
       <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">
         Student ID / USN *
       </label>
-      <div className="relative">
-        <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" size={15} />
+      <div className={`flex items-center input-glass rounded-lg overflow-hidden ${
+        showError ? 'border-red-400/60' : isValid && value ? 'border-green-400/60' : ''
+      }`}>
+        <GraduationCap className="ml-3 flex-shrink-0 text-white/30" size={15} />
         <input
           type="text"
           required
-          className={`w-full input-glass pl-9 pr-8 p-3 rounded-lg text-sm uppercase tracking-widest font-mono ${
-            showError ? 'border-red-400/60' : isValid && value ? 'border-green-400/60' : ''
-          }`}
+          className="flex-1 bg-transparent px-3 py-3 text-sm text-white placeholder-white/50 focus:outline-none min-w-0 uppercase tracking-widest font-mono"
           placeholder="e.g. 1XX23XX000"
           value={value}
           onChange={handleChange}
           onBlur={() => setTouched(true)}
           maxLength={10}
         />
-        {isValid && value && (
-          <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 text-green-400" size={14} />
-        )}
-        {showError && (
-          <X className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400" size={14} />
-        )}
+        {isValid && value && <CheckCircle className="mr-3 flex-shrink-0 text-green-400" size={14} />}
+        {showError && <X className="mr-3 flex-shrink-0 text-red-400" size={14} />}
       </div>
       {/* Format hint always visible */}
       <p className="text-[10px] text-white/30 ml-1 font-mono tracking-wider">
@@ -204,11 +200,11 @@ const MemberCard = ({ member, index, isPrimary, canRemove, onChange, onRemove, s
         {/* Full Name */}
         <div className="space-y-1">
           <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">Full Name *</label>
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" size={15} />
+          <div className="flex items-center input-glass rounded-lg overflow-hidden">
+            <User className="ml-3 flex-shrink-0 text-white/30" size={15} />
             <input
               type="text" required
-              className="w-full input-glass pl-9 p-3 rounded-lg text-sm"
+              className="flex-1 bg-transparent px-3 py-3 text-sm text-white placeholder-white/50 focus:outline-none min-w-0"
               placeholder="Enter full name"
               value={member.name}
               onChange={e => onChange('name', e.target.value)}
@@ -219,21 +215,21 @@ const MemberCard = ({ member, index, isPrimary, canRemove, onChange, onRemove, s
         {/* Email */}
         <div className="space-y-1">
           <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">Email Address *</label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" size={15} />
+          <div className={`flex items-center input-glass rounded-lg overflow-hidden ${
+            emailState.isValid === false ? 'border-red-400/60' :
+            emailState.isValid === true ? 'border-green-400/60' : ''
+          }`}>
+            <Mail className="ml-3 flex-shrink-0 text-white/30" size={15} />
             <input
               type="email" required
-              className={`w-full input-glass pl-9 pr-8 p-3 rounded-lg text-sm ${
-                emailState.isValid === false ? 'border-red-400/60' :
-                emailState.isValid === true ? 'border-green-400/60' : ''
-              }`}
+              className="flex-1 bg-transparent px-3 py-3 text-sm text-white placeholder-white/50 focus:outline-none min-w-0"
               placeholder="email@example.com"
               value={member.email}
               onChange={e => { onChange('email', e.target.value); setEmailState({ isValid: null, error: null }); }}
               onBlur={handleEmailBlur}
             />
-            {emailState.isValid === true && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 text-green-400" size={14} />}
-            {emailState.isValid === false && <X className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400" size={14} />}
+            {emailState.isValid === true && <CheckCircle className="mr-3 flex-shrink-0 text-green-400" size={14} />}
+            {emailState.isValid === false && <X className="mr-3 flex-shrink-0 text-red-400" size={14} />}
           </div>
           {emailState.error && <p className="text-red-400 text-[10px] ml-1">{emailState.error}</p>}
         </div>
@@ -241,11 +237,11 @@ const MemberCard = ({ member, index, isPrimary, canRemove, onChange, onRemove, s
         {/* Phone */}
         <div className="space-y-1">
           <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">Phone Number *</label>
-          <div className="relative">
-            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" size={15} />
+          <div className="flex items-center input-glass rounded-lg overflow-hidden">
+            <Phone className="ml-3 flex-shrink-0 text-white/30" size={15} />
             <input
               type="tel" required
-              className="w-full input-glass pl-9 p-3 rounded-lg text-sm"
+              className="flex-1 bg-transparent px-3 py-3 text-sm text-white placeholder-white/50 focus:outline-none min-w-0"
               placeholder="10-digit mobile number"
               value={member.phone}
               onChange={e => onChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
@@ -282,11 +278,11 @@ const MemberCard = ({ member, index, isPrimary, canRemove, onChange, onRemove, s
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">State *</label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" size={15} />
+            <div className="flex items-center input-glass rounded-lg overflow-hidden">
+              <MapPin className="ml-3 flex-shrink-0 text-white/30" size={15} />
               <select
                 required
-                className="w-full input-glass pl-9 p-3 rounded-lg text-sm bg-[#1a1a1a] text-white"
+                className="flex-1 bg-transparent px-3 py-3 text-sm text-white focus:outline-none min-w-0 cursor-pointer"
                 value={member.state}
                 onChange={e => onChange('state', e.target.value)}
               >
@@ -306,8 +302,10 @@ const MemberCard = ({ member, index, isPrimary, canRemove, onChange, onRemove, s
       <div className="space-y-2 pt-1">
         <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">College ID Card *</label>
         <input
-          type="file" accept="image/jpeg,image/png,application/pdf"
-          className="hidden" id={`id-card-${index}`}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,application/pdf"
+          className="hidden"
+          id={`id-card-${index}`}
           onChange={handleFileChange}
         />
         {member.idCardFileName ? (
@@ -316,20 +314,19 @@ const MemberCard = ({ member, index, isPrimary, canRemove, onChange, onRemove, s
             <span className="text-green-300 text-xs flex-1 truncate">{member.idCardFileName}</span>
             <button type="button"
               onClick={() => { onChange('idCardFile', null); onChange('idCardFileName', ''); }}
-              className="text-white/30 hover:text-red-400 transition-colors flex-shrink-0">
+              className="text-white/30 hover:text-red-400 transition-colors flex-shrink-0 p-1">
               <X size={14} />
             </button>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => document.getElementById(`id-card-${index}`).click()}
-            className="w-full py-4 border-2 border-dashed border-white/10 rounded-xl hover:border-vortex-blue/40 hover:bg-vortex-blue/5 transition-all flex flex-col items-center gap-2 group touch-manipulation"
+          <label
+            htmlFor={`id-card-${index}`}
+            className="w-full py-5 border-2 border-dashed border-white/10 rounded-xl hover:border-vortex-blue/40 hover:bg-vortex-blue/5 active:bg-vortex-blue/10 transition-all flex flex-col items-center gap-2 group cursor-pointer touch-manipulation select-none"
           >
-            <Upload size={20} className="text-white/30 group-hover:text-vortex-blue transition-colors" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-vortex-blue transition-colors">Upload ID Card</span>
-            <span className="text-[9px] text-white/20">JPG, PNG, PDF — Max 2MB</span>
-          </button>
+            <Upload size={22} className="text-white/30 group-hover:text-vortex-blue transition-colors" />
+            <span className="text-[11px] font-black uppercase tracking-widest text-white/40 group-hover:text-vortex-blue transition-colors">Upload ID Card</span>
+            <span className="text-[10px] text-white/20">JPG, PNG, PDF — Max 2MB</span>
+          </label>
         )}
       </div>
 
@@ -356,15 +353,6 @@ const MemberCard = ({ member, index, isPrimary, canRemove, onChange, onRemove, s
           )}
         </div>
       )}
-
-      {/* Emergency Contact */}
-      <div className="space-y-2 pt-1 border-t border-white/5">
-        <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Emergency Contact</label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {field('Name', 'emergencyContactName', 'text', { placeholder: 'Parent / Guardian name' })}
-          {field('Phone', 'emergencyContactPhone', 'tel', { placeholder: '10-digit number' })}
-        </div>
-      </div>
 
       {/* Special Requirements */}
       <div className="space-y-1 pt-1 border-t border-white/5">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Save, Lock } from 'lucide-react';
+import { Save, Lock, Plus, Trash2 } from 'lucide-react';
 
 const SettingsManager = ({
     clubSettings,
@@ -10,6 +10,7 @@ const SettingsManager = ({
 }) => {
     // Safe defaults with proper fallbacks
     const safeSettings = clubSettings || {};
+    const associationLogos = safeSettings.associationLogos || [];
     const stats = safeSettings.stats || {
         activeMembers: "25+",
         projectsBuilt: "50+",
@@ -195,6 +196,98 @@ const SettingsManager = ({
                         className="w-full glass-button bg-green-500 text-black font-bold flex justify-center items-center gap-2"
                     >
                         <Save size={18} /> Save Vision & Mission
+                    </button>
+                </div>
+            </section>
+
+            {/* Association Logos Slider Section */}
+            <section className="pt-8 border-t border-white/10">
+                <h2 className="text-2xl font-bold text-center text-white mb-2">Association Logos Slider</h2>
+                <p className="text-white/40 text-sm text-center mb-6">These logos appear in the scrolling strip on the Home page.</p>
+                <div className="glass-card p-4 sm:p-8 space-y-4">
+                    <div>
+                        <label className="text-white/60 text-sm block mb-2">Section Heading</label>
+                        <input
+                            type="text"
+                            className="w-full input-glass p-3 rounded-lg"
+                            placeholder="e.g. In Association With"
+                            value={safeSettings.associationSliderTitle || ''}
+                            onChange={e => setClubSettings({ ...safeSettings, associationSliderTitle: e.target.value })}
+                        />
+                        <p className="text-white/30 text-xs mt-1">This text appears above the logo slider on the Home page.</p>
+                    </div>
+                    <div>
+                        <label className="text-white/60 text-sm block mb-2">Minimum logos required to show slider</label>
+                        <input
+                            type="number"
+                            min="1"
+                            max="20"
+                            className="w-full input-glass p-3 rounded-lg"
+                            placeholder="e.g. 3"
+                            value={safeSettings.associationSliderMinLogos ?? 3}
+                            onChange={e => setClubSettings({ ...safeSettings, associationSliderMinLogos: parseInt(e.target.value) || 1 })}
+                        />
+                        <p className="text-white/30 text-xs mt-1">
+                            Slider only appears on Home page when you have at least this many logos added.
+                            {associationLogos.length > 0 && (
+                                <span className={`ml-2 font-semibold ${associationLogos.length >= (safeSettings.associationSliderMinLogos ?? 3) ? 'text-green-400' : 'text-yellow-400'}`}>
+                                    {associationLogos.length >= (safeSettings.associationSliderMinLogos ?? 3)
+                                        ? `✓ ${associationLogos.length} logos added — slider is active`
+                                        : `⚠ ${associationLogos.length} of ${safeSettings.associationSliderMinLogos ?? 3} required logos added`}
+                                </span>
+                            )}
+                        </p>
+                    </div>
+                    {associationLogos.map((logo, idx) => (
+                        <div key={idx} className="flex gap-3 items-center">
+                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <input
+                                    type="url"
+                                    className="w-full input-glass p-3 rounded-lg text-sm"
+                                    placeholder="Logo image URL (https://...)"
+                                    value={logo.url}
+                                    onChange={e => {
+                                        const updated = [...associationLogos];
+                                        updated[idx] = { ...updated[idx], url: e.target.value };
+                                        setClubSettings({ ...safeSettings, associationLogos: updated });
+                                    }}
+                                />
+                                <input
+                                    type="text"
+                                    className="w-full input-glass p-3 rounded-lg text-sm"
+                                    placeholder="Label (e.g. CSE Dept)"
+                                    value={logo.label}
+                                    onChange={e => {
+                                        const updated = [...associationLogos];
+                                        updated[idx] = { ...updated[idx], label: e.target.value };
+                                        setClubSettings({ ...safeSettings, associationLogos: updated });
+                                    }}
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const updated = associationLogos.filter((_, i) => i !== idx);
+                                    setClubSettings({ ...safeSettings, associationLogos: updated });
+                                }}
+                                className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-400 transition-colors flex-shrink-0"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
+                    ))}
+                    <button
+                        type="button"
+                        onClick={() => setClubSettings({ ...safeSettings, associationLogos: [...associationLogos, { url: '', label: '' }] })}
+                        className="w-full glass-button border border-dashed border-white/20 text-white/60 hover:text-white flex justify-center items-center gap-2 py-3"
+                    >
+                        <Plus size={16} /> Add Logo
+                    </button>
+                    <button
+                        onClick={(e) => { e.preventDefault(); onSaveSettings(e); }}
+                        className="w-full glass-button bg-green-500 text-black font-bold flex justify-center items-center gap-2"
+                    >
+                        <Save size={18} /> Save Association Logos
                     </button>
                 </div>
             </section>

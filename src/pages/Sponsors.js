@@ -175,17 +175,48 @@ const Sponsors = () => {
                 className="glass-card overflow-hidden hover:bg-white/10 transition-all duration-300 group cursor-pointer"
               >
                 {/* Logo Section */}
-                <div className="h-32 sm:h-40 flex items-center justify-center bg-gradient-to-br from-gray-900/40 to-gray-800/40 p-4 sm:p-6">
+                <div className="h-32 sm:h-40 flex items-center justify-center relative overflow-hidden p-4 sm:p-6"
+                  style={{
+                    background: sponsor.logo
+                      ? 'linear-gradient(135deg, rgba(17,17,27,0.8) 0%, rgba(30,30,50,0.8) 100%)'
+                      : (() => {
+                          const gradients = {
+                            title: 'linear-gradient(135deg, #78350f 0%, #92400e 50%, #b45309 100%)',
+                            platinum: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)',
+                            gold: 'linear-gradient(135deg, #713f12 0%, #92400e 50%, #a16207 100%)',
+                            silver: 'linear-gradient(135deg, #1e293b 0%, #374151 50%, #4b5563 100%)',
+                            bronze: 'linear-gradient(135deg, #431407 0%, #7c2d12 50%, #9a3412 100%)',
+                            media: 'linear-gradient(135deg, #2e1065 0%, #4c1d95 50%, #5b21b6 100%)',
+                          };
+                          return gradients[sponsor.type] || 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)';
+                        })()
+                  }}
+                >
+                  {/* Decorative background circles for no-logo state */}
+                  {!sponsor.logo && (
+                    <>
+                      <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-20"
+                        style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)' }} />
+                      <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full opacity-10"
+                        style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)' }} />
+                    </>
+                  )}
+
                   {sponsor.logo ? (
                     <SmartImage
                       src={sponsor.logo}
                       alt={sponsor.name}
-                      className="max-h-full max-w-full object-contain"
+                      className="max-h-full max-w-full object-contain relative z-10"
                       fallbackClassName="w-full h-full"
                     />
                   ) : (
-                    <div className="text-4xl sm:text-6xl">
-                      {getSponsorTypeIcon(sponsor.type)}
+                    <div className="relative z-10 flex flex-col items-center gap-2">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-2xl sm:text-3xl shadow-lg">
+                        {getSponsorTypeIcon(sponsor.type)}
+                      </div>
+                      <span className="text-white/60 text-xs font-semibold tracking-widest uppercase">
+                        {sponsor.name.split(' ').map(w => w[0]).join('').slice(0, 3)}
+                      </span>
                     </div>
                   )}
                 </div>

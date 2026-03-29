@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
 const PaymentLog = require('../models/PaymentLog');
-const { sendNotification } = require('../utils/notificationService');
+const { sendNotification, sendEmail, sendToAllMembers, sendToAllMembersSafe } = require('../utils/notificationService');
 
 // @route   GET /api/events/main-only
 // @desc    Get only main events (no parentEventId) for EventForm parent dropdown
@@ -348,23 +348,19 @@ router.post('/:id/register-multiple', async (req, res) => {
         event.registrations.push(registration);
         await event.save();
 
-        // Send confirmation via email and WhatsApp
+        // Send confirmation to all members (safe — registration never fails if email fails)
+        let emailResult = { sent: 0, failed: 0 };
         try {
             const subEventTitles = selectedSubEvents.map(subEventId => {
                 const subEvent = event.subEvents.find(se => se.id === subEventId || se.title === subEventId);
                 return subEvent?.title || subEventId;
             });
 
-            const notificationData = {
+            emailResult = await sendToAllMembersSafe(members, 'registrationConfirmation', {
                 name: primaryMember.name,
                 eventTitle: event.title,
                 teamName: teamName,
-                date: new Date(event.date).toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                }),
+                date: new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
                 time: `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`,
                 location: event.location,
                 amount: totalAmount,
@@ -372,14 +368,8 @@ router.post('/:id/register-multiple', async (req, res) => {
                 paymentPending: totalAmount > 0,
                 isMultiEvent: true,
                 selectedEvents: subEventTitles
-            };
-
-            await sendNotification(
-                ['email'],
-                { email: primaryMember.email },
-                'registrationConfirmation',
-                notificationData
-            );
+            });
+            console.log(`📧 Registration emails: ${emailResult.sent} sent, ${emailResult.failed} failed`);
         } catch (notifErr) {
             console.error('Notification Error:', notifErr);
         }
@@ -389,7 +379,8 @@ router.post('/:id/register-multiple', async (req, res) => {
             multiEventGroupId: multiEventGroupId,
             selectedSubEvents: selectedSubEvents,
             pricing: registration.pricing,
-            status: 'success'
+            status: 'success',
+            emailSent: emailResult.sent > 0
         });
     } catch (err) {
         console.error('Multi-Event Registration Error:', err);
@@ -455,32 +446,22 @@ router.post('/:id/register', async (req, res) => {
         event.registrations.push(registration);
         await event.save();
 
-        // Send confirmation via email and WhatsApp
+        // Send confirmation to all members (safe — registration never fails if email fails)
+        let emailResult = { sent: 0, failed: 0 };
         try {
-            const notificationData = {
+            emailResult = await sendToAllMembersSafe(members, 'registrationConfirmation', {
                 name: primaryMember.name,
                 eventTitle: event.title,
                 teamName: teamName,
-                date: new Date(event.date).toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                }),
+                date: new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
                 time: `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`,
                 location: event.location,
                 amount: event.price,
                 paymentPending: event.price > 0 && !paid,
                 isMultiEvent: false,
                 selectedEvents: []
-            };
-
-            await sendNotification(
-                ['email'],
-                { email: primaryMember.email },
-                'registrationConfirmation',
-                notificationData
-            );
+            });
+            console.log(`📧 Registration emails: ${emailResult.sent} sent, ${emailResult.failed} failed`);
         } catch (notifErr) {
             console.error('Notification Error:', notifErr);
         }
@@ -488,7 +469,8 @@ router.post('/:id/register', async (req, res) => {
         res.json({
             message: paid ? 'Payment verified and registration confirmed!' : 'Registration successful!',
             event,
-            status: 'success'
+            status: 'success',
+            emailSent: emailResult.sent > 0
         });
     } catch (err) {
         console.error('Registration Error:', err);
@@ -592,13 +574,12 @@ router.post('/:id/cancel', async (req, res) => {
             promotedUser = event.waitlist.shift();
             event.registrations.push(promotedUser);
 
-            // Send promotion email to primary member
-            const primaryMember = promotedUser.members[0];
-            await sendEmail(
-                primaryMember.email,
-                `You're In! Waitlist Promotion for ${event.title}`,
-                `Hi ${primaryMember.name},\n\nA spot opened up for ${event.title} and your ${promotedUser.teamName ? `team "${promotedUser.teamName}"` : 'registration'} has been promoted from the waitlist. Your spot is now confirmed!\n\nBest regards,\nTeam Vortex`
-            );
+            // Send promotion email to all members of the promoted team
+            await sendToAllMembers(promotedUser.members, 'waitlistPromotion', {
+                name: promotedUser.members[0].name,
+                eventTitle: event.title,
+                teamName: promotedUser.teamName
+            });
         }
 
         await event.save();
@@ -617,12 +598,17 @@ router.post('/:id/remind', async (req, res) => {
 
         const count = event.registrations.length;
         for (const reg of event.registrations) {
-            const primary = reg.members[0];
-            await sendEmail(
-                primary.email,
-                `Reminder: ${event.title} is coming up!`,
-                `Hi ${primary.name},\n\nThis is a reminder that ${event.title} is happening in approximately 24 hours.\n\nDate: ${new Date(event.date).toLocaleDateString()}\nTime: ${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}\nLocation: ${event.location}\n\nWe look forward to seeing you!\n\nBest regards,\nTeam Vortex`
-            );
+            await sendToAllMembers(reg.members, 'eventReminder24h', {
+                name: reg.members[0].name,
+                eventTitle: event.title,
+                date: new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+                time: `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`,
+                location: event.location,
+                teamName: reg.teamName,
+                isMultiEvent: false,
+                selectedEvents: [],
+                requirements: event.eligibility?.requiredDocs || []
+            });
         }
 
         res.json({ message: `Reminders sent to ${count} participants.` });
@@ -705,10 +691,16 @@ router.post('/:id/submit-payment-proof', async (req, res) => {
 
         // Send confirmation email to user
         try {
-            await sendEmail(
-                email,
-                `Payment Proof Received: ${event.title}`,
-                `Hi ${registration.members[0].name},\n\nWe have received your payment proof for ${event.title}.\n\nUTR Number: ${utrNumber}\nAmount: ₹${amountPaid || event.price}\n\nOur team will verify your payment within 24-48 hours. You will receive an email once verified.\n\nBest regards,\nTeam Vortex`
+            await sendNotification(
+                ['email'],
+                { email },
+                'paymentProofReceived',
+                {
+                    name: registration.members[0].name,
+                    eventTitle: event.title,
+                    utrNumber,
+                    amount: amountPaid || event.price
+                }
             );
         } catch (mailErr) {
             console.error('Mail Error:', mailErr);
@@ -717,10 +709,17 @@ router.post('/:id/submit-payment-proof', async (req, res) => {
         // Send notification to admin
         try {
             if (event.organizer?.email) {
-                await sendEmail(
-                    event.organizer.email,
-                    `New Payment Proof: ${event.title}`,
-                    `A new payment proof has been submitted for ${event.title}.\n\nParticipant: ${registration.members[0].name}\nEmail: ${email}\nUTR Number: ${utrNumber}\nAmount: ₹${amountPaid || event.price}\n\nPlease verify the payment in the admin dashboard.`
+                await sendNotification(
+                    ['email'],
+                    { email: event.organizer.email },
+                    'paymentProofAlert',
+                    {
+                        eventTitle: event.title,
+                        participantName: registration.members[0].name,
+                        participantEmail: email,
+                        utrNumber,
+                        amount: amountPaid || event.price
+                    }
                 );
             }
         } catch (mailErr) {
@@ -801,7 +800,7 @@ router.post('/:id/verify-payment/:regIndex', async (req, res) => {
                 ipAddress: req.ip
             }).catch(e => console.error('PaymentLog create error:', e));
 
-            // Send approval notification
+            // Send approval notification to all members
             try {
                 const notificationData = {
                     name: primaryMember?.name,
@@ -812,7 +811,7 @@ router.post('/:id/verify-payment/:regIndex', async (req, res) => {
                     time: event.startTime ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}` : '',
                     location: event.location
                 };
-                await sendNotification(['email'], { email: primaryMember?.email }, 'paymentApproved', notificationData);
+                await sendToAllMembers(registration.members, 'paymentApproved', notificationData);
             } catch (notifErr) {
                 console.error('Notification Error:', notifErr);
             }
@@ -834,16 +833,22 @@ router.post('/:id/verify-payment/:regIndex', async (req, res) => {
                 ipAddress: req.ip
             }).catch(e => console.error('PaymentLog create error:', e));
 
-            // Send rejection notification
+            // Send rejection notification to all members
             try {
                 const notificationData = {
-                    name: primaryMember?.name,
+                    name: primaryMember?.name || 'Participant',
                     eventTitle: event.title,
                     reason: rejectionReason || 'Payment verification failed'
                 };
-                await sendNotification(['email'], { email: primaryMember?.email }, 'paymentRejected', notificationData);
+                const recipientEmail = primaryMember?.email;
+                if (!recipientEmail) {
+                    console.error('Rejection email skipped: no email found for primaryMember', primaryMember);
+                } else {
+                    console.log(`Sending rejection email to all members of registration ${regIndex}`);
+                    await sendToAllMembers(registration.members, 'paymentRejected', notificationData);
+                }
             } catch (notifErr) {
-                console.error('Notification Error:', notifErr);
+                console.error('Rejection Notification Error:', notifErr.message, notifErr.stack);
             }
         }
 

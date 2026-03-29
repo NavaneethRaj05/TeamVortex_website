@@ -21,13 +21,11 @@ router.get('/', async (req, res) => {
 // @desc    Update club info
 router.put('/', async (req, res) => {
     try {
-        let info = await ClubInfo.findOne();
-        if (!info) {
-            info = new ClubInfo(req.body);
-        } else {
-            Object.assign(info, req.body);
-        }
-        await info.save();
+        const info = await ClubInfo.findOneAndUpdate(
+            {},
+            { $set: req.body },
+            { new: true, upsert: true, strict: false }
+        );
         res.json(info);
     } catch (err) {
         res.status(400).json({ message: err.message });
