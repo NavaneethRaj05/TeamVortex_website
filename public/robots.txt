@@ -13,7 +13,7 @@ Disallow: /api/
 Crawl-delay: 1
 
 # Sitemap location
-Sitemap: https://teamvortex.com/sitemap.xml
+Sitemap: https://teamvortexnce.com/sitemap.xml
 
 # Specific bot rules
 User-agent: Googlebot
