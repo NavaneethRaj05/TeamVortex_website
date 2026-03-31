@@ -163,10 +163,10 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
               ⚠️ This event has sub-events and cannot be converted to a sub-event itself.
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <RadioRow name="eventKind" value="main" checked={!isSubEvent}
                 onChange={() => set({ parentEventId: null })}
-                title="Main Event" sub="Standalone or parent event" />
+                title="Main Event" sub="Groups multiple sub-events (e.g. Prayog 2.0)" />
               <RadioRow name="eventKind" value="sub" checked={isSubEvent}
                 onChange={() => {
                   if (mainEvents.length === 0) {
@@ -175,7 +175,10 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                   }
                   set({ parentEventId: mainEvents[0]._id });
                 }}
-                title="Sub Event" sub="Grouped under a parent event" />
+                title="Sub-Event" sub="Belongs to a main event (e.g. Hackathon)" />
+              <RadioRow name="eventKind" value="standalone" checked={false}
+                onChange={() => set({ parentEventId: null })}
+                title="Standalone" sub="Independent event (e.g. Workshop)" />
             </div>
           )}
 

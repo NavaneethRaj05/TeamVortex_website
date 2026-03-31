@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X, Download } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X, Download, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
 import PaymentFlow from '../components/PaymentFlow';
 import SmartImage from '../components/SmartImage';
@@ -16,6 +16,9 @@ const Events = () => {
   const [activeInfoTab, setActiveInfoTab] = useState('details');
   const [showingPayment, setShowingPayment] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState(null);
+  // Sub-event selection for main events
+  const [subEventModal, setSubEventModal] = useState(null); // { mainEvent, subEvents[] }
+  const [selectedSubEventsForReg, setSelectedSubEventsForReg] = useState([]); // array of sub-event IDs
   const prayogFallback = useMemo(() => ({
     title: 'PRAYOG 1.0',
     date: 'March 25, 2025',
@@ -289,6 +292,18 @@ const Events = () => {
       }));
   }, [pastEvents]);
 
+  // Group upcoming events: main events with their sub-events, standalone events separate
+  const groupedUpcomingEvents = useMemo(() => {
+    const mainEvents = upcomingEvents.filter(e => !e.parentEventId).map(e => ({
+      ...e,
+      childEvents: upcomingEvents.filter(c => String(c.parentEventId) === String(e._id))
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+    }));
+    // Sub-events that have no parent in upcoming (orphaned) show as standalone
+    const orphanSubs = upcomingEvents.filter(e => e.parentEventId && !upcomingEvents.find(p => String(p._id) === String(e.parentEventId)));
+    return [...mainEvents, ...orphanSubs.map(e => ({ ...e, childEvents: [] }))];
+  }, [upcomingEvents]);
+
   const nextSlide = () => {
     if (groupedPastEvents.length === 0) return;
     setCurrentSlide((prev) => (prev + 1) % groupedPastEvents.length);
@@ -400,8 +415,89 @@ const Events = () => {
     }
   };
 
+  // Handle multi-event (sub-event) registration
+  const handleMultiEventRegister = async ({ teamName, members }) => {
+    if (!subEventModal) return;
+    const selectedEvents = subEventModal.subEvents.filter(e => selectedSubEventsForReg.includes(e._id));
+    if (selectedEvents.length === 0) return;
+
+    setRegistrationFlow(prev => ({ ...prev, step: 'processing', isSubmitting: true, canSubmit: false, error: null }));
+
+    const submitData = {
+      selectedSubEvents: selectedEvents.map(e => e._id),
+      teamName,
+      country: 'India',
+      institutionName: members[0]?.college || '',
+      department: members[0]?.department || '',
+      yearOfStudy: members[0]?.year || '',
+      members: members.map(m => ({
+        name: m.name, email: m.email, phone: m.phone,
+        college: m.college, collegeType: m.collegeType,
+        idNumber: m.idNumber, department: m.department, year: m.year,
+        age: m.age || '', state: m.state, city: m.city,
+        tshirtSize: m.tshirtSize, dietaryPreference: m.dietaryPreference,
+        specialRequirements: m.specialRequirements,
+      })),
+      pricing: {
+        subtotal: selectedEvents.reduce((sum, e) => sum + (e.price || 0), 0),
+        multiEventDiscount: 0,
+        couponDiscount: 0,
+        total: selectedEvents.reduce((sum, e) => sum + (e.price || 0), 0)
+      }
+    };
+
+    try {
+      let res, lastErr;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 15000);
+          res = await fetch(`${API_BASE_URL}/api/events/${subEventModal.mainEvent._id}/register-multiple`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(submitData),
+            signal: controller.signal
+          });
+          clearTimeout(timeout);
+          break;
+        } catch (fetchErr) {
+          lastErr = fetchErr;
+          if (fetchErr.name === 'AbortError') { lastErr = new Error('Request timed out.'); break; }
+          if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 1000));
+        }
+      }
+      if (!res) throw new Error(lastErr?.message || 'Network error. Please try again.');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: 'Registration failed' }));
+        throw new Error(err.message || `Server error: ${res.status}`);
+      }
+      const data = await res.json();
+      const totalFee = selectedEvents.reduce((sum, e) => sum + (e.price || 0), 0);
+      if (totalFee > 0) {
+        // Use first sub-event for payment info
+        const payInfoRes = await fetch(`${API_BASE_URL}/api/events/${selectedEvents[0]._id}/payment-info`);
+        if (payInfoRes.ok) {
+          setPaymentInfo(await payInfoRes.json());
+          setRegistrationFlow(prev => ({ ...prev, step: 'payment', isSubmitting: false, canSubmit: false }));
+          setShowingPayment(true);
+        } else {
+          handleRegistrationSuccess(data);
+        }
+      } else {
+        handleRegistrationSuccess(data);
+      }
+    } catch (err) {
+      setRegistrationFlow(prev => ({ ...prev, step: 'error', isSubmitting: false, canSubmit: true, error: err.message }));
+    }
+  };
+
   // Wrapper for RegistrationForm component ({ teamName, members }) signature
   const handleRsvpFromForm = ({ teamName, members }) => {
+    // Multi-event registration (sub-events of a main event)
+    if (rsvpEvent?._isMultiEvent) {
+      handleMultiEventRegister({ teamName, members });
+      return;
+    }
     const submitData = {
       teamName,
       country: 'India',
@@ -675,7 +771,7 @@ const Events = () => {
           </div>
         </motion.section>
 
-        {upcomingEvents.length > 0 && (
+        {groupedUpcomingEvents.length > 0 && (
           <section className="mb-16">
             <motion.h2
               initial={{ opacity: 0, x: -20 }}
@@ -690,32 +786,19 @@ const Events = () => {
               animate="visible"
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8"
             >
-              {upcomingEvents.map((event, eventIndex) => {
-                // Safety check
-                if (!event || !event._id || !event.title) {
-                  console.warn('Invalid event data:', event);
-                  return null;
-                }
-                
-                // Define different gradient backgrounds for each card
+              {groupedUpcomingEvents.map((event, eventIndex) => {
+                if (!event || !event._id || !event.title) return null;
+                const isMainEvent = event.childEvents?.length > 0;
                 const gradientConfigs = [
-                  'from-green-400 to-cyan-400',
-                  'from-blue-400 to-purple-400', 
-                  'from-cyan-400 to-blue-400',
-                  'from-purple-400 to-pink-400',
+                  'from-green-400 to-cyan-400', 'from-blue-400 to-purple-400',
+                  'from-cyan-400 to-blue-400', 'from-purple-400 to-pink-400',
                   'from-orange-400 to-red-400'
                 ];
-                
                 const gradientClass = gradientConfigs[eventIndex % gradientConfigs.length];
-                
                 return (
-                <motion.div
-                  key={event._id}
-                  variants={itemVariants}
-                  className="glass-card overflow-hidden group"
-                >
-                  <div className="h-48 overflow-hidden relative">
-                    {event.images && event.images.length > 0 ? (
+                <motion.div key={event._id} variants={itemVariants} className="glass-card overflow-hidden group flex flex-col">
+                  <div className="h-44 overflow-hidden relative flex-shrink-0">
+                    {event.images?.length > 0 ? (
                       <SmartImage src={event.images[0]} alt={event.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-vortex-blue/20 to-vortex-orange/20 flex items-center justify-center">
@@ -723,84 +806,175 @@ const Events = () => {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-black/40" />
-                    
-                    {/* Gradient background with text */}
-                    <div className="absolute bottom-4 left-6">
-                      <div className={`px-4 py-2 bg-gradient-to-r ${gradientClass} rounded-lg shadow-lg`}>
-                        <div className="text-white font-bold text-lg">
-                          {event.title.split(' ')[0]}
-                        </div>
+                    {isMainEvent && (
+                      <div className="absolute top-3 left-3">
+                        <span className="text-[9px] font-black uppercase tracking-widest bg-vortex-blue text-black px-2 py-1 rounded-full">
+                          Main Event · {event.childEvents.length} Sub-Events
+                        </span>
+                      </div>
+                    )}
+                    <div className="absolute bottom-3 left-4">
+                      <div className={`px-3 py-1.5 bg-gradient-to-r ${gradientClass} rounded-lg shadow-lg`}>
+                        <div className="text-white font-bold text-sm">{event.title.split(' ')[0]}</div>
                       </div>
                     </div>
                   </div>
-
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-white mb-4">{event.title}</h3>
-                    <div className="space-y-2 text-white/60 mb-6">
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2 text-vortex-blue" />
-                        {new Date(event.date).toLocaleDateString()}
-                      </div>
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-2 text-vortex-blue" />
-                        {event.location}
-                      </div>
-                      {event.faqs && event.faqs.length > 0 && (
-                        <div className="flex items-center">
-                          <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-1 rounded-full border border-cyan-500/30 font-medium">
-                            â“ {event.faqs.length} FAQ{event.faqs.length > 1 ? 's' : ''} Available
-                          </span>
-                        </div>
-                      )}
+                  <div className="p-5 flex flex-col flex-1">
+                    <h3 className="text-lg font-bold text-white mb-3">{event.title}</h3>
+                    <div className="space-y-1.5 text-white/60 mb-4 text-sm">
+                      <div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5 text-vortex-blue flex-shrink-0" />{new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                      <div className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-vortex-blue flex-shrink-0" />{event.location}</div>
+                      {!isMainEvent && event.price > 0 && <span className="text-green-400 font-bold text-xs">₹{event.price} {event.feeType === 'per_team' ? '/ team' : '/ person'}</span>}
+                      {!isMainEvent && event.price === 0 && <span className="text-green-400 font-bold text-xs">FREE</span>}
                     </div>
-
-                    {/* Sub-Events Display */}
-                    {event.subEvents && event.subEvents.length > 0 && (
-                      <div className="mb-6">
-                        <h4 className="text-sm font-bold text-white/80 mb-3">Sub-Events</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                          {event.subEvents.map((subEvent, index) => {
-                            // Safety check for subEvent
-                            if (!subEvent || !subEvent.title) {
-                              console.warn('Invalid subEvent data in Events.js upcoming events:', subEvent);
-                              return null;
-                            }
-                            
-                            const IconComponent = getIconComponent(subEvent.icon);
-                            
-                            return (
-                              <button
-                                key={`subevent-${subEvent.title || index}`}
-                                onClick={() => setSelectedSubEvent(subEvent)}
-                                className="p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-all text-left"
-                              >
-                                <div className={`w-8 h-8 bg-gradient-to-br ${subEvent.color} rounded-lg flex items-center justify-center mb-2`}>
-                                  <IconComponent className="h-4 w-4 text-white" />
-                                </div>
-                                <div className="text-xs font-medium text-white">{subEvent.title}</div>
-                                <div className="text-xs text-white/50">{subEvent.duration}</div>
-                              </button>
-                            );
-                          })}
+                    {isMainEvent && (
+                      <div className="mb-4">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Sub-Events</div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {event.childEvents.slice(0, 4).map((sub, i) => (
+                            <div key={sub._id} className="flex items-center gap-2 p-2 bg-white/5 rounded-lg border border-white/10">
+                              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${['bg-vortex-blue','bg-purple-400','bg-green-400','bg-orange-400'][i % 4]}`} />
+                              <span className="text-[11px] text-white/70 truncate">{sub.title}</span>
+                              {sub.price > 0 && <span className="text-[10px] text-green-400 ml-auto flex-shrink-0">₹{sub.price}</span>}
+                            </div>
+                          ))}
+                          {event.childEvents.length > 4 && <div className="col-span-2 text-[10px] text-white/30 text-center">+{event.childEvents.length - 4} more</div>}
                         </div>
                       </div>
                     )}
-
-                    <div className="space-y-3">
-                      <button
-                        onClick={() => setRsvpEvent(event)}
-                        className="w-full glass-button bg-vortex-blue text-white font-bold py-3"
-                      >
-                        Register Now
-                      </button>
+                    <div className="mt-auto">
+                      {isMainEvent ? (
+                        <button
+                          onClick={() => { setSubEventModal({ mainEvent: event, subEvents: event.childEvents }); setSelectedSubEventsForReg([]); }}
+                          className="w-full glass-button bg-vortex-blue text-black font-black py-3 text-sm flex items-center justify-center gap-2"
+                        >
+                          View &amp; Register Sub-Events <ArrowRight size={14} />
+                        </button>
+                      ) : (
+                        <button onClick={() => setRsvpEvent(event)} className="w-full glass-button bg-vortex-blue text-black font-black py-3 text-sm">
+                          Register Now
+                        </button>
+                      )}
                     </div>
                   </div>
                 </motion.div>
-              );
+                );
               })}
             </motion.div>
           </section>
         )}
+
+
+        {/* Sub-Event Selection Modal for Main Events */}
+        <AnimatePresence>
+          {subEventModal && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+              onClick={() => setSubEventModal(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                className="relative glass-card p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                onClick={e => e.stopPropagation()}
+              >
+                <button onClick={() => setSubEventModal(null)} className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors"><X /></button>
+
+                {/* Header */}
+                <div className="mb-6">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-vortex-blue mb-1">Main Event</div>
+                  <h3 className="text-2xl font-bold text-white">{subEventModal.mainEvent.title}</h3>
+                  <div className="flex items-center gap-3 mt-2 text-white/50 text-sm">
+                    <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(subEventModal.mainEvent.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                    <span className="flex items-center gap-1"><MapPin size={12} /> {subEventModal.mainEvent.location}</span>
+                  </div>
+                </div>
+
+                {/* Sub-event checkboxes */}
+                <div className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3">Select Sub-Events to Register</div>
+                <div className="space-y-3 mb-6">
+                  {subEventModal.subEvents.map(sub => {
+                    const isSelected = selectedSubEventsForReg.includes(sub._id);
+                    return (
+                      <button
+                        key={sub._id}
+                        type="button"
+                        onClick={() => setSelectedSubEventsForReg(prev =>
+                          prev.includes(sub._id) ? prev.filter(id => id !== sub._id) : [...prev, sub._id]
+                        )}
+                        className={`w-full text-left p-4 rounded-xl border transition-all ${isSelected ? 'border-vortex-blue/60 bg-vortex-blue/10' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 border-2 transition-all ${isSelected ? 'bg-vortex-blue border-vortex-blue' : 'border-white/30'}`}>
+                            {isSelected && <CheckCircle size={12} className="text-black" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-white text-sm">{sub.title}</span>
+                              <span className={`text-xs font-bold flex-shrink-0 ${sub.price > 0 ? 'text-green-400' : 'text-cyan-400'}`}>
+                                {sub.price > 0 ? `₹${sub.price}${sub.feeType === 'per_team' ? '/team' : '/person'}` : 'FREE'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1 text-white/40 text-xs">
+                              <span>{sub.registrationType}</span>
+                              {sub.registrationType === 'Team' && <span>{sub.minTeamSize}–{sub.maxTeamSize} members</span>}
+                              {sub.registrationType === 'Duo' && <span>2 members</span>}
+                              {sub.date && <span>{new Date(sub.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>}
+                            </div>
+                            {sub.description && <p className="text-white/40 text-xs mt-1 line-clamp-2">{sub.description}</p>}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Fee summary */}
+                {selectedSubEventsForReg.length > 0 && (() => {
+                  const selected = subEventModal.subEvents.filter(e => selectedSubEventsForReg.includes(e._id));
+                  const total = selected.reduce((sum, e) => sum + (e.price || 0), 0);
+                  return (
+                    <div className="p-4 bg-green-500/5 border border-green-500/20 rounded-xl mb-4 space-y-1">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-green-400 mb-2">Fee Summary</div>
+                      {selected.map(e => (
+                        <div key={e._id} className="flex justify-between text-xs text-white/60">
+                          <span>{e.title}</span>
+                          <span>{e.price > 0 ? `₹${e.price}` : 'Free'}</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between text-sm font-bold border-t border-white/10 pt-2 mt-2">
+                        <span className="text-white">Total</span>
+                        <span className="text-green-400">{total > 0 ? `₹${total}` : 'FREE'}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Register button */}
+                {selectedSubEventsForReg.length > 0 ? (
+                  (() => {
+                    const selected = subEventModal.subEvents.filter(e => selectedSubEventsForReg.includes(e._id));
+                    // Use the sub-event with the largest team size requirement for the form
+                    const representativeEvent = selected.reduce((max, e) => (e.maxTeamSize || 1) > (max.maxTeamSize || 1) ? e : max, selected[0]);
+                    return (
+                      <button
+                        onClick={() => {
+                          setRsvpEvent({ ...representativeEvent, _isMultiEvent: true, _selectedSubEvents: selected, _mainEvent: subEventModal.mainEvent });
+                          setSubEventModal(null);
+                        }}
+                        className="w-full glass-button bg-vortex-blue text-black font-black py-3 text-sm"
+                      >
+                        Register for {selectedSubEventsForReg.length} Sub-Event{selectedSubEventsForReg.length > 1 ? 's' : ''} →
+                      </button>
+                    );
+                  })()
+                ) : (
+                  <div className="text-center text-white/30 text-sm py-3">Select at least one sub-event to continue</div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
 
         {/* RSVP Modal */}
