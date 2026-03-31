@@ -37,7 +37,7 @@ const registrationSchema = new mongoose.Schema({
     // NEW: Enhanced Payment Tracking
     paymentStatus: {
         type: String,
-        enum: ['none', 'pending', 'submitted', 'partial', 'full_paid', 'overpaid', 'refunded', 'verified'],
+        enum: ['none', 'pending', 'submitted', 'partial', 'full_paid', 'overpaid', 'refunded', 'verified', 'rejected'],
         default: 'none'
     },
     
