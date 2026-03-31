@@ -68,6 +68,16 @@ router.get('/lightweight', async (req, res) => {
                             }
                         }
                     }
+                }
+            }
+        ]).allowDiskUse(true);
+
+        res.json(events);
+    } catch (err) {
+        console.error('Lightweight events fetch error:', err);
+        res.status(500).json({ message: 'Failed to fetch events', error: err.message });
+    }
+});
 
 // @route   GET /api/events
 // @desc    Get all events (Optimized for performance with caching)

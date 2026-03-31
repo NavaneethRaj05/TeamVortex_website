@@ -78,34 +78,34 @@ const connectDB = async (retries = 5) => {
     if (mongoConnectPromise) return mongoConnectPromise;
 
     mongoConnectPromise = (async () => {
-        try {
-            const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/team_vortex', {
-                maxPoolSize: 10,
-                minPoolSize: 1,
-                serverSelectionTimeoutMS: 8000,
-                socketTimeoutMS: 45000,
-                maxIdleTimeMS: 60000,
-                compressors: 'zlib',
-                waitQueueTimeoutMS: 10000,
-            });
-            console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/team_vortex', {
+                    maxPoolSize: 5,
+                    minPoolSize: 1,
+                    serverSelectionTimeoutMS: 5000, // Fail fast — don't block for 8s
+                    socketTimeoutMS: 30000,
+                    maxIdleTimeMS: 30000,
+                    connectTimeoutMS: 5000,
+                    heartbeatFrequencyMS: 10000,
+                });
+                console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
 
-            mongoose.connection.on('error', (err) => { console.error('❌ MongoDB connection error:', err); mongoConnectPromise = null; });
-            mongoose.connection.on('disconnected', () => {
-                console.log('⚠️ MongoDB disconnected — retrying in 5s...');
+                mongoose.connection.on('error', (err) => { console.error('❌ MongoDB connection error:', err); mongoConnectPromise = null; });
+                mongoose.connection.on('disconnected', () => {
+                    console.log('⚠️ MongoDB disconnected');
+                    mongoConnectPromise = null;
+                });
+                mongoose.connection.on('reconnected', () => { console.log('✅ MongoDB reconnected'); });
+                return; // success — exit loop
+            } catch (error) {
                 mongoConnectPromise = null;
-                setTimeout(() => connectDB(3), 5000);
-            });
-            mongoose.connection.on('reconnected', () => { console.log('✅ MongoDB reconnected'); });
-
-        } catch (error) {
-            mongoConnectPromise = null;
-            console.error('❌ MongoDB Connection Error:', error.message);
-            if (retries > 0) {
-                console.log(`⏳ Retrying in 5 seconds... (${retries} attempts left)`);
-                setTimeout(() => connectDB(retries - 1), 5000);
-            } else {
-                console.error('❌ MongoDB connection failed after all retries.');
+                console.error(`❌ MongoDB attempt ${attempt + 1} failed: ${error.message}`);
+                if (attempt < retries) {
+                    await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); // short backoff: 1s, 2s
+                } else {
+                    throw error; // surface the error so middleware can return 503
+                }
             }
         }
     })();
@@ -139,10 +139,14 @@ app.use((req, res, next) => {
 
 // Ensure DB is connected before handling API requests (critical for serverless cold starts)
 app.use('/api', async (req, res, next) => {
-    if (mongoose.connection.readyState !== 1) {
-        try { await connectDB(); } catch (e) { /* will retry */ }
+    if (mongoose.connection.readyState === 1) return next();
+    try {
+        await connectDB();
+        next();
+    } catch (e) {
+        console.error('DB unavailable:', e.message);
+        return res.status(503).json({ message: 'Database temporarily unavailable. Please try again in a moment.' });
     }
-    next();
 });
 
 // Routes
