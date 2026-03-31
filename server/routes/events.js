@@ -706,12 +706,13 @@ router.post('/:id/submit-payment-proof', async (req, res) => {
             console.error('Mail Error:', mailErr);
         }
 
-        // Send notification to admin
+        // Send notification to admin — use organizer email or fallback to club email
         try {
-            if (event.organizer?.email) {
+            const adminEmail = event.organizer?.email || process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+            if (adminEmail) {
                 await sendNotification(
                     ['email'],
-                    { email: event.organizer.email },
+                    { email: adminEmail },
                     'paymentProofAlert',
                     {
                         eventTitle: event.title,
@@ -800,7 +801,7 @@ router.post('/:id/verify-payment/:regIndex', async (req, res) => {
                 ipAddress: req.ip
             }).catch(e => console.error('PaymentLog create error:', e));
 
-            // Send approval notification to all members
+            // Send approval notification to all members (safe — never blocks approval)
             try {
                 const notificationData = {
                     name: primaryMember?.name,
@@ -811,7 +812,7 @@ router.post('/:id/verify-payment/:regIndex', async (req, res) => {
                     time: event.startTime ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}` : '',
                     location: event.location
                 };
-                await sendToAllMembers(registration.members, 'paymentApproved', notificationData);
+                await sendToAllMembersSafe(registration.members, 'paymentApproved', notificationData);
             } catch (notifErr) {
                 console.error('Notification Error:', notifErr);
             }
@@ -833,22 +834,16 @@ router.post('/:id/verify-payment/:regIndex', async (req, res) => {
                 ipAddress: req.ip
             }).catch(e => console.error('PaymentLog create error:', e));
 
-            // Send rejection notification to all members
+            // Send rejection notification to all members (safe — never blocks rejection)
             try {
                 const notificationData = {
                     name: primaryMember?.name || 'Participant',
                     eventTitle: event.title,
                     reason: rejectionReason || 'Payment verification failed'
                 };
-                const recipientEmail = primaryMember?.email;
-                if (!recipientEmail) {
-                    console.error('Rejection email skipped: no email found for primaryMember', primaryMember);
-                } else {
-                    console.log(`Sending rejection email to all members of registration ${regIndex}`);
-                    await sendToAllMembers(registration.members, 'paymentRejected', notificationData);
-                }
+                await sendToAllMembersSafe(registration.members, 'paymentRejected', notificationData);
             } catch (notifErr) {
-                console.error('Rejection Notification Error:', notifErr.message, notifErr.stack);
+                console.error('Rejection Notification Error:', notifErr.message);
             }
         }
 

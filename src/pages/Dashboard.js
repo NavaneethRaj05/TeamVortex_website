@@ -115,7 +115,10 @@ const Dashboard = () => {
         subEvents: [],
         // Phase 5: Check-in
         enableQrCheckin: false,
-        certificateTemplate: ''
+        certificateTemplate: '',
+        documentUrl: '',
+        documentName: '',
+        parentEventId: null
     });
     const [viewingRegistrations, setViewingRegistrations] = useState(null); // event object
     const [eventStats, setEventStats] = useState([]);
@@ -291,7 +294,7 @@ const Dashboard = () => {
                 participationCertificate: true, winnerCertificate: true,
                 socialLinks: { website: '', facebook: '', instagram: '', whatsapp: '', linkedin: '' },
                 sponsors: [], faqs: [], enableQrCheckin: false, certificateTemplate: '',
-                parentEventId: null
+                parentEventId: null, documentUrl: '', documentName: ''
             });
             fetchEvents();
             alert(`Event ${editingEventId ? 'updated' : 'created'} successfully!`);

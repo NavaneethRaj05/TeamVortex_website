@@ -32,11 +32,11 @@ const CheckRow = ({ checked, onChange, children }) => (
   </label>
 );
 const RadioRow = ({ name, value, checked, onChange, title, sub }) => (
-  <label className="flex items-center gap-3 cursor-pointer p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors touch-manipulation">
-    <input type="radio" name={name} value={value} checked={!!checked} onChange={onChange} className="flex-shrink-0 self-start mt-1" />
-    <div>
-      <div className="text-sm text-white font-medium">{title}</div>
-      {sub && <div className="text-[10px] text-white/50 mt-0.5">{sub}</div>}
+  <label className="flex items-start gap-2 cursor-pointer p-2.5 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors touch-manipulation">
+    <input type="radio" name={name} value={value} checked={!!checked} onChange={onChange} className="flex-shrink-0 mt-0.5" />
+    <div className="min-w-0">
+      <div className="text-xs text-white font-semibold leading-tight">{title}</div>
+      {sub && <div className="text-[10px] text-white/40 mt-0.5 leading-tight">{sub}</div>}
     </div>
   </label>
 );
@@ -752,6 +752,54 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
           <Lbl>Rulebook URL (PDF link)</Lbl>
           <Inp placeholder="https://example.com/rulebook.pdf" value={newEvent.rulebookUrl || ''}
             onChange={e => set({ rulebookUrl: e.target.value })} />
+        </div>
+
+        {/* Document for participants */}
+        <div className="border-t border-white/10 pt-4 space-y-2">
+          <Lbl>Participant Document (PDF / Image — visible & downloadable by users)</Lbl>
+
+          {/* File upload */}
+          <div className="flex gap-2 items-center">
+            <label className="flex-1 flex items-center gap-2 p-2.5 bg-white/5 border border-dashed border-white/20 rounded-lg cursor-pointer hover:bg-white/10 transition-colors touch-manipulation">
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  if (file.size > 10 * 1024 * 1024) { alert('File must be under 10MB'); return; }
+                  // Convert to base64 data URL for storage
+                  const reader = new FileReader();
+                  reader.onload = () => set({ documentUrl: reader.result, documentName: file.name });
+                  reader.readAsDataURL(file);
+                  e.target.value = '';
+                }}
+              />
+              <span className="text-[11px] text-white/50">📎 Upload from device (PDF / Image, max 10MB)</span>
+            </label>
+          </div>
+
+          {/* OR paste URL */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="text-[10px] text-white/30">or paste link</span>
+            <div className="flex-1 h-px bg-white/10" />
+          </div>
+          <Inp placeholder="https://drive.google.com/file/d/xxx/view"
+            value={newEvent.documentUrl?.startsWith('data:') ? '' : (newEvent.documentUrl || '')}
+            onChange={e => set({ documentUrl: e.target.value, documentName: '' })} />
+
+          {newEvent.documentUrl && (
+            <div className="flex items-center gap-2 p-2 bg-green-500/10 border border-green-500/20 rounded-lg">
+              <span className="text-green-400 text-xs">✓ {newEvent.documentName || 'Document linked'}</span>
+              {!newEvent.documentUrl.startsWith('data:') && (
+                <a href={newEvent.documentUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-vortex-blue underline ml-auto">Preview</a>
+              )}
+              <button type="button" onClick={() => set({ documentUrl: '', documentName: '' })} className="text-red-400/60 hover:text-red-400 text-xs ml-1">✕</button>
+            </div>
+          )}
+          <div className="text-[9px] text-white/25 px-1">Users will see a download button on the event card.</div>
         </div>
 
         {/* Images */}

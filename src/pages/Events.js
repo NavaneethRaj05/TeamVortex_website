@@ -851,9 +851,21 @@ const Events = () => {
                           View &amp; Register Sub-Events <ArrowRight size={14} />
                         </button>
                       ) : (
-                        <button onClick={() => setRsvpEvent(event)} className="w-full glass-button bg-vortex-blue text-black font-black py-3 text-sm">
-                          Register Now
-                        </button>
+                        <>
+                          {event.documentUrl && (
+                            <a
+                              href={event.documentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full mb-2 glass-button border border-white/20 text-white/70 hover:text-white font-bold py-2.5 text-sm flex items-center justify-center gap-2"
+                            >
+                              <Download size={14} /> Download Document
+                            </a>
+                          )}
+                          <button onClick={() => setRsvpEvent(event)} className="w-full glass-button bg-vortex-blue text-black font-black py-3 text-sm">
+                            Register Now
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -911,9 +923,18 @@ const Events = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
                               <span className="font-bold text-white text-sm">{sub.title}</span>
-                              <span className={`text-xs font-bold flex-shrink-0 ${sub.price > 0 ? 'text-green-400' : 'text-cyan-400'}`}>
-                                {sub.price > 0 ? `₹${sub.price}${sub.feeType === 'per_team' ? '/team' : '/person'}` : 'FREE'}
-                              </span>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                {sub.documentUrl && (
+                                  <a href={sub.documentUrl} target="_blank" rel="noopener noreferrer"
+                                    onClick={e => e.stopPropagation()}
+                                    className="text-[10px] text-vortex-blue underline flex items-center gap-1">
+                                    <Download size={10} /> Doc
+                                  </a>
+                                )}
+                                <span className={`text-xs font-bold ${sub.price > 0 ? 'text-green-400' : 'text-cyan-400'}`}>
+                                  {sub.price > 0 ? `₹${sub.price}${sub.feeType === 'per_team' ? '/team' : '/person'}` : 'FREE'}
+                                </span>
+                              </div>
                             </div>
                             <div className="flex items-center gap-3 mt-1 text-white/40 text-xs">
                               <span>{sub.registrationType}</span>

@@ -69,38 +69,47 @@ app.use('/api/', globalLimiter); // Apply to all API routes
 app.use('/api/auth/login', authLimiter);
 app.use('/api/events/:id/register', authLimiter);
 
-// Optimized Database Connection with retry
+// Optimized Database Connection with retry + serverless connection caching
 mongoose.set('strictQuery', false);
+let mongoConnectPromise = null;
 const connectDB = async (retries = 5) => {
-    try {
-        const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/team_vortex', {
-            maxPoolSize: 20,
-            minPoolSize: 5,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 45000,
-            maxIdleTimeMS: 30000,
-            compressors: 'zlib',
-            waitQueueTimeoutMS: 10000,
-        });
-        console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    // Reuse existing connection in serverless warm invocations
+    if (mongoose.connection.readyState === 1) return;
+    if (mongoConnectPromise) return mongoConnectPromise;
 
-        mongoose.connection.on('error', (err) => { console.error('❌ MongoDB connection error:', err); });
-        mongoose.connection.on('disconnected', () => {
-            console.log('⚠️ MongoDB disconnected — retrying in 5s...');
-            setTimeout(() => connectDB(3), 5000);
-        });
-        mongoose.connection.on('reconnected', () => { console.log('✅ MongoDB reconnected'); });
+    mongoConnectPromise = (async () => {
+        try {
+            const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/team_vortex', {
+                maxPoolSize: 10,
+                minPoolSize: 1,
+                serverSelectionTimeoutMS: 8000,
+                socketTimeoutMS: 45000,
+                maxIdleTimeMS: 60000,
+                compressors: 'zlib',
+                waitQueueTimeoutMS: 10000,
+            });
+            console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
 
-    } catch (error) {
-        console.error('❌ MongoDB Connection Error:', error.message);
-        if (retries > 0) {
-            console.log(`⏳ Retrying in 5 seconds... (${retries} attempts left)`);
-            setTimeout(() => connectDB(retries - 1), 5000);
-        } else {
-            console.error('❌ MongoDB connection failed after all retries. Exiting.');
-            process.exit(1);
+            mongoose.connection.on('error', (err) => { console.error('❌ MongoDB connection error:', err); mongoConnectPromise = null; });
+            mongoose.connection.on('disconnected', () => {
+                console.log('⚠️ MongoDB disconnected — retrying in 5s...');
+                mongoConnectPromise = null;
+                setTimeout(() => connectDB(3), 5000);
+            });
+            mongoose.connection.on('reconnected', () => { console.log('✅ MongoDB reconnected'); });
+
+        } catch (error) {
+            mongoConnectPromise = null;
+            console.error('❌ MongoDB Connection Error:', error.message);
+            if (retries > 0) {
+                console.log(`⏳ Retrying in 5 seconds... (${retries} attempts left)`);
+                setTimeout(() => connectDB(retries - 1), 5000);
+            } else {
+                console.error('❌ MongoDB connection failed after all retries.');
+            }
         }
-    }
+    })();
+    return mongoConnectPromise;
 };
 
 connectDB();
@@ -125,6 +134,14 @@ app.use((req, res, next) => {
         res.set('Cache-Control', 'public, max-age=31536000'); // 1 year
     }
     
+    next();
+});
+
+// Ensure DB is connected before handling API requests (critical for serverless cold starts)
+app.use('/api', async (req, res, next) => {
+    if (mongoose.connection.readyState !== 1) {
+        try { await connectDB(); } catch (e) { /* will retry */ }
+    }
     next();
 });
 
