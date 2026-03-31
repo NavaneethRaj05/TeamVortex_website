@@ -294,14 +294,14 @@ const Events = () => {
 
   // Group upcoming events: main events with their sub-events, standalone events separate
   const groupedUpcomingEvents = useMemo(() => {
+    // Main events (have child sub-events) — shown as containers with sub-event selection
     const mainEvents = upcomingEvents.filter(e => !e.parentEventId).map(e => ({
       ...e,
       childEvents: upcomingEvents.filter(c => String(c.parentEventId) === String(e._id))
         .sort((a, b) => new Date(a.date) - new Date(b.date))
     }));
-    // Sub-events that have no parent in upcoming (orphaned) show as standalone
-    const orphanSubs = upcomingEvents.filter(e => e.parentEventId && !upcomingEvents.find(p => String(p._id) === String(e.parentEventId)));
-    return [...mainEvents, ...orphanSubs.map(e => ({ ...e, childEvents: [] }))];
+    // Only show main events that have sub-events, OR standalone events (no parent, no children)
+    return mainEvents.filter(e => e.childEvents.length > 0 || !upcomingEvents.some(c => String(c.parentEventId) === String(e._id)));
   }, [upcomingEvents]);
 
   const nextSlide = () => {

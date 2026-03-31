@@ -8,6 +8,14 @@ const ParticleBackground = () => {
         const ctx = canvas.getContext('2d');
         let animationFrameId;
         let particles = [];
+        let lastFrame = 0;
+
+        // Mobile: fewer particles, no connections, lower fps
+        const isMobile = window.innerWidth < 768;
+        const PARTICLE_COUNT = isMobile ? 30 : 80;
+        const CONNECTION_DIST = isMobile ? 0 : 120; // no connections on mobile
+        const TARGET_FPS = isMobile ? 24 : 50;
+        const FRAME_INTERVAL = 1000 / TARGET_FPS;
 
         const resizeCanvas = () => {
             canvas.width = window.innerWidth;
@@ -19,22 +27,22 @@ const ParticleBackground = () => {
 
         class Particle {
             constructor() {
+                this.reset();
+            }
+            reset() {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-                this.vx = (Math.random() - 0.5) * 0.5;
-                this.vy = (Math.random() - 0.5) * 0.5;
-                this.size = Math.random() * 2;
-                this.color = Math.random() > 0.5 ? '#00D4FF' : '#FF6B35'; // Vortex Blue or Orange
+                this.vx = (Math.random() - 0.5) * 0.4;
+                this.vy = (Math.random() - 0.5) * 0.4;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.color = Math.random() > 0.5 ? '#00D4FF' : '#FF6B35';
             }
-
             update() {
                 this.x += this.vx;
                 this.y += this.vy;
-
                 if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
                 if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
             }
-
             draw() {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
@@ -45,41 +53,43 @@ const ParticleBackground = () => {
 
         const init = () => {
             particles = [];
-            for (let i = 0; i < 100; i++) {
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
                 particles.push(new Particle());
             }
         };
 
-        const animate = () => {
-            ctx.fillStyle = 'rgba(10, 10, 10, 0.1)'; // Trail effect
+        const animate = (timestamp) => {
+            animationFrameId = requestAnimationFrame(animate);
+            if (timestamp - lastFrame < FRAME_INTERVAL) return;
+            lastFrame = timestamp;
+
+            ctx.fillStyle = 'rgba(10,10,10,0.15)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            particles.forEach((particle, index) => {
-                particle.update();
-                particle.draw();
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
 
-                // Draw connections
-                for (let j = index; j < particles.length; j++) {
-                    const dx = particles[j].x - particle.x;
-                    const dy = particles[j].y - particle.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance < 150) {
-                        ctx.beginPath();
-                        ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 - distance / 1500})`;
-                        ctx.lineWidth = 0.5;
-                        ctx.moveTo(particle.x, particle.y);
-                        ctx.lineTo(particles[j].x, particles[j].y);
-                        ctx.stroke();
+                if (CONNECTION_DIST > 0) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[j].x - particles[i].x;
+                        const dy = particles[j].y - particles[i].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < CONNECTION_DIST) {
+                            ctx.beginPath();
+                            ctx.strokeStyle = `rgba(255,255,255,${0.08 - dist / 1500})`;
+                            ctx.lineWidth = 0.4;
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                        }
                     }
                 }
-            });
-
-            animationFrameId = requestAnimationFrame(animate);
+            }
         };
 
         init();
-        animate();
+        animationFrameId = requestAnimationFrame(animate);
 
         return () => {
             window.removeEventListener('resize', resizeCanvas);
@@ -90,6 +100,7 @@ const ParticleBackground = () => {
     return (
         <canvas
             ref={canvasRef}
+            style={{ willChange: 'transform' }}
             className="fixed top-0 left-0 w-full h-full pointer-events-none z-0"
         />
     );

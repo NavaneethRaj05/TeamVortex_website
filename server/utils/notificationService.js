@@ -145,52 +145,51 @@ const emailTemplates = {
     }),
 
     paymentApproved: (data) => ({
-        subject: `✅ Payment Verified - Registration Confirmed - ${data.eventTitle}`,
+        subject: `You're confirmed for ${data.eventTitle}`,
         html: wrap(
-            'linear-gradient(135deg,#10b981 0%,#059669 100%)', '✅', 'Payment Verified!',
-            `<div class="badge" style="background:#10b981;color:#fff">✅ PAYMENT VERIFIED</div>
-            <h2 style="color:#1f2937;margin-top:0">Hi ${data.name}! 🎉</h2>
-            <p>Your payment for <strong>${data.eventTitle}</strong> has been verified. Your registration is now <strong>confirmed</strong>!</p>
+            'linear-gradient(135deg,#1e293b 0%,#0f172a 100%)', '🎉', `You're In — ${data.eventTitle}`,
+            `<h2 style="color:#1f2937;margin-top:0">Hi ${data.name},</h2>
+            <p style="color:#374151">Your registration for <strong>${data.eventTitle}</strong> is confirmed. We've verified your payment and everything is set.</p>
             <div class="box" style="border-left-color:#10b981;background:#f0fdf4">
-              <div class="row"><span class="lbl">Amount</span><span class="val">₹${data.amount}</span></div>
-              <div class="row"><span class="lbl">UTR</span><span class="val">${data.utrNumber || 'N/A'}</span></div>
-              <div class="row"><span class="lbl">Verified On</span><span class="val">${new Date().toLocaleDateString('en-IN')}</span></div>
+              <div class="row"><span class="lbl">Amount Paid</span><span class="val" style="color:#059669;font-weight:700">₹${data.amount}</span></div>
+              ${data.utrNumber ? `<div class="row"><span class="lbl">Transaction Ref</span><span class="val">${data.utrNumber}</span></div>` : ''}
+              <div class="row"><span class="lbl">Confirmed On</span><span class="val">${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</span></div>
             </div>
             <div class="box">
-              <h3 style="margin-top:0;font-size:16px">📅 Event Details</h3>
+              <p style="margin:0 0 10px;font-weight:600;color:#1f2937">Event Details</p>
               <div class="row"><span class="lbl">Date</span><span class="val">${data.date}</span></div>
               <div class="row"><span class="lbl">Time</span><span class="val">${data.time}</span></div>
               <div class="row"><span class="lbl">Venue</span><span class="val">${data.location}</span></div>
             </div>
-            <p style="color:#059669;font-weight:600">See you at the event! 🚀</p>`
+            <p style="color:#374151">Please carry a valid college ID card on the day of the event. See you there!</p>
+            <div style="text-align:center;margin:25px 0">
+              <a href="${CLIENT_URL}/contests" class="btn" style="background:#4f46e5">View Event Details</a>
+            </div>`
         ),
-        text: `Hi ${data.name},\n\nPayment verified for ${data.eventTitle}. Your registration is confirmed!\n\nAmount: ₹${data.amount}\nDate: ${data.date}\nVenue: ${data.location}\n\nBest regards,\nTeam Vortex`
+        text: `Hi ${data.name},\n\nYour registration for ${data.eventTitle} is confirmed.\n\nAmount Paid: ₹${data.amount}\nDate: ${data.date}\nTime: ${data.time}\nVenue: ${data.location}\n\nPlease carry a valid college ID on the day of the event.\n\nSee you there!\nTeam Vortex`
     }),
 
     paymentRejected: (data) => ({
-        subject: `❌ Payment Verification Issue - ${data.eventTitle}`,
+        subject: `Registration Update — ${data.eventTitle}`,
         html: wrap(
-            'linear-gradient(135deg,#dc2626 0%,#b91c1c 100%)', '❌', 'Payment Verification Issue',
-            `<div class="badge" style="background:#fee2e2;color:#991b1b">❌ PAYMENT ISSUE</div>
-            <h2 style="color:#1f2937;margin-top:0">Hi ${data.name},</h2>
-            <p>We couldn't verify your payment for <strong>${data.eventTitle}</strong>.</p>
-            <div class="box" style="border-left-color:#dc2626;background:#fee2e2">
-              <h3 style="margin-top:0;color:#991b1b;font-size:15px">Reason:</h3>
-              <p style="margin:0;color:#991b1b;font-weight:600">${data.reason}</p>
-            </div>
-            <div style="background:#fffbeb;padding:15px;border-radius:8px;margin:15px 0;border-left:4px solid #f59e0b">
-              <p style="margin:0;font-weight:600">What to do:</p>
-              <ul style="margin:8px 0;padding-left:20px">
-                <li>Resubmit a clear screenshot of the payment</li>
-                <li>Ensure UTR / Transaction ID is clearly visible</li>
-                <li>Contact us if you believe this is an error</li>
-              </ul>
+            'linear-gradient(135deg,#1e293b 0%,#0f172a 100%)', '📋', 'Registration Update',
+            `<h2 style="color:#1f2937;margin-top:0">Hi ${data.name},</h2>
+            <p style="color:#374151">Thank you for registering for <strong>${data.eventTitle}</strong>.</p>
+            <p style="color:#374151">After reviewing your payment submission, we were unable to confirm it at this time.</p>
+            ${data.reason && data.reason !== 'Payment verification failed' ? `
+            <div class="box" style="border-left-color:#6366f1;background:#f5f3ff">
+              <p style="margin:0;color:#4338ca"><strong>Note from admin:</strong> ${data.reason}</p>
+            </div>` : ''}
+            <div style="background:#f8fafc;padding:16px;border-radius:8px;margin:16px 0;border:1px solid #e2e8f0">
+              <p style="margin:0 0 8px;font-weight:600;color:#1f2937">What you can do:</p>
+              <p style="margin:0;color:#374151">You are welcome to register again on the contests page. Make sure your payment screenshot clearly shows the UTR / transaction ID and the amount paid.</p>
             </div>
             <div style="text-align:center;margin:25px 0">
-              <a href="${CLIENT_URL}" class="btn" style="background:#dc2626">Resubmit Payment Proof</a>
-            </div>`
+              <a href="${CLIENT_URL}/contests" class="btn" style="background:#4f46e5">Register Again</a>
+            </div>
+            <p style="color:#6b7280;font-size:13px">If you believe this is a mistake, please contact us and we'll look into it.</p>`
         ),
-        text: `Hi ${data.name},\n\nWe couldn't verify your payment for ${data.eventTitle}.\nReason: ${data.reason}\n\nPlease resubmit a clear screenshot with visible UTR.\n\nBest regards,\nTeam Vortex`
+        text: `Hi ${data.name},\n\nThank you for registering for ${data.eventTitle}.\n\nWe were unable to confirm your payment at this time${data.reason && data.reason !== 'Payment verification failed' ? ` — ${data.reason}` : ''}.\n\nYou are welcome to register again at ${CLIENT_URL}/contests.\n\nIf you believe this is a mistake, please contact us.\n\nBest regards,\nTeam Vortex`
     }),
 
     eventReminder24h: (data) => ({

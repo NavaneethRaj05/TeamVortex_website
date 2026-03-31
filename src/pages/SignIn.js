@@ -85,12 +85,10 @@ const SignIn = () => {
       return;
     }
 
-    const saved = JSON.parse(localStorage.getItem('rememberedUser'));
-    if (saved) {
-      setFormData({
-        email: saved.email || '',
-        password: saved.password || ''
-      });
+    // Load remembered email only (never store passwords)
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    if (rememberedEmail) {
+      setFormData(prev => ({ ...prev, email: rememberedEmail }));
       setRememberMe(true);
     }
   }, [navigate]);
@@ -125,15 +123,14 @@ const SignIn = () => {
       // Success
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      // Handle Remember Me
+      // Handle Remember Me — store email only, never password
       if (rememberMe) {
-        localStorage.setItem('rememberedUser', JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        }));
+        localStorage.setItem('rememberedEmail', formData.email);
       } else {
-        localStorage.removeItem('rememberedUser');
+        localStorage.removeItem('rememberedEmail');
       }
+      // Clean up old insecure storage if present
+      localStorage.removeItem('rememberedUser');
 
       navigate('/dashboard'); // Redirect to Dashboard
     } catch (err) {

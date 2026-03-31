@@ -9,6 +9,7 @@ const Contests = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [loadingEventId, setLoadingEventId] = useState(null); // tracks which card is loading full data
   const [activeContestTab, setActiveContestTab] = useState('overview');
   const [submitting, setSubmitting] = useState(false);
   const [regSuccess, setRegSuccess] = useState(false);
@@ -19,6 +20,8 @@ const Contests = () => {
   useEffect(() => {
     const controller = new AbortController();
     fetchEvents(controller.signal);
+    // Pre-warm the serverless function so Register Now is instant
+    fetch(`${API_BASE_URL}/api/health`).catch(() => {});
     return () => controller.abort();
   }, []);
 
@@ -38,6 +41,9 @@ const Contests = () => {
 
       const upcoming = data.filter(e => {
         if (e.status === 'draft' || e.status === 'completed') return false;
+        // Exclude main event containers
+        if (e.isMainEventContainer) return false;
+        if (!e.startTime && !e.parentEventId) return false;
 
         const eventDate = new Date(e.date);
         const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
@@ -88,11 +94,26 @@ const Contests = () => {
         paid: false, paymentId: ''
       };
 
-      const res = await fetch(`${API_BASE_URL}/api/events/${selectedEvent._id}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registrationData)
-      });
+      let res, lastErr;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 15000);
+          res = await fetch(`${API_BASE_URL}/api/events/${selectedEvent._id}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(registrationData),
+            signal: controller.signal
+          });
+          clearTimeout(timeout);
+          break;
+        } catch (fetchErr) {
+          lastErr = fetchErr;
+          if (fetchErr.name === 'AbortError') { lastErr = new Error('Request timed out. Please try again.'); break; }
+          if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 1500));
+        }
+      }
+      if (!res) throw new Error(lastErr?.message || 'Network error. Please check your connection.');
 
       const contentType = res.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
@@ -256,7 +277,23 @@ const Contests = () => {
                     
                     {/* Enhanced Register Button */}
                     <button
-                      onClick={() => setSelectedEvent(event)}
+                      onClick={async () => {
+                        // Open modal immediately with lightweight data — don't make user wait
+                        setSelectedEvent(event);
+                        setLoadingEventId(event._id);
+                        // Upgrade with full data in background (rules, prizes, faqs etc.)
+                        try {
+                          const full = await fetch(`${API_BASE_URL}/api/events/${event._id}`);
+                          if (full.ok) {
+                            const fullData = await full.json();
+                            setSelectedEvent(fullData);
+                          }
+                        } catch {
+                          // keep lightweight data — already showing
+                        } finally {
+                          setLoadingEventId(null);
+                        }
+                      }}
                       className={`w-full glass-button font-bold py-3 rounded-xl transition-all duration-300 btn-glow ripple relative overflow-hidden ${
                         event.capacity > 0 && event.registrationCount >= event.capacity
                           ? 'text-vortex-orange border-2 border-vortex-orange/50 hover:bg-vortex-orange hover:text-black hover:shadow-lg hover:shadow-vortex-orange/50'
@@ -268,6 +305,11 @@ const Contests = () => {
                           <>
                             <Users className="h-4 w-4" />
                             JOIN WAITLIST
+                          </>
+                        ) : loadingEventId === event._id ? (
+                          <>
+                            <span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                            LOADING...
                           </>
                         ) : (
                           <>
@@ -346,69 +388,84 @@ const Contests = () => {
                   onCancel={() => setShowingPayment(false)}
                 />
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                   {/* Left Column - Event Information */}
                   <div className="space-y-6">
                     <div>
                       <h2 className="text-2xl font-bold text-white mb-2">Event Information</h2>
                       <p className="text-vortex-blue mb-2 font-medium">{selectedEvent.title}</p>
+                      {loadingEventId === selectedEvent._id && (
+                        <div className="flex items-center gap-2 text-xs text-white/40 mb-2">
+                          <span className="w-3 h-3 border border-white/30 border-t-white/60 rounded-full animate-spin" />
+                          Loading full details...
+                        </div>
+                      )}
                     </div>
 
                     {/* Event Details Tabs */}
                     <div>
                       <div className="flex bg-white/5 p-1 rounded-xl overflow-x-auto scrollbar-hide mb-4">
-                        {['overview', 'fees', 'rules', 'prizes'].map(tab => (
+                        {['overview', 'fees', 'rules', 'prizes', 'faq'].filter(tab => {
+                          if (tab === 'faq') return selectedEvent.faqs?.length > 0;
+                          return true;
+                        }).map(tab => (
                           <button
                             key={tab}
                             onClick={() => setActiveContestTab(tab)}
-                            className={`px-3 py-2 rounded-lg font-medium capitalize transition-all whitespace-nowrap text-xs ${activeContestTab === tab ? 'bg-vortex-blue text-black shadow-lg' : 'text-white/70 hover:text-white'
-                              }`}
+                            className={`px-3 py-2 rounded-lg font-medium capitalize transition-all whitespace-nowrap text-xs ${activeContestTab === tab ? 'bg-vortex-blue text-black shadow-lg' : 'text-white/70 hover:text-white'}`}
                           >
                             {tab}
                           </button>
                         ))}
                       </div>
 
-                      <div className="p-4 bg-white/5 rounded-xl border border-white/10 h-64 overflow-y-auto custom-scrollbar">
+                      <div className="p-4 bg-white/5 rounded-xl border border-white/10 min-h-[16rem] max-h-[60vh] overflow-y-auto custom-scrollbar">
+                        {/* ── OVERVIEW ── */}
                         {activeContestTab === 'overview' && (
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4 text-xs">
+                          <div className="space-y-4 text-xs">
+                            <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <span className="text-white/40 uppercase tracking-wider block">Date & Time</span>
-                                <div className="text-white font-medium">{new Date(selectedEvent.date).toLocaleDateString()}</div>
-                                <div className="text-white/70">{selectedEvent.startTime || 'TBA'}</div>
+                                <span className="text-white/40 uppercase tracking-wider block mb-0.5">Date</span>
+                                <div className="text-white font-medium">{selectedEvent.date ? new Date(selectedEvent.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'TBA'}</div>
                               </div>
                               <div>
-                                <span className="text-white/40 uppercase tracking-wider block">Location</span>
+                                <span className="text-white/40 uppercase tracking-wider block mb-0.5">Time</span>
+                                <div className="text-white font-medium">{selectedEvent.startTime ? `${selectedEvent.startTime}${selectedEvent.endTime ? ` – ${selectedEvent.endTime}` : ''}` : 'TBA'}</div>
+                              </div>
+                              <div>
+                                <span className="text-white/40 uppercase tracking-wider block mb-0.5">Venue</span>
                                 <div className="text-white font-medium">{selectedEvent.location || 'TBA'}</div>
                               </div>
                               <div>
-                                <span className="text-white/40 uppercase tracking-wider block">Type</span>
-                                <div className="text-white font-medium">{selectedEvent.eventType}</div>
-                              </div>
-                              <div>
-                                <span className="text-white/40 uppercase tracking-wider block">Category</span>
-                                <div className="text-white font-medium">{selectedEvent.category}</div>
+                                <span className="text-white/40 uppercase tracking-wider block mb-0.5">Category</span>
+                                <div className="text-white font-medium">{selectedEvent.category} · {selectedEvent.eventType}</div>
                               </div>
                             </div>
 
                             <div className="pt-3 border-t border-white/10">
-                              <span className="text-white/40 uppercase tracking-wider text-xs block mb-2">Description</span>
-                              <p className="text-white/70 text-sm leading-relaxed">{selectedEvent.description}</p>
+                              <span className="text-white/40 uppercase tracking-wider block mb-1">Description</span>
+                              <p className="text-white/70 leading-relaxed">{selectedEvent.description}</p>
                             </div>
 
-                            {/* Team Size Info */}
+                            {/* Registration window */}
+                            {(selectedEvent.registrationOpens || selectedEvent.registrationCloses) && (
+                              <div className="pt-3 border-t border-white/10">
+                                <span className="text-white/40 uppercase tracking-wider block mb-1">Registration Window</span>
+                                <div className="text-white/70">
+                                  {selectedEvent.registrationOpens && <div>Opens: {new Date(selectedEvent.registrationOpens).toLocaleString()}</div>}
+                                  {selectedEvent.registrationCloses && <div>Closes: {new Date(selectedEvent.registrationCloses).toLocaleString()}</div>}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Participation */}
                             <div className="pt-3 border-t border-white/10">
-                              <span className="text-white/40 uppercase tracking-wider text-xs block mb-2">Participation</span>
-                              <div className="flex flex-wrap gap-2">
-                                <span className="text-[10px] bg-vortex-blue/10 text-vortex-blue px-2 py-1 rounded-full border border-vortex-blue/20 font-bold">
-                                  {selectedEvent.registrationType}
-                                </span>
+                              <span className="text-white/40 uppercase tracking-wider block mb-1">Participation</span>
+                              <div className="flex flex-wrap gap-1.5">
+                                <span className="text-[10px] bg-vortex-blue/10 text-vortex-blue px-2 py-1 rounded-full border border-vortex-blue/20 font-bold">{selectedEvent.registrationType}</span>
                                 {selectedEvent.registrationType === 'Team' && (
                                   <span className="text-[10px] bg-white/5 text-white/60 px-2 py-1 rounded-full border border-white/10 font-bold">
-                                    {selectedEvent.minTeamSize === selectedEvent.maxTeamSize
-                                      ? `${selectedEvent.maxTeamSize} Members`
-                                      : `${selectedEvent.minTeamSize}-${selectedEvent.maxTeamSize} Members`}
+                                    {selectedEvent.minTeamSize === selectedEvent.maxTeamSize ? `${selectedEvent.maxTeamSize} Members` : `${selectedEvent.minTeamSize}–${selectedEvent.maxTeamSize} Members`}
                                   </span>
                                 )}
                                 <span className="text-[10px] bg-green-500/10 text-green-400 px-2 py-1 rounded-full border border-green-500/20 font-bold">
@@ -416,53 +473,115 @@ const Contests = () => {
                                 </span>
                               </div>
                             </div>
+
+                            {/* Eligibility */}
+                            {selectedEvent.eligibility && (
+                              <div className="pt-3 border-t border-white/10">
+                                <span className="text-white/40 uppercase tracking-wider block mb-1">Eligibility</span>
+                                <div className="space-y-1 text-white/70">
+                                  {selectedEvent.eligibility.participantType === 'engineering' && <div>• Engineering students only</div>}
+                                  {selectedEvent.eligibility.restrictBranches && selectedEvent.eligibility.allowedBranches?.length > 0 && (
+                                    <div>• Branches: {selectedEvent.eligibility.allowedBranches.join(', ')}</div>
+                                  )}
+                                  {selectedEvent.eligibility.restrictYears && selectedEvent.eligibility.allowedYears?.length > 0 && (
+                                    <div>• Years: {selectedEvent.eligibility.allowedYears.join(', ')}</div>
+                                  )}
+                                  {selectedEvent.eligibility.minAge && !selectedEvent.eligibility.noAgeRestriction && (
+                                    <div>• Age: {selectedEvent.eligibility.minAge}{selectedEvent.eligibility.maxAge ? `–${selectedEvent.eligibility.maxAge}` : '+'} years</div>
+                                  )}
+                                  {selectedEvent.eligibility.requiredDocs?.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {selectedEvent.eligibility.requiredDocs.map(d => (
+                                        <span key={d} className="text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">{d}</span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Tags */}
+                            {selectedEvent.tags?.length > 0 && (
+                              <div className="pt-3 border-t border-white/10">
+                                <div className="flex flex-wrap gap-1.5">
+                                  {selectedEvent.tags.map(t => (
+                                    <span key={t} className="text-[10px] bg-white/5 text-white/50 px-2 py-0.5 rounded-full border border-white/10">#{t}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Organizer */}
+                            {selectedEvent.organizer?.name && (
+                              <div className="pt-3 border-t border-white/10">
+                                <span className="text-white/40 uppercase tracking-wider block mb-1">Organizer</span>
+                                <div className="text-white/70">{selectedEvent.organizer.name}</div>
+                                {selectedEvent.organizer.email && <div className="text-white/50">{selectedEvent.organizer.email}</div>}
+                              </div>
+                            )}
+
+                            {/* Certificates */}
+                            {(selectedEvent.participationCertificate || selectedEvent.winnerCertificate) && (
+                              <div className="pt-3 border-t border-white/10">
+                                <span className="text-white/40 uppercase tracking-wider block mb-1">Certificates</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {selectedEvent.participationCertificate && <span className="text-[10px] bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded-full border border-purple-500/20">🎓 Participation</span>}
+                                  {selectedEvent.winnerCertificate && <span className="text-[10px] bg-yellow-500/10 text-yellow-400 px-2 py-0.5 rounded-full border border-yellow-500/20">🏆 Winner</span>}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Document download */}
+                            {selectedEvent.documentUrl && (
+                              <div className="pt-3 border-t border-white/10">
+                                <a href={selectedEvent.documentUrl} target="_blank" rel="noopener noreferrer"
+                                  className="flex items-center gap-2 px-3 py-2 bg-vortex-blue/10 border border-vortex-blue/30 rounded-lg text-vortex-blue text-xs font-bold hover:bg-vortex-blue/20 transition-all">
+                                  📎 {selectedEvent.documentName || 'Download Document'}
+                                </a>
+                              </div>
+                            )}
                           </div>
                         )}
 
+                        {/* ── FEES ── */}
                         {activeContestTab === 'fees' && (
-                          <div className="space-y-4">
+                          <div className="space-y-3 text-xs">
                             {selectedEvent.price > 0 ? (
-                              <div className="space-y-3">
+                              <>
                                 <div className="flex justify-between items-center">
                                   <span className="text-white/70">Registration Fee</span>
-                                  <span className="text-white font-bold">₹{selectedEvent.price}</span>
+                                  <span className="text-white font-bold">₹{selectedEvent.price} {selectedEvent.feeType === 'per_team' ? '/ team' : '/ person'}</span>
                                 </div>
-
-                                {selectedEvent.gstEnabled && (
-                                  <div className="flex justify-between items-center text-sm">
-                                    <span className="text-white/50">GST ({selectedEvent.gstPercent}%)</span>
-                                    <span className="text-white/70">₹{Math.round(selectedEvent.price * (selectedEvent.gstPercent / 100))}</span>
+                                {selectedEvent.earlyBirdDiscount?.enabled && (
+                                  <div className="flex justify-between items-center text-green-400">
+                                    <span>Early Bird ({selectedEvent.earlyBirdDiscount.discountPercent}% off)</span>
+                                    <span>until {new Date(selectedEvent.earlyBirdDiscount.validUntil).toLocaleDateString()}</span>
                                   </div>
                                 )}
-
+                                {selectedEvent.gstEnabled && (
+                                  <div className="flex justify-between items-center text-white/50">
+                                    <span>GST ({selectedEvent.gstPercent}%)</span>
+                                    <span>₹{Math.round(selectedEvent.price * (selectedEvent.gstPercent / 100))}</span>
+                                  </div>
+                                )}
                                 <div className="border-t border-white/10 pt-2 flex justify-between items-center font-bold">
                                   <span className="text-white">Total</span>
-                                  <span className="text-green-400 text-lg">
-                                    ₹{selectedEvent.gstEnabled ?
-                                      Math.round(selectedEvent.price * (1 + selectedEvent.gstPercent / 100)) :
-                                      selectedEvent.price}
-                                  </span>
+                                  <span className="text-green-400 text-sm">₹{selectedEvent.gstEnabled ? Math.round(selectedEvent.price * (1 + selectedEvent.gstPercent / 100)) : selectedEvent.price}</span>
                                 </div>
-
-                                {/* Payment Methods */}
-                                <div className="pt-3 border-t border-white/10">
-                                  <span className="text-white/40 uppercase tracking-wider text-xs block mb-2">Payment Options</span>
-                                  <div className="flex flex-wrap gap-2">
-                                    {selectedEvent.paymentGateway === 'UPI' && (
-                                      <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded-full">UPI Only</span>
-                                    )}
-                                    {selectedEvent.paymentGateway === 'Offline' && (
-                                      <span className="text-[10px] bg-orange-500/10 text-orange-400 px-2 py-1 rounded-full">Offline Only</span>
-                                    )}
-                                    {selectedEvent.paymentGateway === 'Both' && (
-                                      <>
-                                        <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded-full">UPI</span>
-                                        <span className="text-[10px] bg-orange-500/10 text-orange-400 px-2 py-1 rounded-full">Offline</span>
-                                      </>
-                                    )}
+                                <div className="pt-2 border-t border-white/10">
+                                  <span className="text-white/40 uppercase tracking-wider block mb-1">Payment Options</span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {(selectedEvent.paymentGateway === 'UPI' || selectedEvent.paymentGateway === 'Both') && <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full">UPI</span>}
+                                    {(selectedEvent.paymentGateway === 'Offline' || selectedEvent.paymentGateway === 'Both') && <span className="text-[10px] bg-orange-500/10 text-orange-400 px-2 py-0.5 rounded-full">Offline</span>}
                                   </div>
                                 </div>
-                              </div>
+                                {selectedEvent.offlineInstructions && (
+                                  <div className="pt-2 border-t border-white/10">
+                                    <span className="text-white/40 uppercase tracking-wider block mb-1">Offline Instructions</span>
+                                    <p className="text-white/60">{selectedEvent.offlineInstructions}</p>
+                                  </div>
+                                )}
+                              </>
                             ) : (
                               <div className="text-center py-8">
                                 <div className="text-green-400 text-4xl mb-2">🎉</div>
@@ -473,14 +592,13 @@ const Contests = () => {
                           </div>
                         )}
 
+                        {/* ── RULES ── */}
                         {activeContestTab === 'rules' && (
-                          <div className="space-y-4">
+                          <div className="space-y-4 text-xs">
                             {selectedEvent.rules ? (
                               <div>
-                                <span className="text-white/40 uppercase tracking-wider text-xs block mb-2">Event Rules</span>
-                                <div className="text-white/70 text-xs whitespace-pre-line leading-relaxed">
-                                  {selectedEvent.rules}
-                                </div>
+                                <span className="text-white/40 uppercase tracking-wider block mb-2">Event Rules</span>
+                                <div className="text-white/70 whitespace-pre-line leading-relaxed">{selectedEvent.rules}</div>
                               </div>
                             ) : (
                               <div className="text-center py-8">
@@ -488,16 +606,39 @@ const Contests = () => {
                                 <div className="text-white/40 text-sm">Rules will be shared before the event</div>
                               </div>
                             )}
-
-                            {/* Required Documents */}
-                            {selectedEvent.eligibility?.requiredDocs?.length > 0 && (
+                            {selectedEvent.rulebookUrl && (
                               <div className="pt-3 border-t border-white/10">
-                                <span className="text-white/40 uppercase tracking-wider text-xs block mb-2">Required Documents</span>
-                                <div className="flex flex-wrap gap-2">
-                                  {selectedEvent.eligibility.requiredDocs.map(doc => (
-                                    <span key={doc} className="text-[10px] bg-red-500/10 text-red-400 px-2 py-1 rounded-full border border-red-500/20">
-                                      {doc}
-                                    </span>
+                                <a href={selectedEvent.rulebookUrl} target="_blank" rel="noopener noreferrer"
+                                  className="flex items-center gap-2 px-4 py-3 bg-vortex-blue/10 border border-vortex-blue/30 rounded-xl text-vortex-blue font-bold hover:bg-vortex-blue/20 transition-all">
+                                  📄 Download Rulebook / PDF
+                                </a>
+                              </div>
+                            )}
+                            {/* Judging criteria */}
+                            {selectedEvent.judgingCriteria?.length > 0 && (
+                              <div className="pt-3 border-t border-white/10">
+                                <span className="text-white/40 uppercase tracking-wider block mb-2">Judging Criteria</span>
+                                <div className="space-y-1.5">
+                                  {selectedEvent.judgingCriteria.map((c, i) => (
+                                    <div key={i} className="flex justify-between items-center p-2 bg-white/5 rounded-lg">
+                                      <span className="text-white/70">{c.name}</span>
+                                      <span className="text-vortex-blue font-bold">{c.maxPoints} pts</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {/* Rounds */}
+                            {selectedEvent.isMultiRound && selectedEvent.rounds?.length > 0 && (
+                              <div className="pt-3 border-t border-white/10">
+                                <span className="text-white/40 uppercase tracking-wider block mb-2">Rounds</span>
+                                <div className="space-y-1.5">
+                                  {selectedEvent.rounds.map((r, i) => (
+                                    <div key={i} className="p-2 bg-white/5 rounded-lg">
+                                      <div className="text-white font-medium">Round {r.roundNumber}: {r.name}</div>
+                                      {r.date && <div className="text-white/50">{new Date(r.date).toLocaleDateString()}</div>}
+                                      {r.venue && <div className="text-white/50">{r.venue}</div>}
+                                    </div>
                                   ))}
                                 </div>
                               </div>
@@ -505,36 +646,45 @@ const Contests = () => {
                           </div>
                         )}
 
+                        {/* ── PRIZES ── */}
                         {activeContestTab === 'prizes' && (
-                          <div className="space-y-4">
+                          <div className="space-y-3 text-xs">
                             {selectedEvent.prizes?.length > 0 ? (
-                              <div>
-                                <span className="text-white/40 uppercase tracking-wider text-xs block mb-3">Prize Pool</span>
-                                <div className="space-y-3">
-                                  {selectedEvent.prizes.map((prize, idx) => (
-                                    <div key={idx} className="p-3 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-lg border border-yellow-500/20">
-                                      <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                          <div className="flex items-center gap-2">
-                                            <span className="text-yellow-400 font-bold text-sm">{prize.position}</span>
-                                            {prize.trophy && <span className="text-[10px]">🏆</span>}
-                                          </div>
-                                          <div className="text-white/70 text-xs mt-1">{prize.description}</div>
+                              <>
+                                <span className="text-white/40 uppercase tracking-wider block mb-2">Prize Pool</span>
+                                {selectedEvent.prizes.map((prize, idx) => (
+                                  <div key={idx} className="p-3 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-lg border border-yellow-500/20">
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-yellow-400 font-bold">{prize.position}</span>
+                                          {prize.trophy && <span>🏆</span>}
                                         </div>
-                                        {prize.cashAmount > 0 && (
-                                          <span className="text-green-400 text-sm font-bold ml-2">₹{prize.cashAmount}</span>
-                                        )}
+                                        {prize.description && <div className="text-white/60 mt-0.5">{prize.description}</div>}
                                       </div>
+                                      {prize.cashAmount > 0 && <span className="text-green-400 font-bold">₹{prize.cashAmount}</span>}
                                     </div>
-                                  ))}
-                                </div>
-                              </div>
+                                  </div>
+                                ))}
+                              </>
                             ) : (
                               <div className="text-center py-8">
                                 <div className="text-white/20 text-4xl mb-2">🏆</div>
                                 <div className="text-white/40 text-sm">Prize details coming soon</div>
                               </div>
                             )}
+                          </div>
+                        )}
+
+                        {/* ── FAQ ── */}
+                        {activeContestTab === 'faq' && (
+                          <div className="space-y-3 text-xs">
+                            {selectedEvent.faqs?.map((faq, i) => (
+                              <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/10">
+                                <div className="text-white font-semibold mb-1">Q: {faq.question}</div>
+                                <div className="text-white/60 leading-relaxed">A: {faq.answer}</div>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>

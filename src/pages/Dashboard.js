@@ -56,6 +56,7 @@ const Dashboard = () => {
         location: '',
         startTime: '',
         endTime: '',
+        endDate: '',
         images: [],
         galleryDriveLink: '',
         status: 'published',
@@ -118,7 +119,9 @@ const Dashboard = () => {
         certificateTemplate: '',
         documentUrl: '',
         documentName: '',
-        parentEventId: null
+        parentEventId: null,
+        _isMainEvent: false,
+        _isPaid: false
     });
     const [viewingRegistrations, setViewingRegistrations] = useState(null); // event object
     const [eventStats, setEventStats] = useState([]);
@@ -243,23 +246,34 @@ const Dashboard = () => {
         const url = editingEventId ? `${API_BASE_URL}/api/events/${editingEventId}` : `${API_BASE_URL}/api/events`;
         const method = editingEventId ? 'PUT' : 'POST';
         const isFree = Number(newEvent.price) === 0;
-        const eventData = {
+    const isMainEventContainer = newEvent._isMainEvent === true;
+    const eventData = {
             ...newEvent,
-            price: Number(newEvent.price) || 0,
-            capacity: Number(newEvent.capacity) || 0,
+            // Main events are always published, no date/time needed
+            status: isMainEventContainer ? 'published' : (newEvent.status || 'published'),
+            isMainEventContainer: isMainEventContainer,
+            date: isMainEventContainer ? (newEvent.date || undefined) : newEvent.date,
+            startTime: isMainEventContainer ? undefined : newEvent.startTime,
+            endTime: isMainEventContainer ? undefined : newEvent.endTime,
+            location: isMainEventContainer ? (newEvent.location || undefined) : newEvent.location,
+            price: isMainEventContainer ? 0 : (Number(newEvent.price) || 0),
+            capacity: isMainEventContainer ? 0 : (Number(newEvent.capacity) || 0),
             waitlistCapacity: Number(newEvent.waitlistCapacity) || 0,
             gstPercent: Number(newEvent.gstPercent) || 18,
             images: Array.isArray(newEvent.images) ? newEvent.images : (newEvent.images?.split(',').map(img => img.trim()).filter(img => img) || []),
-            // Free events: clear all payment fields
-            paymentGateway: isFree ? '' : (newEvent.paymentGateway || ''),
-            upiId: isFree ? '' : (newEvent.upiId || ''),
-            upiQrCode: isFree ? '' : (newEvent.upiQrCode || ''),
-            paymentReceiverName: isFree ? '' : (newEvent.paymentReceiverName || ''),
-            paymentContactNumber: isFree ? '' : (newEvent.paymentContactNumber || ''),
-            offlineInstructions: isFree ? '' : (newEvent.offlineInstructions || ''),
-            googleFormPayment: isFree ? { enabled: false, formUrl: '', buttonText: '', instructions: '' } : (newEvent.googleFormPayment || { enabled: false, formUrl: '' }),
-            feeType: isFree ? '' : (newEvent.feeType || 'per_person'),
+            // Main event: clear all payment/registration fields
+            paymentGateway: (isFree || isMainEventContainer) ? '' : (newEvent.paymentGateway || ''),
+            upiId: (isFree || isMainEventContainer) ? '' : (newEvent.upiId || ''),
+            upiQrCode: (isFree || isMainEventContainer) ? '' : (newEvent.upiQrCode || ''),
+            paymentReceiverName: (isFree || isMainEventContainer) ? '' : (newEvent.paymentReceiverName || ''),
+            paymentContactNumber: (isFree || isMainEventContainer) ? '' : (newEvent.paymentContactNumber || ''),
+            offlineInstructions: (isFree || isMainEventContainer) ? '' : (newEvent.offlineInstructions || ''),
+            googleFormPayment: (isFree || isMainEventContainer) ? { enabled: false, formUrl: '', buttonText: '', instructions: '' } : (newEvent.googleFormPayment || { enabled: false, formUrl: '' }),
+            feeType: (isFree || isMainEventContainer) ? '' : (newEvent.feeType || 'per_person'),
         };
+        // Strip internal UI-only flags before sending to server
+        delete eventData._isMainEvent;
+        delete eventData._isPaid;
 
         try {
             const res = await fetch(url, {
@@ -276,7 +290,7 @@ const Dashboard = () => {
             setShowEventForm(false);
             setEditingEventId(null);
             setNewEvent({
-                title: '', description: '', date: '', location: '', startTime: '', endTime: '', images: [],
+                title: '', description: '', date: '', location: '', startTime: '', endTime: '', endDate: '', images: [],
                 galleryDriveLink: '', status: 'published', priority: 0,
                 eventType: 'Inter-College', category: 'Technical', price: 0,
                 teamPricing: { perTeam: true, pricePerMember: 0 },
@@ -294,7 +308,7 @@ const Dashboard = () => {
                 participationCertificate: true, winnerCertificate: true,
                 socialLinks: { website: '', facebook: '', instagram: '', whatsapp: '', linkedin: '' },
                 sponsors: [], faqs: [], enableQrCheckin: false, certificateTemplate: '',
-                parentEventId: null, documentUrl: '', documentName: ''
+                parentEventId: null, documentUrl: '', documentName: '', _isMainEvent: false, _isPaid: false
             });
             fetchEvents();
             alert(`Event ${editingEventId ? 'updated' : 'created'} successfully!`);
@@ -494,7 +508,10 @@ const Dashboard = () => {
         const title = (e.title || '').trim().toLowerCase();
         if (title === 'prayog 1.0') return false;
         if (e.status === 'draft' || e.status === 'completed') return false;
+        // Main event containers (no date) always show
+        if (!e.date) return true;
         const eventDate = new Date(e.date);
+        if (isNaN(eventDate.getTime())) return true; // invalid date = main event, show it
         return eventDate >= now;
     });
 
@@ -678,7 +695,7 @@ const Dashboard = () => {
                                                 </div>
                                                 <div>
                                                     <p className="text-white font-medium">{event.title}</p>
-                                                    <p className="text-white/60 text-sm">{new Date(event.date).toLocaleDateString()}</p>
+                                                    <p className="text-white/60 text-sm">{event.date ? new Date(event.date).toLocaleDateString() : 'Main Event'}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
@@ -705,7 +722,7 @@ const Dashboard = () => {
                                     setShowEventForm(true);
                                     setEditingEventId(null);
                                     setNewEvent({
-                                        title: '', description: '', date: '', location: '', startTime: '', endTime: '',
+                                        title: '', description: '', date: '', location: '', startTime: '', endTime: '', endDate: '',
                                         images: [], galleryDriveLink: '', status: 'published', priority: 0,
                                         eventType: 'Inter-College', category: 'Technical', price: 0,
                                         teamPricing: { perTeam: true, pricePerMember: 0 },
@@ -736,6 +753,7 @@ const Dashboard = () => {
                                     newEvent={newEvent}
                                     setNewEvent={setNewEvent}
                                     onSubmit={handleSaveEvent}
+                                    onDelete={(id) => { handleDeleteEvent(id); setShowEventForm(false); setEditingEventId(null); }}
                                     onCancel={() => { setShowEventForm(false); setEditingEventId(null); }}
                                     editingEventId={editingEventId}
                                     events={events}
@@ -760,23 +778,35 @@ const Dashboard = () => {
                                         .forEach(child => rows.push({ event: child, isChild: true }));
 
                                     return rows.map(({ event, isChild }) => (
-                                        <div key={event._id} className={`glass-card p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-vortex-blue/30 transition-all group ${isChild ? 'ml-6 border-l-2 border-blue-500/30' : ''}`}>
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    {isChild && <span className="text-[9px] font-bold uppercase tracking-widest bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">Sub-Event</span>}
-                                                    <h3 className="font-bold text-white text-lg group-hover:text-vortex-blue transition-colors line-clamp-1">{event.title}</h3>
+                                        <div key={event._id} className={`glass-card p-4 sm:p-5 hover:border-vortex-blue/30 transition-all group ${isChild ? 'ml-4 sm:ml-6 border-l-2 border-blue-500/30' : ''}`}>
+                                            {/* Top row: title + badges */}
+                                            <div className="flex items-start justify-between gap-3 mb-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                        {isChild && <span className="text-[9px] font-bold uppercase tracking-widest bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30 flex-shrink-0">Sub-Event</span>}
+                                                        {!isChild && !event.parentEventId && <span className="text-[9px] font-bold uppercase tracking-widest bg-vortex-blue/20 text-vortex-blue px-2 py-0.5 rounded-full border border-vortex-blue/30 flex-shrink-0">Main</span>}
+                                                        <h3 className="font-bold text-white text-base group-hover:text-vortex-blue transition-colors truncate">{event.title}</h3>
+                                                    </div>
+                                                    <div className="text-white/40 text-xs flex flex-wrap gap-x-3 gap-y-1">
+                                                        <span className="flex items-center gap-1"><Calendar size={11} /> {event.date ? new Date(event.date).toLocaleDateString() : '—'}</span>
+                                                        {event.location && <span className="flex items-center gap-1"><MapPin size={11} /> {event.location}</span>}
+                                                        <span className="text-vortex-blue flex items-center gap-1 font-bold"><Users size={11} /> {event.registrationCount || 0} Joined</span>
+                                                    </div>
                                                 </div>
-                                                <div className="text-white/40 text-xs flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                                                    <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(event.date).toLocaleDateString()}</span>
-                                                    <span className="flex items-center gap-1"><MapPin size={12} /> {event.location}</span>
-                                                    <span className="text-vortex-blue flex items-center gap-1 font-bold"><Users size={12} /> {event.registrationCount || 0} Joined</span>
-                                                </div>
+                                                {/* Delete button — always visible on right */}
+                                                <button
+                                                    onClick={() => handleDeleteEvent(event._id)}
+                                                    className="flex-shrink-0 p-2 hover:bg-red-500/20 rounded-xl text-red-400/60 hover:text-red-400 transition-colors"
+                                                    title="Delete Event"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
-                                            <div className="flex gap-1 sm:gap-2 w-full sm:w-auto border-t sm:border-t-0 border-white/5 pt-3 sm:pt-0 justify-end">
-                                                <button onClick={() => handleSendReminders(event._id)} className="p-2.5 hover:bg-purple-500/20 rounded-xl text-purple-400 transition-colors" title="Send Reminders"><Mail size={18} /></button>
-                                                <button onClick={() => startViewRegistrations(event._id)} className="p-2.5 hover:bg-green-500/20 rounded-xl text-green-400 transition-colors" title="View Registrations"><Users size={18} /></button>
-                                                <button onClick={() => startEditEvent(event)} className="p-2.5 hover:bg-vortex-blue/20 rounded-xl text-vortex-blue transition-colors"><Edit2 size={18} /></button>
-                                                <button onClick={() => handleDeleteEvent(event._id)} className="p-2.5 hover:bg-red-500/20 rounded-xl text-red-400 transition-colors"><Trash2 size={18} /></button>
+                                            {/* Bottom row: action buttons */}
+                                            <div className="flex gap-1.5 flex-wrap border-t border-white/5 pt-3">
+                                                <button onClick={() => handleSendReminders(event._id)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs hover:bg-purple-500/20 rounded-lg text-purple-400 transition-colors" title="Send Reminders"><Mail size={13} /> Remind</button>
+                                                <button onClick={() => startViewRegistrations(event._id)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs hover:bg-green-500/20 rounded-lg text-green-400 transition-colors" title="View Registrations"><Users size={13} /> Registrations</button>
+                                                <button onClick={() => startEditEvent(event)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs hover:bg-vortex-blue/20 rounded-lg text-vortex-blue transition-colors"><Edit2 size={13} /> Edit</button>
                                             </div>
                                         </div>
                                     ));

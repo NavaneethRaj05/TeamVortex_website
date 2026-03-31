@@ -15,6 +15,8 @@ const Home = () => {
   useEffect(() => {
     fetchEvents();
     fetchSettings();
+    // Pre-warm serverless function + MongoDB on page load
+    fetch(`${API_BASE_URL}/api/health`).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -48,6 +50,9 @@ const Home = () => {
       const now = new Date();
       const upcoming = data.filter(e => {
         if (!e || e.status === 'draft' || e.status === 'completed') return false;
+        // Exclude main event containers
+        if (e.isMainEventContainer) return false;
+        if (!e.startTime && !e.parentEventId) return false;
         const eventDate = new Date(e.date);
         const eventEnd = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59);
         if (e.endTime) {

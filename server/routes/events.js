@@ -43,6 +43,8 @@ router.get('/lightweight', async (req, res) => {
                     registrationType: 1,
                     status: 1,
                     priority: 1,
+                    parentEventId: 1,
+                    isMainEventContainer: 1,
                     images: { $slice: ["$images", 1] }, // Only first image
                     subEvents: {
                         $map: {
@@ -57,17 +59,15 @@ router.get('/lightweight', async (req, res) => {
                             }
                         }
                     },
-                    registrationCount: { $size: { $ifNull: ["$registrations", []] } }
-                }
-            }
-        ]).allowDiskUse(true);
-        
-        res.json(events);
-    } catch (err) {
-        console.error('Lightweight events fetch error:', err);
-        res.status(500).json({ message: 'Failed to fetch events', error: err.message });
-    }
-});
+                    registrationCount: {
+                        $size: {
+                            $filter: {
+                                input: { $ifNull: ["$registrations", []] },
+                                as: "reg",
+                                cond: { $ne: ["$$reg.paymentStatus", "rejected"] }
+                            }
+                        }
+                    }
 
 // @route   GET /api/events
 // @desc    Get all events (Optimized for performance with caching)
@@ -136,7 +136,15 @@ router.get('/', async (req, res) => {
                     galleryDriveLink: 1,
                     subEvents: 1,
                     priority: 1,
-                    registrationCount: { $size: { $ifNull: ["$registrations", []] } },
+                    registrationCount: {
+                        $size: {
+                            $filter: {
+                                input: { $ifNull: ["$registrations", []] },
+                                as: "reg",
+                                cond: { $ne: ["$$reg.paymentStatus", "rejected"] }
+                            }
+                        }
+                    },
                     waitlistCount: { $size: { $ifNull: ["$waitlist", []] } },
                     feedbackCount: { $size: { $ifNull: ["$feedback", []] } }
                 }
@@ -187,7 +195,7 @@ router.get('/stats', async (req, res) => {
         const stats = upcomingEvents.map(e => ({
             _id: e._id,
             title: e.title,
-            registrations: e.registrations?.length || 0,
+            registrations: e.registrations?.filter(r => r.paymentStatus !== 'rejected').length || 0,
             waitlist: e.waitlist?.length || 0,
             feedbackCount: e.feedback?.length || 0,
             avgRating: e.feedback?.length > 0 ? e.feedback.reduce((acc, f) => acc + f.rating, 0) / e.feedback.length : 0
@@ -432,8 +440,9 @@ router.post('/:id/register', async (req, res) => {
             registeredAt: new Date()
         };
 
-        // Check capacity
-        if (event.capacity > 0 && event.registrations.length >= event.capacity) {
+        // Check capacity (exclude rejected registrations)
+        const activeRegistrations = event.registrations.filter(r => r.paymentStatus !== 'rejected');
+        if (event.capacity > 0 && activeRegistrations.length >= event.capacity) {
             event.waitlist.push(registration);
             await event.save();
             return res.json({
@@ -801,21 +810,16 @@ router.post('/:id/verify-payment/:regIndex', async (req, res) => {
                 ipAddress: req.ip
             }).catch(e => console.error('PaymentLog create error:', e));
 
-            // Send approval notification to all members (safe — never blocks approval)
-            try {
-                const notificationData = {
-                    name: primaryMember?.name,
-                    eventTitle: event.title,
-                    amount: registration.paymentProof?.amountPaid || event.price,
-                    utrNumber: registration.paymentProof?.utrNumber,
-                    date: event.date ? new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '',
-                    time: event.startTime ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}` : '',
-                    location: event.location
-                };
-                await sendToAllMembersSafe(registration.members, 'paymentApproved', notificationData);
-            } catch (notifErr) {
-                console.error('Notification Error:', notifErr);
-            }
+            // Send approval notification in background — don't block response
+            sendToAllMembersSafe(registration.members, 'paymentApproved', {
+                name: primaryMember?.name,
+                eventTitle: event.title,
+                amount: registration.paymentProof?.amountPaid || event.price,
+                utrNumber: registration.paymentProof?.utrNumber,
+                date: event.date ? new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '',
+                time: event.startTime ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}` : '',
+                location: event.location
+            }).catch(e => console.error('Approval email error:', e));
         } else {
             registration.paymentStatus = 'rejected';
             registration.rejectionReason = rejectionReason || 'Payment verification failed';
@@ -834,17 +838,12 @@ router.post('/:id/verify-payment/:regIndex', async (req, res) => {
                 ipAddress: req.ip
             }).catch(e => console.error('PaymentLog create error:', e));
 
-            // Send rejection notification to all members (safe — never blocks rejection)
-            try {
-                const notificationData = {
-                    name: primaryMember?.name || 'Participant',
-                    eventTitle: event.title,
-                    reason: rejectionReason || 'Payment verification failed'
-                };
-                await sendToAllMembersSafe(registration.members, 'paymentRejected', notificationData);
-            } catch (notifErr) {
-                console.error('Rejection Notification Error:', notifErr.message);
-            }
+            // Send rejection notification in background — don't block response
+            sendToAllMembersSafe(registration.members, 'paymentRejected', {
+                name: primaryMember?.name || 'Participant',
+                eventTitle: event.title,
+                reason: rejectionReason || 'Payment verification failed'
+            }).catch(e => console.error('Rejection email error:', e));
         }
 
         // Use $set on the specific registration to bypass full-document validation

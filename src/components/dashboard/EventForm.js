@@ -32,11 +32,11 @@ const CheckRow = ({ checked, onChange, children }) => (
   </label>
 );
 const RadioRow = ({ name, value, checked, onChange, title, sub }) => (
-  <label className="flex items-start gap-2 cursor-pointer p-2.5 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors touch-manipulation">
-    <input type="radio" name={name} value={value} checked={!!checked} onChange={onChange} className="flex-shrink-0 mt-0.5" />
+  <label className={`flex items-start gap-2 cursor-pointer p-3 rounded-lg border transition-colors touch-manipulation ${checked ? 'bg-vortex-blue/10 border-vortex-blue/50' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
+    <input type="radio" name={name} value={value} checked={!!checked} onChange={onChange} className="flex-shrink-0 mt-0.5 accent-vortex-blue" />
     <div className="min-w-0">
       <div className="text-xs text-white font-semibold leading-tight">{title}</div>
-      {sub && <div className="text-[10px] text-white/40 mt-0.5 leading-tight">{sub}</div>}
+      {sub && <div className="text-[10px] text-white/40 mt-0.5 leading-snug">{sub}</div>}
     </div>
   </label>
 );
@@ -93,7 +93,7 @@ const QrPreview = ({ upiId, upiQrCode }) => {
 };
 
 // ─── Main Component ────────────────────────────────────────────────────────────
-const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editingEventId, events = [] }) => {
+const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, onDelete, editingEventId, events = [] }) => {
   if (!newEvent) return null;
 
   const set = (patch) => setNewEvent(prev => ({ ...prev, ...patch }));
@@ -104,9 +104,13 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
   // Check if current event already has children (can't make it a sub-event then)
   const hasChildren = editingEventId && events.some(ev => String(ev.parentEventId) === String(editingEventId));
   const isSubEvent = !!newEvent.parentEventId;
+  // isMainEvent: user explicitly selected "Main Event" radio (acts as folder/container)
+  // Stored as newEvent._isMainEvent flag; hasChildren also implies main event
+  const isMainEvent = !isSubEvent && (newEvent._isMainEvent === true || hasChildren);
 
   // Derived
-  const isPaid = newEvent.price > 0;
+  // Use explicit _isPaid flag if set, otherwise fall back to price > 0
+  const isPaid = newEvent._isPaid === true || (newEvent._isPaid === undefined && newEvent.price > 0);
   const isTeam = newEvent.registrationType === 'Team';
   const isDuo  = newEvent.registrationType === 'Duo';
   const gw     = newEvent.paymentGateway || '';
@@ -140,12 +144,23 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
   return (
     <form onSubmit={onSubmit} className="glass-card p-3 sm:p-6 border-l-4 border-vortex-blue animate-slide-up space-y-4">
       {/* Header */}
-      <h3 className="text-xl font-display font-bold text-white uppercase tracking-widest flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-vortex-blue/20 flex items-center justify-center">
-          <Plus size={18} className="text-vortex-blue" />
-        </div>
-        {editingEventId ? 'Edit Event' : 'Create New Event'}
-      </h3>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-xl font-display font-bold text-white uppercase tracking-widest flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-vortex-blue/20 flex items-center justify-center flex-shrink-0">
+            <Plus size={18} className="text-vortex-blue" />
+          </div>
+          {editingEventId ? 'Edit Event' : 'Create New Event'}
+        </h3>
+        {editingEventId && onDelete && (
+          <button
+            type="button"
+            onClick={() => onDelete(editingEventId)}
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white rounded-xl text-xs font-bold transition-all border border-red-500/30"
+          >
+            <X size={14} /> Delete
+          </button>
+        )}
+      </div>
 
       {/* ── SECTION 1: BASIC INFO ─────────────────────────────────────────── */}
       <Section accent={A.blue} label="📝 Section 1 — Basic Event Information">
@@ -163,21 +178,21 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
               ⚠️ This event has sub-events and cannot be converted to a sub-event itself.
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-3">
-              <RadioRow name="eventKind" value="main" checked={!isSubEvent}
-                onChange={() => set({ parentEventId: null })}
-                title="Main Event" sub="Groups multiple sub-events (e.g. Prayog 2.0)" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <RadioRow name="eventKind" value="main" checked={isMainEvent}
+                onChange={() => set({ parentEventId: null, _isMainEvent: true })}
+                title="Main Event" sub="Container for sub-events (e.g. Prayog 2.0)" />
               <RadioRow name="eventKind" value="sub" checked={isSubEvent}
                 onChange={() => {
                   if (mainEvents.length === 0) {
                     alert('No main events available. Create a main event first.');
                     return;
                   }
-                  set({ parentEventId: mainEvents[0]._id });
+                  set({ parentEventId: mainEvents[0]._id, _isMainEvent: false });
                 }}
                 title="Sub-Event" sub="Belongs to a main event (e.g. Hackathon)" />
-              <RadioRow name="eventKind" value="standalone" checked={false}
-                onChange={() => set({ parentEventId: null })}
+              <RadioRow name="eventKind" value="standalone" checked={!isMainEvent && !isSubEvent}
+                onChange={() => set({ parentEventId: null, _isMainEvent: false })}
                 title="Standalone" sub="Independent event (e.g. Workshop)" />
             </div>
           )}
@@ -193,7 +208,7 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
                 <Sel value={newEvent.parentEventId || ''} onChange={e => set({ parentEventId: e.target.value || null })}>
                   {mainEvents.map(ev => (
                     <option key={ev._id} value={ev._id}>
-                      {ev.title} ({new Date(ev.date).toLocaleDateString()})
+                      {ev.title}{ev.date ? ` (${new Date(ev.date).toLocaleDateString()})` : ''}
                     </option>
                   ))}
                 </Sel>
@@ -261,8 +276,32 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
         </div>
       </Section>
 
-      {/* ── SECTION 2: DATE & TIME ────────────────────────────────────────── */}
-      <Section accent={A.orange} label="📅 Section 2 — Date, Time & Venue">
+      {/* ── MAIN EVENT: only title + description + status needed ─────────── */}
+      {isMainEvent && (
+        <div className="p-4 bg-vortex-blue/10 border border-vortex-blue/30 rounded-xl space-y-4">
+          <div>
+            <div className="font-black text-vortex-blue text-xs uppercase tracking-widest mb-1">📁 Main Event — Container Mode</div>
+            <p className="text-xs text-white/50">This groups multiple sub-events. Pricing, registration, and capacity are set on each sub-event individually.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <Lbl>Start Date *</Lbl>
+              <Inp type="date" value={newEvent.date || ''} onChange={e => set({ date: e.target.value })} required />
+            </div>
+            <div>
+              <Lbl>End Date</Lbl>
+              <Inp type="date" value={newEvent.endDate || ''} onChange={e => set({ endDate: e.target.value })} />
+            </div>
+            <div>
+              <Lbl>Venue / Location</Lbl>
+              <Inp placeholder="e.g. Main Campus" value={newEvent.location || ''} onChange={e => set({ location: e.target.value })} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── SECTION 2: DATE & TIME — hidden for main events ──────────────── */}
+      {!isMainEvent && <Section accent={A.orange} label="📅 Section 2 — Date, Time & Venue">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <Lbl>Event Date *</Lbl>
@@ -328,7 +367,10 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
             Collect dietary preference from participants
           </CheckRow>
         </div>
-      </Section>
+      </Section>}
+
+      {/* ── SECTION 3–7: hidden for main events ──────────────────────────── */}
+      {!isMainEvent && <>
 
       {/* ── SECTION 3: PARTICIPATION & CAPACITY ──────────────────────────── */}
       <Section accent={A.cyan} label="👥 Section 3 — Participation & Capacity">
@@ -381,10 +423,10 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
         {/* Free / Paid toggle */}
         <div className="grid grid-cols-2 gap-3">
           <RadioRow name="pricingType" value="free" checked={!isPaid}
-            onChange={() => set({ price: 0, paymentGateway: '', upiId: '', upiQrCode: '', offlineInstructions: '', paymentReceiverName: '', paymentContactNumber: '' })}
+            onChange={() => set({ _isPaid: false, price: 0, paymentGateway: '', upiId: '', upiQrCode: '', offlineInstructions: '', paymentReceiverName: '', paymentContactNumber: '' })}
             title="Free Event" sub="No registration fee" />
           <RadioRow name="pricingType" value="paid" checked={isPaid}
-            onChange={() => set({ price: newEvent.price || 100 })}
+            onChange={() => set({ _isPaid: true, price: newEvent.price > 0 ? newEvent.price : '' })}
             title="Paid Event" sub="Collect registration fee" />
         </div>
 
@@ -935,8 +977,10 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
         </div>
       </Section>
 
-      {/* ── SECTION 8: PUBLISHING OPTIONS ────────────────────────────────── */}
-      <Section accent={A.pink} label="⚙️ Section 8 — Publishing Options">
+      </> /* end !isMainEvent sections */}
+
+      {/* ── SECTION 8: PUBLISHING OPTIONS — hidden for main events ───────── */}
+      {!isMainEvent && <Section accent={A.pink} label="⚙️ Section 8 — Publishing Options">
         <div className="space-y-2">
           <Lbl>Event Status</Lbl>
           <RadioRow name="eventStatus" value="draft" checked={newEvent.status === 'draft'}
@@ -964,13 +1008,17 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, editi
             <option value={20}>Top Priority</option>
           </Sel>
         </div>
-      </Section>
+      </Section>}
 
       {/* ── ACTION BUTTONS ────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row gap-4 pt-2">
         <button type="submit"
           className="glass-button bg-vortex-blue text-white flex-1 font-bold h-12 order-2 sm:order-1">
-          {editingEventId ? 'Save Changes' : (newEvent.status === 'draft' ? 'Save Draft' : 'Publish Event')}
+          {editingEventId
+            ? 'Save Changes'
+            : isMainEvent
+              ? 'Create Main Event'
+              : (newEvent.status === 'draft' ? 'Save Draft' : 'Publish Event')}
         </button>
         <button type="button" onClick={onCancel}
           className="glass-button text-red-400 font-bold border-red-500/20 px-8 h-12 order-1 sm:order-2">

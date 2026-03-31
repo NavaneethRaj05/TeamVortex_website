@@ -118,9 +118,10 @@ const registrationSchema = new mongoose.Schema({
 const eventSchema = new mongoose.Schema({
     title: { type: String, required: true },
     description: { type: String, required: true },
-    date: { type: Date, required: true }, // Event Date
-    startTime: { type: String, required: true },
-    endTime: { type: String }, // Optional
+    date: { type: Date }, // Optional for main event containers
+    startTime: { type: String }, // Optional for main event containers
+    endTime: { type: String },
+    endDate: { type: Date }, // For multi-day main events
     location: { type: String },
     images: [{ type: String }], // Gallery images
     galleryDriveLink: { type: String }, // Google Drive link for event photos
@@ -341,10 +342,11 @@ const eventSchema = new mongoose.Schema({
         createdAt: { type: Date, default: Date.now }
     }],
 
+    // Main event container flag
+    isMainEventContainer: { type: Boolean, default: false },
+
     // Parent Event (for sub-events of a parent event like PRAYOG 1.0)
     parentEventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', default: null },
-
-    // Status
     status: {
         type: String,
         enum: ['draft', 'published', 'completed'],
