@@ -11,49 +11,16 @@
     overflow-x: hidden;
     /* Enable native momentum scrolling on iOS */
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
   }
 
   /* =============================================
-     MOBILE PERFORMANCE — critical for smooth scroll
+     MOBILE PERFORMANCE — light optimizations only
      ============================================= */
   @media (max-width: 767px) {
-    /* Disable expensive backdrop-filter on all cards — biggest GPU killer on phones */
-    .glass-card,
-    .glass-button,
-    .bento-card,
-    .glass-nav,
-    .input-glass {
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-    }
-
-    /* Replace blur-based glass with solid dark background fallback */
-    .glass-card {
-      background: rgba(15, 15, 15, 0.95) !important;
-    }
-    .bento-card {
-      background: rgba(12, 12, 12, 0.97) !important;
-    }
-    .glass-nav {
-      background: rgba(5, 5, 5, 0.97) !important;
-    }
-    .glass-button {
-      background: rgba(20, 20, 20, 0.9) !important;
-    }
-
-    /* Disable hover transforms — they trigger layout & paint during scroll momentum */
+    /* Only disable hover lift transforms — keep glass effects & animations intact */
     .glass-card:hover,
     .bento-card:hover {
       transform: none !important;
-    }
-
-    /* Disable heavy infinite animations — they drain CPU and cause jank */
-    .shimmer,
-    .pulse-glow,
-    .animate-float,
-    .gradient-text {
-      animation: none !important;
     }
   }
 
@@ -2145,8 +2112,8 @@ body {
     appearance: none;
   }
   
-  /* Improve tap response */
-  * {
+  /* Improve tap response — scoped to interactive elements only so native scroll is preserved */
+  button, a, [role="button"] {
     -webkit-tap-highlight-color: rgba(6, 182, 212, 0.2);
     touch-action: manipulation;
   }
@@ -2848,7 +2815,6 @@ label:has(input:disabled):hover {
 /* Promote scrollable containers to their own GPU layer */
 html, body {
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: none;
 }
 
 /* Reduce paint cost of glass cards during scroll */
