@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X, Download, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
@@ -219,6 +219,8 @@ const Events = () => {
 
   const upcomingEvents = displayableEvents.filter(e => {
     if (!e || e.status === 'completed') return false;
+    // Hide main event containers — they exist only to group sub-events
+    if (e.isMainEventContainer) return false;
 
     try {
       const eventDate = new Date(e.date);
@@ -292,16 +294,10 @@ const Events = () => {
       }));
   }, [pastEvents]);
 
-  // Group upcoming events: main events with their sub-events, standalone events separate
+  // Upcoming: only show sub-events (have parentEventId) and standalone events (no parent)
+  // Main event containers are excluded from upcomingEvents filter above, so here we just show everything
   const groupedUpcomingEvents = useMemo(() => {
-    // Main events (have child sub-events) — shown as containers with sub-event selection
-    const mainEvents = upcomingEvents.filter(e => !e.parentEventId).map(e => ({
-      ...e,
-      childEvents: upcomingEvents.filter(c => String(c.parentEventId) === String(e._id))
-        .sort((a, b) => new Date(a.date) - new Date(b.date))
-    }));
-    // Only show main events that have sub-events, OR standalone events (no parent, no children)
-    return mainEvents.filter(e => e.childEvents.length > 0 || !upcomingEvents.some(c => String(c.parentEventId) === String(e._id)));
+    return upcomingEvents; // already filtered — no main containers, sub-events and standalones only
   }, [upcomingEvents]);
 
   const nextSlide = () => {
