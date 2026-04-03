@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 5001;
 // Enable compression for all responses
 app.use(compression({
     level: 6, // Compression level (0-9)
-    threshold: 1024, // Only compress responses larger than 1KB
+    threshold: 10240, // Only compress responses larger than 10KB
     filter: (req, res) => {
         if (req.headers['x-no-compression']) {
             return false;
@@ -186,7 +186,12 @@ app.get('/api', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-    res.status(200).json({ status: 'ok', timestamp: new Date() });
+    res.status(200).json({
+        status: 'ok',
+        timestamp: new Date(),
+        db: require('mongoose').connection.readyState === 1 ? 'connected' : 'disconnected',
+        email: !!(process.env.EMAIL_USER && process.env.EMAIL_PASS)
+    });
 });
 
 // Serve React build in production (for Replit deployment)

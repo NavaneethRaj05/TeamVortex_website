@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -8,18 +8,29 @@ import API_BASE_URL from '../apiConfig';
 import { generateAdminReportPDF, downloadPDF } from '../utils/pdfGenerator';
 import EventForm from '../components/dashboard/EventForm';
 import StatsCard from '../components/dashboard/StatsCard';
-import TeamManager from '../components/dashboard/TeamManager';
-import SponsorManager from '../components/dashboard/SponsorManager';
-import SettingsManager from '../components/dashboard/SettingsManager';
-import AnalyticsDashboard from '../components/dashboard/AnalyticsDashboard';
 import RegistrationViewer from '../components/dashboard/RegistrationViewer';
-import PaymentVerificationPanel from '../components/dashboard/PaymentVerificationPanel';
-import PastEventsManager from '../components/dashboard/PastEventsManager';
-import ChatbotManager from '../components/dashboard/ChatbotManager';
+
+// Lazy-load heavy tabs — only downloaded when first opened
+const TeamManager = lazy(() => import('../components/dashboard/TeamManager'));
+const SponsorManager = lazy(() => import('../components/dashboard/SponsorManager'));
+const SettingsManager = lazy(() => import('../components/dashboard/SettingsManager'));
+const AnalyticsDashboard = lazy(() => import('../components/dashboard/AnalyticsDashboard'));
+const PaymentVerificationPanel = lazy(() => import('../components/dashboard/PaymentVerificationPanel'));
+const PastEventsManager = lazy(() => import('../components/dashboard/PastEventsManager'));
+const ChatbotManager = lazy(() => import('../components/dashboard/ChatbotManager'));
+
+// Minimal tab loading skeleton
+const TabSkeleton = () => (
+    <div className="space-y-4 animate-pulse">
+        <div className="h-10 bg-white/5 rounded-xl w-1/3" />
+        <div className="h-32 bg-white/5 rounded-xl" />
+        <div className="h-32 bg-white/5 rounded-xl" />
+    </div>
+);
 
 const Dashboard = () => {
     const navigate = useNavigate();
-    const [user] = useState(JSON.parse(localStorage.getItem('user')));
+    const [user] = useState(JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || 'null'));
     const [activeTab, setActiveTab] = useState('overview'); // overview | contests | events | team | settings | sponsors | payments | analytics
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -161,6 +172,8 @@ const Dashboard = () => {
 
     useEffect(() => {
         if (!user) { navigate('/signin'); return; }
+        // Pre-warm serverless function so tab switches are fast
+        fetch(`${API_BASE_URL}/api/health`).catch(() => {});
 
         const fetchAll = async () => {
             setLoading(true);
@@ -348,6 +361,9 @@ const Dashboard = () => {
             status: ev.status || 'published',
             priority: ev.priority || 0,
             galleryDriveLink: ev.galleryDriveLink || '',
+            // Restore UI flags from saved data
+            _isMainEvent: ev.isMainEventContainer === true,
+            _isPaid: ev.price > 0,
             eligibility: {
                 participantType: 'open',
                 participants: [],
@@ -508,10 +524,11 @@ const Dashboard = () => {
         const title = (e.title || '').trim().toLowerCase();
         if (title === 'prayog 1.0') return false;
         if (e.status === 'draft' || e.status === 'completed') return false;
-        // Main event containers (no date) always show
-        if (!e.date) return true;
+        // Exclude main event containers from user-facing contest list
+        if (e.isMainEventContainer) return false;
+        if (!e.date) return false; // no date = container, skip
         const eventDate = new Date(e.date);
-        if (isNaN(eventDate.getTime())) return true; // invalid date = main event, show it
+        if (isNaN(eventDate.getTime())) return false;
         return eventDate >= now;
     });
 
@@ -578,6 +595,7 @@ const Dashboard = () => {
                             <button
                                 onClick={() => {
                                     localStorage.removeItem('user');
+                                    sessionStorage.removeItem('user');
                                     navigate('/signin');
                                 }}
                                 className="w-full flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all touch-manipulation text-red-400 hover:bg-red-500/10 hover:text-red-300 border border-red-500/20 mt-4"
@@ -591,7 +609,7 @@ const Dashboard = () => {
             </AnimatePresence>
 
             {/* Main Content */}
-            <div className="pt-16 sm:pt-16 md:pt-16 pb-24 sm:pb-12 px-4 lg:px-8">
+            <div className="pt-16 sm:pt-16 md:pt-16 pb-24 sm:pb-12 px-4 lg:px-8 min-h-screen" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <div className="max-w-7xl mx-auto space-y-8">
                     {/* Page Header */}
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -816,19 +834,20 @@ const Dashboard = () => {
                     )}
 
                     {/* --- EVENTS TAB (Past Events) --- */}
-                    {activeTab === 'events' && <PastEventsManager />}
+                    {activeTab === 'events' && <Suspense fallback={<TabSkeleton />}><PastEventsManager /></Suspense>}
 
                     {/* --- PAYMENTS TAB --- */}
-                    {activeTab === 'payments' && <PaymentVerificationPanel />}
+                    {activeTab === 'payments' && <Suspense fallback={<TabSkeleton />}><PaymentVerificationPanel /></Suspense>}
 
                     {/* --- ANALYTICS TAB --- */}
-                    {activeTab === 'analytics' && <AnalyticsDashboard eventStats={eventStats} />}
+                    {activeTab === 'analytics' && <Suspense fallback={<TabSkeleton />}><AnalyticsDashboard eventStats={eventStats} /></Suspense>}
 
                     {/* --- CHATBOT TAB --- */}
-                    {activeTab === 'chatbot' && <ChatbotManager />}
+                    {activeTab === 'chatbot' && <Suspense fallback={<TabSkeleton />}><ChatbotManager /></Suspense>}
 
                     {/* --- TEAM TAB --- */}
                     {activeTab === 'team' && (
+                        <Suspense fallback={<TabSkeleton />}>
                         <TeamManager
                             teamMembers={teamMembers}
                             showTeamForm={showTeamForm}
@@ -841,10 +860,12 @@ const Dashboard = () => {
                             onDelete={handleDeleteMember}
                             onEdit={startEditMember}
                         />
+                        </Suspense>
                     )}
 
                     {/* --- SPONSORS TAB --- */}
                     {activeTab === 'sponsors' && (
+                        <Suspense fallback={<TabSkeleton />}>
                         <SponsorManager
                             sponsors={sponsors}
                             showSponsorForm={showSponsorForm}
@@ -858,10 +879,12 @@ const Dashboard = () => {
                             onEdit={startEditSponsor}
                             onToggleStatus={handleToggleSponsorStatus}
                         />
+                        </Suspense>
                     )}
 
                     {/* --- SETTINGS TAB --- */}
                     {activeTab === 'settings' && (
+                        <Suspense fallback={<TabSkeleton />}>
                         <SettingsManager
                             clubSettings={clubSettings}
                             setClubSettings={setClubSettings}
@@ -869,6 +892,7 @@ const Dashboard = () => {
                             onUpdatePassword={handleUpdatePassword}
                             userEmail={user?.email}
                         />
+                        </Suspense>
                     )}
 
                     {/* --- Registrations Modal --- */}

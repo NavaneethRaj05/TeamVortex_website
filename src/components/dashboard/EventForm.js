@@ -99,14 +99,13 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, onDel
   const set = (patch) => setNewEvent(prev => ({ ...prev, ...patch }));
   const setElig = (patch) => set({ eligibility: { ...newEvent.eligibility, ...patch } });
 
-  // Only main events (no parentEventId) can be parents
-  const mainEvents = events.filter(ev => !ev.parentEventId && ev._id !== editingEventId);
+  // Only true main event containers can be parents for sub-events
+  const mainEvents = events.filter(ev => ev.isMainEventContainer === true && ev._id !== editingEventId);
   // Check if current event already has children (can't make it a sub-event then)
   const hasChildren = editingEventId && events.some(ev => String(ev.parentEventId) === String(editingEventId));
   const isSubEvent = !!newEvent.parentEventId;
-  // isMainEvent: user explicitly selected "Main Event" radio (acts as folder/container)
-  // Stored as newEvent._isMainEvent flag; hasChildren also implies main event
-  const isMainEvent = !isSubEvent && (newEvent._isMainEvent === true || hasChildren);
+  // isMainEvent: user explicitly selected "Main Event" radio OR event was saved as container OR has children
+  const isMainEvent = !isSubEvent && (newEvent._isMainEvent === true || newEvent.isMainEventContainer === true || hasChildren);
 
   // Derived
   // Use explicit _isPaid flag if set, otherwise fall back to price > 0
@@ -286,11 +285,25 @@ const EventForm = React.memo(({ newEvent, setNewEvent, onSubmit, onCancel, onDel
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <Lbl>Start Date *</Lbl>
-              <Inp type="date" value={newEvent.date || ''} onChange={e => set({ date: e.target.value })} required />
+              <input
+                type="date"
+                required
+                value={newEvent.date || ''}
+                onChange={e => set({ date: e.target.value })}
+                className="input-glass p-3 rounded-lg w-full text-sm"
+                style={{ colorScheme: 'dark', WebkitAppearance: 'auto', appearance: 'auto' }}
+              />
             </div>
             <div>
               <Lbl>End Date</Lbl>
-              <Inp type="date" value={newEvent.endDate || ''} onChange={e => set({ endDate: e.target.value })} />
+              <input
+                type="date"
+                value={newEvent.endDate || ''}
+                onChange={e => set({ endDate: e.target.value })}
+                min={newEvent.date || ''}
+                className="input-glass p-3 rounded-lg w-full text-sm"
+                style={{ colorScheme: 'dark', WebkitAppearance: 'auto', appearance: 'auto' }}
+              />
             </div>
             <div>
               <Lbl>Venue / Location</Lbl>

@@ -1,4 +1,4 @@
-const express = require('express');
+﻿﻿const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
 const PaymentLog = require('../models/PaymentLog');
@@ -41,11 +41,15 @@ router.get('/lightweight', async (req, res) => {
                     price: 1,
                     capacity: 1,
                     registrationType: 1,
+                    minTeamSize: 1,
+                    maxTeamSize: 1,
+                    feeType: 1,
                     status: 1,
                     priority: 1,
                     parentEventId: 1,
                     isMainEventContainer: 1,
                     images: { $slice: ["$images", 1] }, // Only first image
+                    galleryDriveLink: 1,
                     subEvents: {
                         $map: {
                             input: { $slice: ["$subEvents", 4] }, // Only first 4 sub-events
@@ -64,7 +68,12 @@ router.get('/lightweight', async (req, res) => {
                             $filter: {
                                 input: { $ifNull: ["$registrations", []] },
                                 as: "reg",
-                                cond: { $ne: ["$$reg.paymentStatus", "rejected"] }
+                                cond: {
+                                    $or: [
+                                        { $eq: ["$$reg.paymentStatus", "verified"] },
+                                        { $eq: ["$$reg.registrationStatus", "confirmed"] }
+                                    ]
+                                }
                             }
                         }
                     }
@@ -121,6 +130,8 @@ router.get('/', async (req, res) => {
                     upiId: 1,
                     upiQrCode: 1,
                     paymentReceiverName: 1,
+                    paymentContactNumber: 1,
+                    feeType: 1,
                     offlineInstructions: 1,
                     enableOfflinePayment: 1,
                     offlineMethods: 1,
@@ -146,12 +157,22 @@ router.get('/', async (req, res) => {
                     galleryDriveLink: 1,
                     subEvents: 1,
                     priority: 1,
+                    parentEventId: 1,
+                    isMainEventContainer: 1,
+                    documentUrl: 1,
+                    documentName: 1,
+                    endDate: 1,
                     registrationCount: {
                         $size: {
                             $filter: {
                                 input: { $ifNull: ["$registrations", []] },
                                 as: "reg",
-                                cond: { $ne: ["$$reg.paymentStatus", "rejected"] }
+                                cond: {
+                                    $or: [
+                                        { $eq: ["$$reg.paymentStatus", "verified"] },
+                                        { $eq: ["$$reg.registrationStatus", "confirmed"] }
+                                    ]
+                                }
                             }
                         }
                     },
@@ -440,18 +461,27 @@ router.post('/:id/register', async (req, res) => {
             return res.status(400).json({ message: 'One or more members are already registered for this event' });
         }
 
+        // For paid events: registration expires in 30 min if no payment proof submitted
+        const paymentExpiresAt = event.price > 0
+            ? new Date(Date.now() + 30 * 60 * 1000)
+            : null;
+
         const registration = {
             teamName: teamName || '',
             country: country || 'India',
             members,
-            paid: event.price === 0 || !!paid, // Free events are auto-paid
+            paid: event.price === 0 || !!paid,
             paymentId: paymentId || '',
-            paymentStatus: event.price > 0 ? 'pending' : 'verified', // Pending for paid events
-            registeredAt: new Date()
+            paymentStatus: event.price > 0 ? 'pending' : 'verified',
+            registeredAt: new Date(),
+            paymentExpiresAt // null for free events, 30-min window for paid
         };
 
-        // Check capacity (exclude rejected registrations)
-        const activeRegistrations = event.registrations.filter(r => r.paymentStatus !== 'rejected');
+        // Check capacity (exclude rejected + expired-pending registrations)
+        const activeRegistrations = event.registrations.filter(r =>
+            r.paymentStatus !== 'rejected' &&
+            !(r.paymentStatus === 'pending' && r.paymentExpiresAt && new Date(r.paymentExpiresAt) < new Date())
+        );
         if (event.capacity > 0 && activeRegistrations.length >= event.capacity) {
             event.waitlist.push(registration);
             await event.save();
@@ -883,16 +913,44 @@ router.get('/:id/pending-payments', async (req, res) => {
 
         const pendingPayments = event.registrations
             .map((reg, index) => ({ ...reg, registrationIndex: index }))
-            .filter(reg => reg.paymentStatus === 'submitted' || reg.paymentStatus === 'pending');
+            .filter(reg => reg.paymentStatus === 'submitted'); // Only show submitted proof — pending are auto-deleted
 
         res.json({
             eventTitle: event.title,
             eventId: event._id,
             totalRegistrations: event.registrations.length,
-            pendingCount: pendingPayments.filter(p => p.paymentStatus === 'pending').length,
-            submittedCount: pendingPayments.filter(p => p.paymentStatus === 'submitted').length,
+            submittedCount: pendingPayments.length,
             pendingPayments
         });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// @route   POST /api/events/cleanup-pending
+// @desc    Delete all expired pending registrations across all events (no payment proof submitted)
+router.post('/cleanup-pending', async (req, res) => {
+    try {
+        const now = new Date();
+        const events = await Event.find({ 'registrations.paymentStatus': 'pending' });
+        let totalRemoved = 0;
+
+        for (const event of events) {
+            const before = event.registrations.length;
+            event.registrations = event.registrations.filter(reg => {
+                if (reg.paymentStatus !== 'pending') return true;
+                // Remove if expired OR if no expiry set (legacy pending with no proof)
+                if (!reg.paymentExpiresAt) return false; // legacy — no expiry = delete
+                return new Date(reg.paymentExpiresAt) > now; // keep if not yet expired
+            });
+            const removed = before - event.registrations.length;
+            if (removed > 0) {
+                totalRemoved += removed;
+                await event.save();
+            }
+        }
+
+        res.json({ message: `Cleaned up ${totalRemoved} expired pending registration(s)`, removed: totalRemoved });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

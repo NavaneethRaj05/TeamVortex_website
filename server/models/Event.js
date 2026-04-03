@@ -112,7 +112,10 @@ const registrationSchema = new mongoose.Schema({
     // Email tracking flags (prevent duplicate scheduled emails)
     reminderSent: { type: Boolean, default: false },
     feedbackEmailSent: { type: Boolean, default: false },
-    paymentNudgeSent: { type: Boolean, default: false }
+    paymentNudgeSent: { type: Boolean, default: false },
+
+    // Payment expiry — pending registrations are auto-deleted after this time if no proof submitted
+    paymentExpiresAt: { type: Date, default: null }
 });
 
 const eventSchema = new mongoose.Schema({

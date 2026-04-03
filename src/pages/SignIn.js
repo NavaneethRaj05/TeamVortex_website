@@ -79,13 +79,14 @@ const SignIn = () => {
 
   // Redirect if already logged in and load remembered credentials
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user'));
+    // Check both persistent (remember me) and session storage
+    const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || 'null');
     if (user) {
       navigate('/dashboard');
       return;
     }
 
-    // Load remembered email only (never store passwords)
+    // Load remembered email
     const rememberedEmail = localStorage.getItem('rememberedEmail');
     if (rememberedEmail) {
       setFormData(prev => ({ ...prev, email: rememberedEmail }));
@@ -120,13 +121,15 @@ const SignIn = () => {
         throw new Error(data.msg || 'Login Failed');
       }
 
-      // Success
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      // Handle Remember Me — store email only, never password
+      // Success — store session based on Remember Me choice
       if (rememberMe) {
+        // Persist across browser restarts
+        localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('rememberedEmail', formData.email);
       } else {
+        // Only for this browser session (clears on tab/browser close)
+        sessionStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.removeItem('user'); // clear any old persistent session
         localStorage.removeItem('rememberedEmail');
       }
       // Clean up old insecure storage if present

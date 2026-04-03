@@ -1,9 +1,7 @@
-import React, { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { User, Mail, Phone, GraduationCap, MapPin, Plus, X, Trophy, Upload, CheckCircle } from 'lucide-react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { Mail, Phone, Plus, X, Trophy, Upload, CheckCircle, ChevronDown } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
 const BRANCHES = [
   'Computer Science Engineering (CSE)',
   'Information Science Engineering (ISE)',
@@ -15,15 +13,10 @@ const BRANCHES = [
   'Data Science',
   'Other Engineering',
 ];
-
 const YEARS = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
-
 const COLLEGE_TYPES = ['VTU Affiliated', 'Autonomous', 'Deemed University', 'Other'];
-
 const TSHIRT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-
 const DIETARY = ['Vegetarian', 'Non-Vegetarian', 'Vegan'];
-
 const INDIAN_STATES = [
   'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat',
   'Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh',
@@ -38,338 +31,323 @@ const emptyMember = () => ({
   name: '', email: '', phone: '', college: '', collegeType: '',
   idNumber: '', department: '', year: '', state: 'Karnataka', city: '',
   idCardFile: null, idCardFileName: '',
-  tshirtSize: '', dietaryPreference: '',
-  emergencyContactName: '', emergencyContactPhone: '',
-  specialRequirements: '',
+  tshirtSize: '', dietaryPreference: '', specialRequirements: '',
 });
-
-// ─── Email validator ───────────────────────────────────────────────────────────
 
 function validateEmail(email) {
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   if (!emailRegex.test(email)) return { isValid: false, error: 'Invalid email format' };
-  if (email.includes('..') || email.includes('@@')) return { isValid: false, error: 'Invalid email format' };
   const [local] = email.split('@');
-  if (local.length < 3) return { isValid: false, error: 'Email username too short' };
+  if (local.length < 3) return { isValid: false, error: 'Email too short' };
   return { isValid: true, error: null };
 }
 
-// ─── USN / Student ID field with VTU format validation ────────────────────────
-// VTU USN format: digit + 2letters + 2digits + 2letters + 3digits  e.g. 4AD23CS075
 const USN_REGEX = /^\d[A-Z]{2}\d{2}[A-Z]{2}\d{3}$/;
 
+// ─── Shared input styles ──────────────────────────────────────────────────────
+const inputCls = "w-full bg-[#111] border border-white/20 text-white rounded-xl px-4 py-3.5 text-base focus:outline-none focus:border-vortex-blue/70 transition-[border-color] placeholder-white/40";
+const labelCls = "block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider";
+
+// ─── Field wrapper ─────────────────────────────────────────────────────────────
+const Field = ({ label, children, error }) => (
+  <div>
+    <label className={labelCls}>{label}</label>
+    {children}
+    {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
+  </div>
+);
+
+// ─── Icon input ────────────────────────────────────────────────────────────────
+const IconInput = ({ icon: Icon, error, success, children }) => (
+  <div className={`flex items-center bg-[#111] border rounded-xl overflow-hidden ${
+    error ? 'border-red-400/60' : success ? 'border-green-400/60' : 'border-white/20 focus-within:border-vortex-blue/70'
+  }`}>
+    {Icon && <Icon className="ml-3.5 flex-shrink-0 text-white/30" size={16} />}
+    {children}
+    {success && <CheckCircle className="mr-3 flex-shrink-0 text-green-400" size={15} />}
+    {error && <X className="mr-3 flex-shrink-0 text-red-400" size={15} />}
+  </div>
+);
+
+// ─── Select ────────────────────────────────────────────────────────────────────
+const Select = ({ value, onChange, placeholder, options, required }) => (
+  <div className="relative">
+    <select
+      value={value}
+      onChange={onChange}
+      required={required}
+      className={`${inputCls} appearance-none pr-10 cursor-pointer`}
+      style={{ backgroundImage: 'none' }}
+    >
+      <option value="">{placeholder || 'Select...'}</option>
+      {options.map(o => <option key={o} value={o}>{o}</option>)}
+    </select>
+    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" size={16} />
+  </div>
+);
+
+// ─── USN Field ─────────────────────────────────────────────────────────────────
 const UsnField = ({ value, onChange }) => {
   const [touched, setTouched] = useState(false);
   const isValid = USN_REGEX.test(value);
   const showError = touched && value.length > 0 && !isValid;
 
-  const handleChange = (e) => {
-    // Only allow alphanumeric, strip everything else, uppercase
-    const raw = e.target.value.replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 10);
-    onChange(raw);
-  };
-
   return (
-    <div className="space-y-1">
-      <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">
-        Student ID / USN *
-      </label>
-      <div className={`flex items-center input-glass rounded-lg overflow-hidden ${
-        showError ? 'border-red-400/60' : isValid && value ? 'border-green-400/60' : ''
-      }`}>
-        <GraduationCap className="ml-3 flex-shrink-0 text-white/30" size={15} />
+    <Field label="Student ID / USN *" error={showError ? 'Expected format: 4AD23CS075' : null}>
+      <IconInput error={showError} success={isValid && value}>
         <input
           type="text"
-          required
-          className="flex-1 bg-transparent px-3 py-3 text-sm text-white placeholder-white/50 focus:outline-none min-w-0 uppercase tracking-widest font-mono"
-          placeholder="e.g. 1XX23XX000"
+          className="flex-1 bg-[#111] px-3 py-3.5 text-base text-white placeholder-white/35 focus:outline-none min-w-0 uppercase tracking-widest font-mono autofill-dark"
+          placeholder="e.g. 4AD23CS075"
           value={value}
-          onChange={handleChange}
+          onChange={e => onChange(e.target.value.replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 10))}
           onBlur={() => setTouched(true)}
           maxLength={10}
+          autoCapitalize="characters"
+          autoCorrect="off"
+          spellCheck={false}
         />
-        {isValid && value && <CheckCircle className="mr-3 flex-shrink-0 text-green-400" size={14} />}
-        {showError && <X className="mr-3 flex-shrink-0 text-red-400" size={14} />}
-      </div>
-      {/* Format hint always visible */}
-      <p className="text-[10px] text-white/30 ml-1 font-mono tracking-wider">
-        Format: <span className="text-white/50">1</span>
-        <span className="text-vortex-blue">XX</span>
-        <span className="text-white/50">23</span>
-        <span className="text-vortex-blue">XX</span>
-        <span className="text-white/50">000</span>
-        <span className="text-white/20 ml-2 not-italic font-sans normal-case tracking-normal">
-          (digit · college code · year · branch · roll no)
-        </span>
-      </p>
-      {showError && (
-        <p className="text-red-400 text-[10px] ml-1">
-          Invalid USN format — expected like 4AD23CS075
-        </p>
-      )}
-    </div>
+      </IconInput>
+      <p className="text-[11px] text-white/25 mt-1">digit · college code · year · branch · roll no</p>
+    </Field>
   );
 };
 
-// ─── Single member card ────────────────────────────────────────────────────────
-
+// ─── Member Card — pure CSS, no framer-motion ─────────────────────────────────
 const MemberCard = ({ member, index, isPrimary, canRemove, onChange, onRemove, showAge, showTshirt, showDietary }) => {
   const [emailState, setEmailState] = useState({ isValid: null, error: null });
-
-  const handleEmailBlur = () => {
-    if (member.email) setEmailState(validateEmail(member.email));
-  };
+  const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-    if (!validTypes.includes(file.type)) {
-      alert('Only JPG, PNG, or PDF files are allowed.');
-      e.target.value = '';
-      return;
+    if (!['image/jpeg','image/jpg','image/png','application/pdf'].includes(file.type)) {
+      alert('Only JPG, PNG, or PDF files are allowed.'); e.target.value = ''; return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      alert('File must be under 2MB.');
-      e.target.value = '';
-      return;
+      alert('File must be under 2MB.'); e.target.value = ''; return;
     }
     onChange('idCardFile', file);
     onChange('idCardFileName', file.name);
   };
 
-  const field = (label, key, type = 'text', extra = {}) => (
-    <div className="space-y-1">
-      <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">{label}</label>
-      <input
-        type={type}
-        className="w-full input-glass p-3 rounded-lg text-sm"
-        value={member[key] || ''}
-        onChange={e => onChange(key, e.target.value)}
-        {...extra}
-      />
-    </div>
-  );
-
-  const selectField = (label, key, options) => (
-    <div className="space-y-1">
-      <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">{label}</label>
-      <select
-        className="w-full input-glass p-3 rounded-lg text-sm bg-[#1a1a1a] text-white"
-        value={member[key] || ''}
-        onChange={e => onChange(key, e.target.value)}
-      >
-        <option value="">Select...</option>
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
-    </div>
-  );
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      className="relative p-4 sm:p-5 bg-white/5 rounded-2xl border border-white/10 space-y-4"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="w-7 h-7 bg-vortex-blue text-black text-xs font-black flex items-center justify-center rounded-lg">
+    <div className="bg-[#0d0d0d] border border-white/10 rounded-2xl overflow-hidden">
+      {/* Card header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white/[0.03] border-b border-white/5">
+        <div className="flex items-center gap-2.5">
+          <span className="w-7 h-7 bg-vortex-blue text-black text-xs font-black flex items-center justify-center rounded-lg flex-shrink-0">
             {index + 1}
           </span>
-          <span className="text-[10px] font-black uppercase tracking-widest text-white/60">
-            Member {index + 1}
-          </span>
+          <span className="text-sm font-bold text-white">Member {index + 1}</span>
           {isPrimary && (
-            <span className="flex items-center gap-1 bg-vortex-blue/20 text-vortex-blue text-[9px] font-black px-2 py-0.5 rounded-full border border-vortex-blue/30 uppercase">
+            <span className="flex items-center gap-1 bg-vortex-blue/20 text-vortex-blue text-[10px] font-bold px-2 py-0.5 rounded-full border border-vortex-blue/30">
               <Trophy size={9} /> Lead
             </span>
           )}
         </div>
         {canRemove && (
           <button type="button" onClick={onRemove}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-red-400/50 hover:text-red-400 hover:bg-red-400/10 transition-all">
-            <X size={14} />
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-red-400/60 active:text-red-400 active:bg-red-400/10 touch-manipulation">
+            <X size={16} />
           </button>
         )}
       </div>
 
-      {/* Core fields */}
-      <div className="grid grid-cols-1 gap-3">
-        {/* Full Name */}
-        <div className="space-y-1">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">Full Name *</label>
-          <div className="flex items-center input-glass rounded-lg overflow-hidden">
-            <User className="ml-3 flex-shrink-0 text-white/30" size={15} />
+      {/* Fields */}
+      <div className="p-4 space-y-4">
+        {/* Name */}
+        <Field label="Full Name *">
+          <IconInput>
             <input
               type="text" required
-              className="flex-1 bg-transparent px-3 py-3 text-sm text-white placeholder-white/50 focus:outline-none min-w-0"
+              className="flex-1 bg-[#111] px-3 py-3.5 text-base text-white placeholder-white/35 focus:outline-none min-w-0 autofill-dark"
               placeholder="Enter full name"
               value={member.name}
               onChange={e => onChange('name', e.target.value)}
+              autoComplete="name"
             />
-          </div>
-        </div>
+          </IconInput>
+        </Field>
 
         {/* Email */}
-        <div className="space-y-1">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">Email Address *</label>
-          <div className={`flex items-center input-glass rounded-lg overflow-hidden ${
-            emailState.isValid === false ? 'border-red-400/60' :
-            emailState.isValid === true ? 'border-green-400/60' : ''
-          }`}>
-            <Mail className="ml-3 flex-shrink-0 text-white/30" size={15} />
+        <Field label="Email Address *" error={emailState.error}>
+          <IconInput icon={Mail} error={emailState.isValid === false} success={emailState.isValid === true}>
             <input
               type="email" required
-              className="flex-1 bg-transparent px-3 py-3 text-sm text-white placeholder-white/50 focus:outline-none min-w-0"
+              className="flex-1 bg-[#111] px-3 py-3.5 text-base text-white placeholder-white/35 focus:outline-none min-w-0 autofill-dark"
               placeholder="email@example.com"
               value={member.email}
               onChange={e => { onChange('email', e.target.value); setEmailState({ isValid: null, error: null }); }}
-              onBlur={handleEmailBlur}
+              onBlur={() => member.email && setEmailState(validateEmail(member.email))}
+              autoComplete="email"
+              inputMode="email"
             />
-            {emailState.isValid === true && <CheckCircle className="mr-3 flex-shrink-0 text-green-400" size={14} />}
-            {emailState.isValid === false && <X className="mr-3 flex-shrink-0 text-red-400" size={14} />}
-          </div>
-          {emailState.error && <p className="text-red-400 text-[10px] ml-1">{emailState.error}</p>}
-        </div>
+          </IconInput>
+        </Field>
 
         {/* Phone */}
-        <div className="space-y-1">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">Phone Number *</label>
-          <div className="flex items-center input-glass rounded-lg overflow-hidden">
-            <Phone className="ml-3 flex-shrink-0 text-white/30" size={15} />
+        <Field label="Phone Number *">
+          <IconInput icon={Phone}>
             <input
-              type="tel" required
-              className="flex-1 bg-transparent px-3 py-3 text-sm text-white placeholder-white/50 focus:outline-none min-w-0"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              required
+              className="flex-1 bg-[#111] px-3 py-3.5 text-base text-white placeholder-white/35 focus:outline-none min-w-0 autofill-dark"
               placeholder="10-digit mobile number"
               value={member.phone}
               onChange={e => onChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
               minLength={10} maxLength={10}
+              autoComplete="tel"
             />
-          </div>
-        </div>
+          </IconInput>
+        </Field>
 
-        {/* College + College Type */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">College / Institution *</label>
-            <input
-              type="text" required
-              className="w-full input-glass p-3 rounded-lg text-sm"
-              placeholder="College name"
-              value={member.college}
-              onChange={e => onChange('college', e.target.value)}
-            />
-          </div>
-          {selectField('College Type *', 'collegeType', COLLEGE_TYPES)}
-        </div>
+        {/* College */}
+        <Field label="College / Institution *">
+          <input
+            type="text" required
+            className={inputCls}
+            placeholder="College name"
+            value={member.college}
+            onChange={e => onChange('college', e.target.value)}
+            autoComplete="organization"
+          />
+        </Field>
+
+        {/* College Type */}
+        <Field label="College Type *">
+          <Select value={member.collegeType} onChange={e => onChange('collegeType', e.target.value)}
+            placeholder="Select type..." options={COLLEGE_TYPES} required />
+        </Field>
 
         {/* USN */}
         <UsnField value={member.idNumber} onChange={val => onChange('idNumber', val)} />
 
-        {/* Branch + Year */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {selectField('Branch / Department *', 'department', BRANCHES)}
-          {selectField('Year of Study *', 'year', YEARS)}
-        </div>
+        {/* Branch */}
+        <Field label="Branch / Department *">
+          <Select value={member.department} onChange={e => onChange('department', e.target.value)}
+            placeholder="Select branch..." options={BRANCHES} required />
+        </Field>
+
+        {/* Year */}
+        <Field label="Year of Study *">
+          <Select value={member.year} onChange={e => onChange('year', e.target.value)}
+            placeholder="Select year..." options={YEARS} required />
+        </Field>
 
         {/* State + City */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">State *</label>
-            <div className="flex items-center input-glass rounded-lg overflow-hidden">
-              <MapPin className="ml-3 flex-shrink-0 text-white/30" size={15} />
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="State *">
+            <div className="relative">
               <select
                 required
-                className="flex-1 bg-transparent px-3 py-3 text-sm text-white focus:outline-none min-w-0 cursor-pointer"
                 value={member.state}
                 onChange={e => onChange('state', e.target.value)}
+                className={`${inputCls} appearance-none pr-8 cursor-pointer`}
+                style={{ backgroundImage: 'none' }}
               >
-                <option value="">Select state...</option>
+                <option value="">State...</option>
                 {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" size={14} />
             </div>
-          </div>
-          {field('City *', 'city', 'text', { required: true, placeholder: 'City' })}
+          </Field>
+          <Field label="City *">
+            <input
+              type="text" required
+              className={inputCls}
+              placeholder="City"
+              value={member.city}
+              onChange={e => onChange('city', e.target.value)}
+            />
+          </Field>
         </div>
 
-        {/* Age (conditional) */}
-        {showAge && field('Age *', 'age', 'number', { required: true, min: 1, max: 100, placeholder: 'Age' })}
-      </div>
-
-      {/* ID Card Upload */}
-      <div className="space-y-2 pt-1">
-        <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">College ID Card *</label>
-        <input
-          type="file"
-          accept="image/jpeg,image/jpg,image/png,application/pdf"
-          className="hidden"
-          id={`id-card-${index}`}
-          onChange={handleFileChange}
-        />
-        {member.idCardFileName ? (
-          <div className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-            <CheckCircle size={16} className="text-green-400 flex-shrink-0" />
-            <span className="text-green-300 text-xs flex-1 truncate">{member.idCardFileName}</span>
-            <button type="button"
-              onClick={() => { onChange('idCardFile', null); onChange('idCardFileName', ''); }}
-              className="text-white/30 hover:text-red-400 transition-colors flex-shrink-0 p-1">
-              <X size={14} />
-            </button>
-          </div>
-        ) : (
-          <label
-            htmlFor={`id-card-${index}`}
-            className="w-full py-5 border-2 border-dashed border-white/10 rounded-xl hover:border-vortex-blue/40 hover:bg-vortex-blue/5 active:bg-vortex-blue/10 transition-all flex flex-col items-center gap-2 group cursor-pointer touch-manipulation select-none"
-          >
-            <Upload size={22} className="text-white/30 group-hover:text-vortex-blue transition-colors" />
-            <span className="text-[11px] font-black uppercase tracking-widest text-white/40 group-hover:text-vortex-blue transition-colors">Upload ID Card</span>
-            <span className="text-[10px] text-white/20">JPG, PNG, PDF — Max 2MB</span>
-          </label>
+        {/* Age */}
+        {showAge && (
+          <Field label="Age *">
+            <input type="text" inputMode="numeric" pattern="[0-9]*" required
+              className={inputCls} placeholder="Age"
+              value={member.age || ''}
+              onChange={e => onChange('age', e.target.value.replace(/\D/g, '').slice(0, 3))}
+            />
+          </Field>
         )}
-      </div>
 
-      {/* Optional fields — only shown if event admin enabled them */}
-      {(showTshirt || showDietary) && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-white/5">
-          {showTshirt && selectField('T-Shirt Size', 'tshirtSize', TSHIRT_SIZES)}
-          {showDietary && (
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">Dietary Preference</label>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {DIETARY.map(d => (
-                  <label key={d} className="flex items-center gap-1.5 cursor-pointer touch-manipulation">
-                    <input type="radio" name={`diet-${index}`} value={d}
-                      checked={member.dietaryPreference === d}
-                      onChange={() => onChange('dietaryPreference', d)}
-                      className="flex-shrink-0"
-                    />
-                    <span className="text-xs text-white/70">{d.split('-')[0]}</span>
-                  </label>
-                ))}
-              </div>
+        {/* ID Card Upload */}
+        <div>
+          <label className={labelCls}>College ID Card *</label>
+          <input ref={fileInputRef} type="file"
+            accept="image/jpeg,image/jpg,image/png,application/pdf"
+            className="hidden" onChange={handleFileChange} />
+          {member.idCardFileName ? (
+            <div className="flex items-center gap-3 p-3.5 bg-green-500/10 border border-green-500/20 rounded-xl">
+              <CheckCircle size={18} className="text-green-400 flex-shrink-0" />
+              <span className="text-green-300 text-sm flex-1 truncate">{member.idCardFileName}</span>
+              <button type="button"
+                onClick={() => { onChange('idCardFile', null); onChange('idCardFileName', ''); }}
+                className="text-white/30 active:text-red-400 p-1 touch-manipulation">
+                <X size={16} />
+              </button>
             </div>
+          ) : (
+            <label
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full py-6 border-2 border-dashed border-white/15 rounded-xl active:bg-vortex-blue/5 flex flex-col items-center gap-2 cursor-pointer touch-manipulation select-none"
+            >
+              <Upload size={24} className="text-white/30" />
+              <span className="text-sm font-semibold text-white/50">Tap to Upload ID Card</span>
+              <span className="text-xs text-white/25">JPG, PNG, PDF — Max 2MB</span>
+            </label>
           )}
         </div>
-      )}
 
-      {/* Special Requirements */}
-      <div className="space-y-1 pt-1 border-t border-white/5">
-        <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Special Requirements (Optional)</label>
-        <textarea
-          className="w-full input-glass p-3 rounded-lg text-sm h-16 resize-none"
-          placeholder="Accessibility needs, allergies, etc."
-          value={member.specialRequirements || ''}
-          onChange={e => onChange('specialRequirements', e.target.value)}
-        />
+        {/* Optional */}
+        {(showTshirt || showDietary) && (
+          <div className="space-y-4 pt-2 border-t border-white/5">
+            {showTshirt && (
+              <Field label="T-Shirt Size">
+                <Select value={member.tshirtSize} onChange={e => onChange('tshirtSize', e.target.value)}
+                  placeholder="Select size..." options={TSHIRT_SIZES} />
+              </Field>
+            )}
+            {showDietary && (
+              <div>
+                <label className={labelCls}>Dietary Preference</label>
+                <div className="flex gap-3 flex-wrap">
+                  {DIETARY.map(d => (
+                    <label key={d} className="flex items-center gap-2 cursor-pointer touch-manipulation py-1">
+                      <input type="radio" name={`diet-${index}`} value={d}
+                        checked={member.dietaryPreference === d}
+                        onChange={() => onChange('dietaryPreference', d)}
+                        className="w-4 h-4 flex-shrink-0 accent-vortex-blue"
+                      />
+                      <span className="text-sm text-white/70">{d}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Special requirements */}
+        <Field label="Special Requirements (Optional)">
+          <textarea
+            className={`${inputCls} h-16 resize-none`}
+            placeholder="Accessibility needs, allergies, etc."
+            value={member.specialRequirements || ''}
+            onChange={e => onChange('specialRequirements', e.target.value)}
+          />
+        </Field>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
-// ─── Main RegistrationForm component ──────────────────────────────────────────
-
+// ─── Main Form ─────────────────────────────────────────────────────────────────
 const RegistrationForm = ({ event, onSubmit, submitting }) => {
   const isSolo = event.registrationType === 'Solo';
   const isDuo = event.registrationType === 'Duo';
@@ -379,47 +357,53 @@ const RegistrationForm = ({ event, onSubmit, submitting }) => {
   const showTshirt = !!event.collectTshirtSize;
   const showDietary = !!event.collectDietaryPreference;
 
-  const [teamName, setTeamName] = useState('');
-  const [members, setMembers] = useState([emptyMember()]);
+  const draftKey = `reg_draft_${event._id}`;
+
+  const loadDraft = () => {
+    try {
+      const saved = localStorage.getItem(draftKey);
+      if (saved) {
+        const { teamName: tn, members: ms } = JSON.parse(saved);
+        return { teamName: tn || '', members: ms?.length ? ms : [emptyMember()] };
+      }
+    } catch {}
+    return null;
+  };
+
+  const draft = loadDraft();
+  const [teamName, setTeamName] = useState(draft?.teamName || '');
+  const [members, setMembers] = useState(draft?.members || [emptyMember()]);
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [agreedRefund, setAgreedRefund] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saveable = { teamName, members: members.map(m => ({ ...m, idCardFile: null })) };
+      localStorage.setItem(draftKey, JSON.stringify(saveable));
+    } catch {}
+  }, [teamName, members, draftKey]);
+
+  const clearDraft = () => { try { localStorage.removeItem(draftKey); } catch {} };
 
   const updateMember = useCallback((index, key, value) => {
     setMembers(prev => prev.map((m, i) => i === index ? { ...m, [key]: value } : m));
   }, []);
 
-  const addMember = () => {
-    if (members.length < maxMembers) setMembers(prev => [...prev, emptyMember()]);
-  };
-
-  const removeMember = (index) => {
-    if (members.length > minMembers) setMembers(prev => prev.filter((_, i) => i !== index));
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!agreedTerms || !agreedRefund) {
-      alert('Please agree to the terms and conditions to proceed.');
-      return;
-    }
-    if (members.length < minMembers) {
-      alert(`Minimum ${minMembers} member${minMembers > 1 ? 's' : ''} required.`);
-      return;
-    }
+    if (hasSubmitted || submitting) return;
+    if (!agreedTerms || !agreedRefund) { alert('Please agree to the terms and conditions.'); return; }
+    if (members.length < minMembers) { alert(`Minimum ${minMembers} member${minMembers > 1 ? 's' : ''} required.`); return; }
     const missingId = members.findIndex(m => !m.idCardFileName);
-    if (missingId !== -1) {
-      alert(`Please upload the College ID card for Member ${missingId + 1}.`);
-      return;
-    }
+    if (missingId !== -1) { alert(`Please upload the College ID card for Member ${missingId + 1}.`); return; }
     const invalidUsn = members.findIndex(m => !USN_REGEX.test(m.idNumber));
-    if (invalidUsn !== -1) {
-      alert(`Invalid USN for Member ${invalidUsn + 1}. Expected format like 4AD23CS075`);
-      return;
-    }
+    if (invalidUsn !== -1) { alert(`Invalid USN for Member ${invalidUsn + 1}. Expected format like 4AD23CS075`); return; }
+    setHasSubmitted(true);
+    clearDraft();
     onSubmit({ teamName: isSolo ? '' : teamName, members });
   };
 
-  // Fee calculation
   const feePerUnit = event.price || 0;
   const isPerTeam = event.feeType === 'per_team' || event.teamPricing?.perTeam;
   const totalFee = isPerTeam ? feePerUnit : feePerUnit * members.length;
@@ -427,99 +411,89 @@ const RegistrationForm = ({ event, onSubmit, submitting }) => {
   const grandTotal = totalFee + gstAmount;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5 registration-form">
 
-      {/* Event summary banner */}
-      <div className="p-3 sm:p-4 bg-gradient-to-r from-vortex-blue/10 to-purple-500/10 rounded-xl border border-vortex-blue/20">
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-          <span className="text-white font-bold">{event.title}</span>
-          <span className="text-white/50">•</span>
-          <span className="text-vortex-blue font-bold">{event.registrationType}</span>
-          {feePerUnit > 0 ? (
-            <span className="text-green-400 font-bold ml-auto">
-              {isPerTeam ? `₹${feePerUnit} flat` : `₹${feePerUnit} × ${members.length} = ₹${totalFee}`}
-            </span>
-          ) : (
-            <span className="text-green-400 font-bold ml-auto">FREE</span>
-          )}
+      {/* Event banner */}
+      <div className="flex items-center justify-between p-3.5 bg-vortex-blue/10 rounded-xl border border-vortex-blue/20">
+        <div>
+          <p className="text-white font-bold text-sm">{event.title}</p>
+          <p className="text-vortex-blue text-xs mt-0.5">{event.registrationType} Event</p>
         </div>
+        <span className="text-green-400 font-bold text-sm">
+          {feePerUnit > 0 ? (isPerTeam ? `₹${feePerUnit}` : `₹${feePerUnit}/person`) : 'FREE'}
+        </span>
       </div>
 
-      {/* Team Name — hidden for Solo */}
+      {/* Team name */}
       {!isSolo && (
-        <div className="space-y-1">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-0.5">Team Name *</label>
+        <Field label="Team Name *">
           <input
             type="text" required
-            className="w-full input-glass p-3 rounded-lg text-sm font-bold uppercase"
+            className={`${inputCls} font-bold uppercase`}
             placeholder="Enter your team name"
             value={teamName}
             onChange={e => setTeamName(e.target.value.toUpperCase())}
           />
-        </div>
+        </Field>
       )}
 
-      {/* Attendees header */}
-      <div className="flex items-end justify-between border-b border-white/10 pb-2">
-        <h4 className="text-sm font-black uppercase tracking-widest text-white flex items-center gap-2">
-          <span className="text-vortex-blue italic">{'//'}</span> Attendees
+      {/* Members count */}
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-bold text-white">
+          <span className="text-vortex-blue mr-1">//</span> Attendees
         </h4>
-        <span className="text-[10px] text-white/40 font-bold uppercase">
-          {members.length} / {maxMembers} &nbsp;·&nbsp; MIN {minMembers}
+        <span className="text-xs text-white/40 font-medium">
+          {members.length}/{maxMembers} · min {minMembers}
         </span>
       </div>
 
-      {/* Member cards */}
-      <AnimatePresence>
+      {/* Member cards — plain divs, no animation library */}
+      <div className="space-y-4">
         {members.map((member, idx) => (
           <MemberCard
             key={idx}
-            member={member}
-            index={idx}
+            member={member} index={idx}
             isPrimary={idx === 0}
             canRemove={!isSolo && members.length > minMembers}
             onChange={(key, val) => updateMember(idx, key, val)}
-            onRemove={() => removeMember(idx)}
-            showAge={showAge}
-            showTshirt={showTshirt}
-            showDietary={showDietary}
+            onRemove={() => setMembers(prev => prev.filter((_, i) => i !== idx))}
+            showAge={showAge} showTshirt={showTshirt} showDietary={showDietary}
           />
         ))}
-      </AnimatePresence>
+      </div>
 
-      {/* Add Member — hidden for Solo, disabled at max */}
+      {/* Add member */}
       {!isSolo && members.length < maxMembers && (
-        <button
-          type="button" onClick={addMember}
-          className="w-full py-4 border-2 border-dashed border-white/10 rounded-xl text-[11px] font-black uppercase tracking-widest text-white/40 hover:border-vortex-blue/40 hover:text-vortex-blue hover:bg-vortex-blue/5 transition-all flex items-center justify-center gap-2 group touch-manipulation"
+        <button type="button"
+          onClick={() => setMembers(prev => [...prev, emptyMember()])}
+          className="w-full py-4 border-2 border-dashed border-white/10 rounded-xl text-sm font-semibold text-white/40 active:border-vortex-blue/40 active:text-vortex-blue active:bg-vortex-blue/5 flex items-center justify-center gap-2 touch-manipulation"
         >
-          <Plus size={16} className="group-hover:rotate-90 transition-transform" />
-          Add Member ({members.length}/{maxMembers})
+          <Plus size={18} /> Add Member ({members.length}/{maxMembers})
         </button>
       )}
 
-      {/* Min members warning */}
+      {/* Min warning */}
       {members.length < minMembers && (
-        <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg text-orange-400 text-xs font-bold text-center">
+        <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-xl text-orange-400 text-sm font-semibold text-center">
           Minimum {minMembers} members required
         </div>
       )}
 
       {/* Fee breakdown */}
       {feePerUnit > 0 && (
-        <div className="p-4 bg-green-500/5 border border-green-500/20 rounded-xl space-y-2">
-          <div className="text-[10px] font-black uppercase tracking-widest text-green-400 mb-3">Fee Breakdown</div>
-          <div className="flex justify-between text-xs">
+        <div className="p-4 bg-[#0d0d0d] border border-white/10 rounded-xl space-y-2.5">
+          <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Fee Breakdown</p>
+          <div className="flex justify-between text-sm">
             <span className="text-white/60">{isPerTeam ? 'Team Fee' : `₹${feePerUnit} × ${members.length} member${members.length > 1 ? 's' : ''}`}</span>
-            <span className="text-white">₹{totalFee}</span>
+            <span className="text-white font-medium">₹{totalFee}</span>
           </div>
           {event.gstEnabled && (
-            <div className="flex justify-between text-xs">
+            <div className="flex justify-between text-sm">
               <span className="text-white/50">GST ({event.gstPercent || 18}%)</span>
-              <span className="text-white/70">₹{gstAmount}</span>
+              <span className="text-white/60">₹{gstAmount}</span>
             </div>
           )}
-          <div className="flex justify-between text-sm font-bold border-t border-white/10 pt-2">
+          <div className="flex justify-between text-base font-bold border-t border-white/10 pt-2.5">
             <span className="text-white">Total</span>
             <span className="text-green-400">₹{grandTotal}</span>
           </div>
@@ -527,33 +501,34 @@ const RegistrationForm = ({ event, onSubmit, submitting }) => {
       )}
 
       {/* Terms */}
-      <div className="space-y-3 p-4 bg-white/5 rounded-xl border border-white/10">
-        <div className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Terms & Conditions</div>
-        <label className="flex items-center gap-3 cursor-pointer touch-manipulation">
-          <input type="checkbox" checked={agreedTerms} onChange={e => setAgreedTerms(e.target.checked)} className="flex-shrink-0" />
-          <span className="text-xs text-white/70 leading-relaxed">I agree to the event terms and conditions</span>
-        </label>
-        <label className="flex items-center gap-3 cursor-pointer touch-manipulation">
-          <input type="checkbox" checked={agreedRefund} onChange={e => setAgreedRefund(e.target.checked)} className="flex-shrink-0" />
-          <span className="text-xs text-white/70 leading-relaxed">I agree to the refund and cancellation policy</span>
-        </label>
+      <div className="space-y-3 p-4 bg-[#0d0d0d] border border-white/10 rounded-xl">
+        <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Terms & Conditions</p>
+        {[
+          { state: agreedTerms, set: setAgreedTerms, text: 'I agree to the event terms and conditions' },
+          { state: agreedRefund, set: setAgreedRefund, text: 'I agree to the refund and cancellation policy' },
+        ].map(({ state, set, text }) => (
+          <label key={text} className="flex items-start gap-3 cursor-pointer touch-manipulation">
+            <input type="checkbox" checked={state} onChange={e => set(e.target.checked)}
+              className="w-5 h-5 mt-0.5 flex-shrink-0 accent-vortex-blue rounded" />
+            <span className="text-sm text-white/70 leading-relaxed">{text}</span>
+          </label>
+        ))}
       </div>
 
       {/* Submit */}
       <button
         type="submit"
-        disabled={submitting || members.length < minMembers || !agreedTerms || !agreedRefund}
-        className="w-full glass-button bg-vortex-blue text-black font-black py-4 text-sm uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 touch-manipulation"
+        disabled={submitting || hasSubmitted || members.length < minMembers || !agreedTerms || !agreedRefund}
+        className="w-full bg-vortex-blue text-black font-black py-4 text-base rounded-xl disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 touch-manipulation active:opacity-80"
       >
         {submitting ? (
-          <><span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> Processing...</>
+          <><span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> Processing...</>
         ) : (
-          <>{feePerUnit > 0 ? `Proceed to Payment — ₹${grandTotal}` : 'Register Now'}</>
+          feePerUnit > 0 ? `Proceed to Payment — ₹${grandTotal}` : 'Register Now'
         )}
       </button>
     </form>
   );
 };
 
-const RegistrationFormMemo = React.memo(RegistrationForm);
-export default RegistrationFormMemo;
+export default React.memo(RegistrationForm);

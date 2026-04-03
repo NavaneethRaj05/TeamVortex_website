@@ -106,7 +106,7 @@ const SmartImage = ({
                     alt={alt}
                     className={`${className} ${status !== 'loaded' ? 'opacity-0 absolute inset-0' : 'opacity-100'} transition-opacity duration-300`}
                     style={{ display: 'block' }}
-                    loading="eager"
+                    loading="lazy"
                     decoding="async"
                     {...(useCors ? { crossOrigin: 'anonymous' } : {})}
                     onLoad={() => setStatus('loaded')}

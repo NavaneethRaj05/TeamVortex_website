@@ -9,7 +9,6 @@
     min-height: 100vh;
     position: relative;
     overflow-x: hidden;
-    /* Enable native momentum scrolling on iOS */
     -webkit-overflow-scrolling: touch;
   }
 
@@ -181,11 +180,18 @@
   }
 
   .input-glass {
-    @apply glass-card border border-white/20 bg-white/5 text-white placeholder-white/50 focus:outline-none focus:border-vortex-blue focus:bg-white/10 transition-all duration-300;
-    backdrop-filter: blur(20px);
+    @apply border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-vortex-blue transition-colors duration-200;
+    background: #111111;
+    border-radius: 0.5rem;
+    /* No backdrop-filter — causes white flash on autofill and GPU repaint on mobile */
   }
 
-  /* Override browser autofill white background */
+  .input-glass:focus {
+    background: #161616;
+    border-color: rgba(0, 212, 255, 0.6);
+  }
+
+  /* Universal autofill fix — works on ALL inputs (input-glass, plain inputs, registration form) */
   .input-glass:-webkit-autofill,
   .input-glass:-webkit-autofill:hover,
   .input-glass:-webkit-autofill:focus,
@@ -193,13 +199,17 @@
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus,
-  input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 1000px #0d0d0d inset !important;
-    box-shadow: 0 0 0 1000px #0d0d0d inset !important;
+  input:-webkit-autofill:active,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    /* Force dark background — the only reliable way to override browser autofill */
+    -webkit-box-shadow: 0 0 0 1000px #111111 inset !important;
+    box-shadow: 0 0 0 1000px #111111 inset !important;
     -webkit-text-fill-color: #ffffff !important;
-    caret-color: #ffffff;
+    caret-color: #ffffff !important;
     border-color: rgba(255, 255, 255, 0.2) !important;
-    transition: background-color 9999s ease-in-out 0s;
+    /* Delay the background transition so it never visibly changes */
+    transition: background-color 99999s ease-in-out 0s !important;
   }
   
   /* Accessibility: Enhanced focus for inputs */
@@ -2056,10 +2066,10 @@ html {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Prevent Horizontal Scroll */
+/* Prevent Horizontal Scroll — only on body, never html (html:overflow breaks mouse wheel) */
 body {
   overflow-x: hidden;
-  max-width: 100vw;
+  max-width: 100%;
 }
 
 /* Mobile-Optimized Images */
@@ -2086,10 +2096,10 @@ body {
 /* Mobile Base Optimizations */
 @media (max-width: 768px) {
   
-  /* Prevent horizontal scroll */
-  html, body {
+  /* Prevent horizontal scroll on mobile — body only, not html */
+  body {
     overflow-x: hidden;
-    max-width: 100vw;
+    max-width: 100%;
   }
   
   /* Better text rendering on mobile */
@@ -2809,12 +2819,47 @@ label:has(input:disabled):hover {
 
 
 /* ========================================
-   MOBILE SCROLL PERFORMANCE
+   MOBILE SCROLL PERFORMANCE — iOS & Android
    ======================================== */
 
-/* Promote scrollable containers to their own GPU layer */
-html, body {
+/* iOS momentum scrolling — critical for smooth scroll on Safari */
+html {
   -webkit-overflow-scrolling: touch;
+  height: 100%;
+}
+
+body {
+  -webkit-overflow-scrolling: touch;
+  /* Do NOT set overflow:hidden on body — breaks iOS scroll */
+  min-height: 100%;
+  height: auto;
+}
+
+/* Root app div — must not clip scroll */
+#root {
+  min-height: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fixed canvas (ParticleBackground) — use pointer-events:none so it never intercepts touch */
+canvas.fixed {
+  pointer-events: none !important;
+  touch-action: none !important;
+}
+
+/* All interactive elements — explicit touch-action for iOS */
+button, a, [role="button"] {
+  touch-action: manipulation; /* removes 300ms tap delay on iOS */
+  -webkit-tap-highlight-color: transparent; /* removes grey flash on tap */
+  cursor: pointer;
+}
+
+/* Scrollable containers inside modals/panels */
+.overflow-y-auto,
+.overflow-auto,
+.custom-scrollbar {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 /* Reduce paint cost of glass cards during scroll */
@@ -2822,6 +2867,7 @@ html, body {
   will-change: auto;
   transform: translateZ(0);
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Disable heavy hover animations on touch devices */
@@ -2841,6 +2887,12 @@ html, body {
   }
 }
 
+/* iOS Safari: prevent text size adjustment */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* Reduce motion for users who prefer it */
 @media (prefers-reduced-motion: reduce) {
   .floating-element,
@@ -2850,4 +2902,347 @@ html, body {
   .animate-ping-slow {
     animation: none !important;
   }
+}
+
+
+/* ========================================
+   iOS/ANDROID INPUT & KEYBOARD FIXES
+   ======================================== */
+
+/* Prevent viewport jump when keyboard opens on iOS/Android.
+   Use dvh (dynamic viewport height) where supported — it accounts for
+   the keyboard without causing layout reflow. */
+@supports (height: 100dvh) {
+  html, body, #root {
+    min-height: 100dvh;
+  }
+}
+
+/* Prevent the entire page from scrolling up when an input is focused.
+   The scroll-padding-top ensures focused inputs aren't hidden behind the navbar. */
+html {
+  scroll-padding-top: 80px;
+}
+
+/* Stable input height — prevents layout shift when autofill changes font/size */
+input, textarea, select {
+  /* Stable line-height prevents height jump on autofill */
+  line-height: 1.5;
+}
+
+/* Mobile only: prevent iOS zoom on focus and fix appearance */
+@media (max-width: 768px) {
+  input, textarea, select {
+    -webkit-appearance: none;
+    appearance: none;
+    font-size: 16px !important; /* Prevent iOS zoom on focus */
+  }
+}
+
+/* Placeholder — always visible, consistent across iOS/Android */
+input::placeholder,
+textarea::placeholder {
+  color: rgba(255, 255, 255, 0.45) !important;
+  opacity: 1 !important; /* Firefox sets opacity 0.54 by default */
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.45);
+}
+
+/* Autofill — keep our dark theme, prevent white flash */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #111111 inset !important;
+  box-shadow: 0 0 0 1000px #111111 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  transition: background-color 99999s ease-in-out 0s !important;
+}
+
+/* Autofill placeholder — keep it visible after autofill */
+input:-webkit-autofill::placeholder {
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+/* Prevent iOS from styling select dropdowns */
+select {
+  -webkit-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 1rem center !important;
+  padding-right: 2.5rem !important;
+}
+
+/* Focus — no zoom, no layout shift */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  /* Don't change size on focus — prevents layout shift */
+  transform: none !important;
+}
+
+/* Registration form container — stable during keyboard open */
+.registration-form-container,
+form {
+  /* Prevent the form from jumping when keyboard opens */
+  will-change: auto;
+}
+
+/* Modal/overlay scroll fix for iOS */
+.fixed.inset-0 {
+  /* iOS Safari: allow scrolling inside fixed overlays */
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+/* Flex input wrappers (icon + input) — stable height */
+.flex.items-center.input-glass {
+  min-height: 48px; /* WCAG touch target */
+  height: auto !important; /* don't fix height — let content determine */
+}
+
+
+/* ========================================
+   REGISTRATION FORM — LIGHTWEIGHT INPUTS
+   (no backdrop-filter = no GPU repaint on scroll/focus)
+   ======================================== */
+
+/* Override input-glass inside registration forms to use solid bg */
+.registration-member-card .input-glass,
+.registration-member-card .flex.items-center.input-glass {
+  background: rgba(255, 255, 255, 0.06) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: none !important;
+  transition: border-color 0.2s ease !important;
+}
+
+.registration-member-card .input-glass:focus-within {
+  border-color: rgba(0, 212, 255, 0.5) !important;
+  background: rgba(255, 255, 255, 0.09) !important;
+}
+
+/* Transparent inner inputs inside flex wrappers */
+.registration-member-card .flex.items-center.input-glass input,
+.registration-member-card .flex.items-center.input-glass select {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+
+
+/* ========================================
+   DATE INPUT — preserve native calendar picker
+   ======================================== */
+
+/* Restore native date picker appearance — our CSS was stripping it */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+input[type="month"] {
+  -webkit-appearance: auto !important;
+  appearance: auto !important;
+  color-scheme: dark;
+  /* Keep our dark background */
+  background: #111111 !important;
+  color: white !important;
+}
+
+/* Calendar icon color on webkit */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.6);
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  filter: invert(1) opacity(1);
+}
+
+/* ========================================
+   REGISTRATION FORM — MOBILE SCROLL & INPUT FIXES
+   ======================================== */
+
+/* Modal overlay: smooth native scroll on iOS & Android */
+.registration-modal-overlay {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  overflow-y: auto;
+}
+
+/* Prevent the whole page from scrolling behind the modal on iOS */
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* Autofill fix for inputs with bg-[#111] (solid dark bg, not transparent) */
+.autofill-dark:-webkit-autofill,
+.autofill-dark:-webkit-autofill:hover,
+.autofill-dark:-webkit-autofill:focus,
+.autofill-dark:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #111111 inset !important;
+  box-shadow: 0 0 0 1000px #111111 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  transition: background-color 99999s ease-in-out 0s !important;
+}
+
+/* Prevent layout shift when keyboard opens on mobile:
+   - Don't change background on focus (only border-color)
+   - Don't use transform on focus
+   - Stable min-height on all inputs */
+@media (max-width: 767px) {
+  /* Registration form inputs — no background change on focus */
+  .registration-form input,
+  .registration-form textarea,
+  .registration-form select {
+    background-color: #111111 !important;
+    /* Only animate border, not background — prevents repaint/layout shift */
+    transition: border-color 0.15s ease !important;
+    transform: none !important;
+    /* Stable height — prevents jump when focused */
+    min-height: 52px;
+    height: auto;
+  }
+
+  /* Prevent iOS Safari viewport resize from shifting layout */
+  .registration-form {
+    /* Use min-height instead of height so keyboard doesn't cause reflow */
+    min-height: 0;
+  }
+
+  /* Prevent number input spinner buttons from appearing on iOS */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Stable icon-input wrapper — no height change on focus */
+  .registration-form .flex.items-center {
+    min-height: 52px;
+    align-items: center;
+  }
+
+  /* Prevent select from zooming on iOS (font-size must be >= 16px) */
+  .registration-form select {
+    font-size: 16px !important;
+  }
+
+  /* Smooth scroll inside the modal content area */
+  .registration-modal-content {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    /* Prevent rubber-band scroll from propagating to page */
+    overscroll-behavior: contain;
+  }
+
+  /* Textarea — stable, no resize jump */
+  .registration-form textarea {
+    resize: none;
+    min-height: 64px;
+    height: 64px;
+  }
+}
+
+/* ========================================
+   iOS SAFARI VIEWPORT & SAFE AREA FIXES
+   ======================================== */
+
+/* Fix iOS Safari 100vh bug — use dvh (dynamic viewport height) with fallback */
+.min-h-screen {
+  min-height: 100vh;
+  min-height: 100dvh; /* iOS 15.4+ — accounts for browser chrome */
+}
+
+/* Safe area insets for notched iPhones (iPhone X and later) */
+.glass-nav,
+nav {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+/* Bottom safe area for fixed elements (home indicator on iPhone) */
+.fixed.bottom-0,
+.fixed.bottom-4,
+.fixed.bottom-6 {
+  padding-bottom: max(0px, env(safe-area-inset-bottom));
+}
+
+/* Prevent text size adjustment on orientation change (iOS) */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Fix tap highlight color on iOS/Android */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Buttons and interactive elements — remove default iOS styling */
+button,
+input[type="submit"],
+input[type="button"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Fix iOS momentum scrolling for all scrollable containers */
+.overflow-y-auto,
+.overflow-x-auto,
+.custom-scrollbar,
+.registration-modal-overlay,
+.registration-modal-content {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent double-tap zoom on buttons (iOS) */
+button,
+a,
+label {
+  touch-action: manipulation;
+}
+
+/* Fix position:fixed elements being pushed by iOS keyboard */
+@supports (-webkit-touch-callout: none) {
+  /* iOS only */
+  .registration-modal-overlay {
+    /* Use position absolute within a fixed container to avoid keyboard push */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Prevent horizontal scroll on mobile */
+body, html {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Fix input zoom on iOS — ensure all inputs are at least 16px */
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: max(16px, 1rem) !important;
+  }
+}
+
+/* Offline banner pushes content down — compensate navbar */
+body.offline-active .glass-nav {
+  top: 2rem;
 }

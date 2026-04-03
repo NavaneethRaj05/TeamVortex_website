@@ -4,24 +4,29 @@ const CLIENT_URL = process.env.CLIENT_URL || 'https://teamvortexnce.netlify.app'
 const FROM = `"${process.env.EMAIL_FROM_NAME || 'Team Vortex'}" <${process.env.EMAIL_USER}>`;
 
 // ============================================
-// TRANSPORTER
+// TRANSPORTER — lazy init for serverless
 // ============================================
 
-const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT) || 587,
-    secure: false,
-    auth: {
-        user: process.env.EMAIL_USER || '',
-        pass: process.env.EMAIL_PASS || ''
-    },
-    tls: { rejectUnauthorized: false }
-});
+let _transporter = null;
 
-transporter.verify((error) => {
-    if (error) console.error('❌ Email server connection failed:', error.message);
-    else console.log('✅ Email server ready');
-});
+const getTransporter = () => {
+    if (_transporter) return _transporter;
+    _transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.EMAIL_PORT) || 587,
+        secure: false,
+        auth: {
+            user: process.env.EMAIL_USER || '',
+            pass: process.env.EMAIL_PASS || ''
+        },
+        tls: { rejectUnauthorized: false },
+        pool: false, // don't pool in serverless
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000
+    });
+    return _transporter;
+};
 
 // ============================================
 // SHARED STYLES
@@ -292,21 +297,31 @@ const sendEmail = async (to, templateName, data) => {
         console.warn(`⚠️  Email not configured — skipping (${templateName}) to ${to}`);
         return { success: false, error: 'Email not configured' };
     }
-    try {
-        const template = emailTemplates[templateName](data);
-        const info = await transporter.sendMail({
-            from: FROM,
-            to,
-            subject: template.subject,
-            text: template.text,
-            html: template.html
-        });
-        console.log(`✅ Email sent to ${to}: ${template.subject} [${info.messageId}]`);
-        return { success: true, messageId: info.messageId };
-    } catch (error) {
-        console.error(`❌ Email failed to ${to} (${templateName}):`, error.message);
-        return { success: false, error: error.message };
+    const template = emailTemplates[templateName]?.(data);
+    if (!template) {
+        console.error(`❌ Unknown email template: ${templateName}`);
+        return { success: false, error: `Unknown template: ${templateName}` };
     }
+    // Retry up to 3 times for transient SMTP failures
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+            const t = getTransporter();
+            const info = await t.sendMail({
+                from: FROM,
+                to,
+                subject: template.subject,
+                text: template.text,
+                html: template.html
+            });
+            console.log(`✅ Email sent to ${to}: ${template.subject} [${info.messageId}]`);
+            return { success: true, messageId: info.messageId };
+        } catch (error) {
+            console.error(`❌ Email attempt ${attempt}/3 failed to ${to} (${templateName}):`, error.message);
+            _transporter = null; // reset so next attempt creates fresh connection
+            if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 1000));
+        }
+    }
+    return { success: false, error: 'All retry attempts failed' };
 };
 
 // ============================================

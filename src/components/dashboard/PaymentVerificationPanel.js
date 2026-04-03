@@ -183,7 +183,6 @@ const PaymentVerificationPanel = ({ selectedEventId = null }) => {
 
     // Stats
     const stats = {
-        pending: pendingPayments.filter(p => p.paymentStatus === 'pending').length,
         submitted: pendingPayments.filter(p => p.paymentStatus === 'submitted').length,
         total: pendingPayments.length
     };
@@ -197,7 +196,7 @@ const PaymentVerificationPanel = ({ selectedEventId = null }) => {
             case 'submitted':
                 return <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs flex items-center gap-1"><Clock size={12} /> Awaiting Review</span>;
             default:
-                return <span className="px-2 py-1 bg-gray-500/20 text-gray-400 rounded-full text-xs flex items-center gap-1"><AlertCircle size={12} /> Pending Payment</span>;
+                return <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs flex items-center gap-1"><Clock size={12} /> Awaiting Review</span>;
         }
     };
 
@@ -260,10 +259,6 @@ const PaymentVerificationPanel = ({ selectedEventId = null }) => {
                         <div className="text-3xl font-bold text-yellow-400">{stats.submitted}</div>
                         <div className="text-yellow-200/70 text-sm">Awaiting Review</div>
                     </div>
-                    <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-4 border border-white/10">
-                        <div className="text-3xl font-bold text-gray-300">{stats.pending}</div>
-                        <div className="text-gray-400 text-sm">Payment Pending</div>
-                    </div>
                     <div className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 rounded-xl p-4 border border-purple-500/20 col-span-2 sm:col-span-1">
                         <div className="text-3xl font-bold text-purple-400">{stats.total}</div>
                         <div className="text-purple-200/70 text-sm">Total Registrations</div>
@@ -291,7 +286,6 @@ const PaymentVerificationPanel = ({ selectedEventId = null }) => {
                     >
                         <option value="all">All Status</option>
                         <option value="submitted">Awaiting Review</option>
-                        <option value="pending">Payment Pending</option>
                     </select>
                 </div>
             )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X, Download, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
@@ -153,6 +153,16 @@ const Events = () => {
     }
   }, [rsvpEvent]);
 
+  // Lock body scroll when registration modal is open (prevents iOS page scroll behind modal)
+  useEffect(() => {
+    if (rsvpEvent) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => document.body.classList.remove('modal-open');
+  }, [rsvpEvent]);
+
   useEffect(() => {
     fetchEvents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -250,35 +260,31 @@ const Events = () => {
 
   const pastEvents = displayableEvents.filter(e => {
     if (!e || e.status === 'completed') return true;
+    // Main event containers: include if they have a past date or no date (show with sub-events)
+    if (e.isMainEventContainer) {
+      if (!e.date) return false; // no date yet, don't show
+      const d = new Date(e.date);
+      return !isNaN(d.getTime()) && now > d;
+    }
 
     try {
       const eventDate = new Date(e.date);
-      
-      // Check if date is valid
-      if (isNaN(eventDate.getTime())) {
-        console.warn('Invalid date for event:', e.title, e.date);
-        return false;
-      }
+      if (isNaN(eventDate.getTime())) return false;
       
       const eventEnd = new Date(eventDate);
-      eventEnd.setHours(23, 59, 59, 999); // Default to end of day
+      eventEnd.setHours(23, 59, 59, 999);
 
       if (e.endTime) {
         const [h, m] = e.endTime.split(':').map(num => parseInt(num, 10));
-        if (!isNaN(h) && !isNaN(m)) {
-          eventEnd.setHours(h, m, 0, 0);
-        }
+        if (!isNaN(h) && !isNaN(m)) eventEnd.setHours(h, m, 0, 0);
       }
 
       return now > eventEnd;
     } catch (err) {
-      console.error('Error processing event date:', e.title, err);
       return false;
     }
   }).sort((a, b) => {
-    if ((b.priority || 0) !== (a.priority || 0)) {
-      return (b.priority || 0) - (a.priority || 0);
-    }
+    if ((b.priority || 0) !== (a.priority || 0)) return (b.priority || 0) - (a.priority || 0);
     return new Date(b.date) - new Date(a.date);
   });
 
@@ -363,7 +369,7 @@ const Events = () => {
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+          const timeout = setTimeout(() => controller.abort(), 30000) // 30s — mobile networks can be slow; // 15s timeout
           res = await fetch(`${API_BASE_URL}/api/events/${rsvpEvent._id}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -447,7 +453,7 @@ const Events = () => {
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 15000);
+          const timeout = setTimeout(() => controller.abort(), 30000) // 30s — mobile networks can be slow;
           res = await fetch(`${API_BASE_URL}/api/events/${subEventModal.mainEvent._id}/register-multiple`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -709,7 +715,7 @@ const Events = () => {
                         title: prayogDisplay.title,
                         images: prayogDisplay.images
                       })}
-                      className="glass-button text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"
+                      className="glass-button text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black transition-all inline-flex items-center justify-center self-start px-3 sm:px-6 py-2 text-sm"
                     >
                       ðŸ“¸ View Photos
                       <ArrowRight className="h-4 w-4 ml-2" />
@@ -719,7 +725,7 @@ const Events = () => {
                   {prayogDisplay.galleryDriveLink && (
                     <button
                       onClick={() => window.open(prayogDisplay.galleryDriveLink, '_blank')}
-                      className="glass-button text-green-400 border border-green-400/30 hover:bg-green-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"
+                      className="glass-button text-green-400 border border-green-400/30 hover:bg-green-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-3 sm:px-6 py-2 text-sm"
                     >
                       ðŸ“ Drive Gallery
                       <ArrowRight className="h-4 w-4 ml-2" />
@@ -999,19 +1005,19 @@ const Events = () => {
           {rsvpEvent && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+              className="fixed inset-0 z-[100] flex items-start justify-center sm:items-center p-2 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto registration-modal-overlay"
               onClick={() => setRsvpEvent(null)}
             >
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                className="relative glass-card p-8 max-w-2xl w-full"
+                className="relative glass-card p-4 sm:p-8 max-w-2xl w-full my-2 sm:my-4 registration-modal-content"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button 
                   onClick={resetRegistrationFlow} 
-                  className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors"
+                  className="sticky top-0 float-right z-10 w-9 h-9 flex items-center justify-center rounded-xl bg-white/10 text-white/60 hover:text-white hover:bg-white/20 transition-all touch-manipulation -mt-1 -mr-1 mb-2"
                 >
-                  <X />
+                  <X size={18} />
                 </button>
                 <div className="text-center mb-6">
                   <h3 className="text-2xl font-bold gradient-text">{rsvpEvent.capacity > 0 && rsvpEvent.registrationCount >= rsvpEvent.capacity ? 'JOIN WAITLIST' : 'EVENT REGISTRATION'}</h3>
@@ -1491,48 +1497,50 @@ const Events = () => {
                     
                     return (
                     <div key={event._id} className="w-full flex-shrink-0">
-                      <div className="glass-card mx-2 overflow-hidden bg-white/5 border border-white/10 group">
-                        <div className="md:flex">
-                          <div className="md:w-1/2 h-64 md:h-auto overflow-hidden relative">
+                      <div className="glass-card mx-1 sm:mx-2 overflow-hidden bg-white/5 border border-white/10 group">
+                        <div className="flex flex-col md:flex-row">
+                          <div className="w-full md:w-1/2 h-48 sm:h-64 md:h-auto overflow-hidden relative">
                             {event.images && event.images.length > 0 ? (
                               <SmartImage src={event.images[0]} alt={event.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                             ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-vortex-blue/20 to-vortex-orange/20 flex items-center justify-center">
+                              <div className="w-full h-full bg-gradient-to-br from-vortex-blue/20 to-vortex-orange/20 flex items-center justify-center min-h-[12rem]">
                                 <Calendar className="h-16 w-16 text-white/10" />
                               </div>
                             )}
                             <div className="absolute inset-0 bg-black/40" />
-                            <div className="absolute bottom-4 left-6 text-2xl font-bold text-white/80">
+                            <div className="absolute bottom-3 left-4 text-xl sm:text-2xl font-bold text-white/80">
                               {event.title.split(' ')[0]}
                             </div>
                           </div>
 
-                          <div className="md:w-1/2 p-10 flex flex-col justify-center">
-                            <h3 className="text-3xl font-bold text-white mb-6">
+                          <div className="w-full md:w-1/2 p-5 sm:p-8 md:p-10 flex flex-col justify-center">
+                            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-4 sm:mb-6">
                               {event.title}
                             </h3>
 
-                            <div className="space-y-4 text-white/60 mb-8">
+                            <div className="space-y-2 sm:space-y-4 text-white/60 mb-5 sm:mb-8 text-sm sm:text-base">
                               <div className="flex items-center">
-                                <Calendar className="h-5 w-5 mr-3 text-vortex-blue" />
-                                {new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 text-vortex-blue flex-shrink-0" />
+                                {event.date ? new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Date TBA'}
                               </div>
+                              {event.location && (
+                                <div className="flex items-center">
+                                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 text-vortex-blue flex-shrink-0" />
+                                  {event.location}
+                                </div>
+                              )}
                               <div className="flex items-center">
-                                <MapPin className="h-5 w-5 mr-3 text-vortex-blue" />
-                                {event.location}
-                              </div>
-                              <div className="flex items-center">
-                                <Users className="h-5 w-5 mr-3 text-vortex-blue" />
+                                <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 text-vortex-blue flex-shrink-0" />
                                 {event.registrationCount || 0} participants
                               </div>
                             </div>
 
-                            <div className="flex gap-4">
+                            <div className="flex flex-wrap gap-2 sm:gap-4">
                               {/* Gallery Button - Show images if available */}
                               {event.images && event.images.length > 0 && (
                                 <button
                                   onClick={() => setSelectedEventGallery(event)}
-                                  className="glass-button text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"
+                                  className="glass-button text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black transition-all inline-flex items-center justify-center self-start px-3 sm:px-6 py-2 text-sm"
                                 >
                                   ðŸ“¸ View Photos
                                   <ArrowRight className="h-4 w-4 ml-2" />
@@ -1543,7 +1551,7 @@ const Events = () => {
                               {event.galleryDriveLink && (
                                 <button
                                   onClick={() => window.open(event.galleryDriveLink, '_blank')}
-                                  className="glass-button text-green-400 border border-green-400/30 hover:bg-green-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"
+                                  className="glass-button text-green-400 border border-green-400/30 hover:bg-green-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-3 sm:px-6 py-2 text-sm"
                                 >
                                   ðŸ“ Drive Gallery
                                   <ArrowRight className="h-4 w-4 ml-2" />
@@ -1563,7 +1571,7 @@ const Events = () => {
                                   return now > eventEnd ? (
                                     <button
                                       onClick={() => setFeedbackEvent(event)}
-                                      className="glass-button text-purple-400 border border-purple-400/30 hover:bg-purple-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-6 py-2"
+                                      className="glass-button text-purple-400 border border-purple-400/30 hover:bg-purple-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-3 sm:px-6 py-2 text-sm"
                                     >
                                       Feedback
                                     </button>

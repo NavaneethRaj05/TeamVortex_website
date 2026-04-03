@@ -104,8 +104,9 @@ const ParticleBackground = () => {
     return (
         <canvas
             ref={canvasRef}
-            style={{ willChange: 'transform' }}
+            style={{ willChange: 'transform', touchAction: 'none' }}
             className="fixed top-0 left-0 w-full h-full pointer-events-none z-0"
+            aria-hidden="true"
         />
     );
 };

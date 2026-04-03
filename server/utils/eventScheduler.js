@@ -209,11 +209,46 @@ const retryFailedEmails = async () => {
 };
 
 // ============================================
+// TRIGGER 8: CLEANUP EXPIRED PENDING REGISTRATIONS (every 5 min)
+// ============================================
+
+const cleanupExpiredPendingRegistrations = async () => {
+    try {
+        const now = new Date();
+        const events = await Event.find({ 'registrations.paymentStatus': 'pending' });
+        let totalRemoved = 0;
+
+        for (const event of events) {
+            const before = event.registrations.length;
+            event.registrations = event.registrations.filter(reg => {
+                if (reg.paymentStatus !== 'pending') return true;
+                if (!reg.paymentExpiresAt) return false; // legacy pending with no expiry — delete
+                return new Date(reg.paymentExpiresAt) > now;
+            });
+            const removed = before - event.registrations.length;
+            if (removed > 0) {
+                totalRemoved += removed;
+                await Event.updateOne({ _id: event._id }, { $set: { registrations: event.registrations } });
+            }
+        }
+
+        if (totalRemoved > 0) {
+            console.log(`🗑️  Cleaned up ${totalRemoved} expired pending registration(s)`);
+        }
+    } catch (err) {
+        console.error('❌ Pending cleanup job failed:', err.message);
+    }
+};
+
+// ============================================
 // SCHEDULER (checks every minute)
 // ============================================
 
 const startScheduler = () => {
     console.log('🚀 Starting event scheduler...');
+
+    // Run cleanup immediately on startup to purge any legacy pending registrations
+    cleanupExpiredPendingRegistrations();
 
     setInterval(() => {
         const now = new Date();
@@ -222,10 +257,12 @@ const startScheduler = () => {
 
         if (h === 10 && m === 0) { console.log('⏰ Triggering 24h reminder job');   send24HourReminders(); }
         if (h === 11 && m === 0) { console.log('⏰ Triggering feedback job');        sendFeedbackRequests(); }
-        if (h === 18 && m === 0) { console.log('⏰ Triggering payment nudge job');   sendPaymentReminders(); }
 
         // Retry failed emails every 2 hours (at :00 of even hours)
         if (m === 0 && h % 2 === 0) { retryFailedEmails(); }
+
+        // Cleanup expired pending registrations every 5 minutes
+        if (m % 5 === 0) { cleanupExpiredPendingRegistrations(); }
     }, 60000);
 
     console.log('📅 24h reminders:    10:00 AM daily');
@@ -236,5 +273,5 @@ const startScheduler = () => {
 
 module.exports = {
     startScheduler,
-    manualTriggers: { send24HourReminders, sendFeedbackRequests, sendPaymentReminders, retryFailedEmails }
+    manualTriggers: { send24HourReminders, sendFeedbackRequests, sendPaymentReminders, retryFailedEmails, cleanupExpiredPendingRegistrations }
 };

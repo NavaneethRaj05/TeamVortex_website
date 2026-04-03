@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, MapPin, Clock, X, Users, Zap } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
-import RegistrationForm from '../components/RegistrationForm';
-import PaymentFlow from '../components/PaymentFlow';
+
+// Lazy load heavy components — only downloaded when user opens registration modal
+const RegistrationForm = lazy(() => import('../components/RegistrationForm'));
+const PaymentFlow = lazy(() => import('../components/PaymentFlow'));
 
 const Contests = () => {
   const [events, setEvents] = useState([]);
@@ -70,6 +72,16 @@ const Contests = () => {
     if (!selectedEvent) setActiveContestTab('overview');
   }, [selectedEvent]);
 
+  // Lock body scroll when modal is open (prevents iOS page scroll behind modal)
+  useEffect(() => {
+    if (selectedEvent) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => document.body.classList.remove('modal-open');
+  }, [selectedEvent]);
+
   const handleRegister = async ({ teamName, members }) => {
     setSubmitting(true);
     setLastSubmittedEmail(members[0]?.email || '');
@@ -98,7 +110,7 @@ const Contests = () => {
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 15000);
+          const timeout = setTimeout(() => controller.abort(), 30000); // 30s — mobile networks can be slow
           res = await fetch(`${API_BASE_URL}/api/events/${selectedEvent._id}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -335,25 +347,27 @@ const Contests = () => {
       {/* Registration Modal */}
       <AnimatePresence>
         {selectedEvent && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] overflow-y-auto registration-modal-overlay" style={{ WebkitOverflowScrolling: 'touch' }}>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => !submitting && setSelectedEvent(null)}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
             />
+            <div className="flex items-start justify-center min-h-full p-2 sm:p-4 sm:items-center">
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-4xl glass-card p-8 border-t-4 border-vortex-blue max-h-[90vh] overflow-y-auto custom-scrollbar"
+              className="relative w-full max-w-4xl glass-card p-4 sm:p-8 border-t-4 border-vortex-blue my-2 sm:my-4 registration-modal-content"
+              onClick={e => e.stopPropagation()}
             >
               <button
                 onClick={() => setSelectedEvent(null)}
-                className="absolute top-4 right-4 text-white/40 hover:text-white"
+                className="sticky top-0 float-right z-10 w-9 h-9 flex items-center justify-center rounded-xl bg-white/10 text-white/60 hover:text-white hover:bg-white/20 transition-all touch-manipulation mb-2 -mt-1 -mr-1"
               >
-                <X size={24} />
+                <X size={18} />
               </button>
 
               {regSuccess ? (
@@ -370,6 +384,7 @@ const Contests = () => {
                   </div>
                 </div>
               ) : showingPayment ? (
+                <Suspense fallback={<div className="flex items-center justify-center py-12"><div className="w-8 h-8 border-2 border-vortex-blue/30 border-t-vortex-blue rounded-full animate-spin" /></div>}>
                 <PaymentFlow
                   eventId={selectedEvent._id}
                   eventTitle={selectedEvent.title}
@@ -387,6 +402,7 @@ const Contests = () => {
                   }}
                   onCancel={() => setShowingPayment(false)}
                 />
+                </Suspense>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                   {/* Left Column - Event Information */}
@@ -719,15 +735,18 @@ const Contests = () => {
                       )}
                     </div>
 
+                    <Suspense fallback={<div className="flex items-center justify-center py-8"><div className="w-6 h-6 border-2 border-vortex-blue/30 border-t-vortex-blue rounded-full animate-spin" /></div>}>
                     <RegistrationForm
                       event={selectedEvent}
                       onSubmit={handleRegister}
                       submitting={submitting}
                     />
+                    </Suspense>
                   </div>
                 </div>
               )}
             </motion.div>
+            </div>
           </div>
         )}
       </AnimatePresence>
