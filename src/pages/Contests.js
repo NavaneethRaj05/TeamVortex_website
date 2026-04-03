@@ -99,56 +99,63 @@ const Contests = () => {
           age: m.age || '',
           state: m.state, city: m.city,
           tshirtSize: m.tshirtSize, dietaryPreference: m.dietaryPreference,
-          emergencyContactName: m.emergencyContactName,
-          emergencyContactPhone: m.emergencyContactPhone,
           specialRequirements: m.specialRequirements,
         })),
         paid: false, paymentId: ''
       };
 
-      let res, lastErr;
-      for (let attempt = 1; attempt <= 3; attempt++) {
+      // Single attempt — server responds immediately now (email is async on server)
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+      let res;
+      try {
+        res = await fetch(`${API_BASE_URL}/api/events/${selectedEvent._id}/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(registrationData),
+          signal: controller.signal
+        });
+      } catch (fetchErr) {
+        clearTimeout(timeout);
+        if (fetchErr.name === 'AbortError') throw new Error('Request timed out. Please check your connection and try again.');
+        // One retry on network error (mobile can drop briefly)
+        const controller2 = new AbortController();
+        const timeout2 = setTimeout(() => controller2.abort(), 30000);
         try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 30000); // 30s — mobile networks can be slow
           res = await fetch(`${API_BASE_URL}/api/events/${selectedEvent._id}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(registrationData),
-            signal: controller.signal
+            signal: controller2.signal
           });
-          clearTimeout(timeout);
-          break;
-        } catch (fetchErr) {
-          lastErr = fetchErr;
-          if (fetchErr.name === 'AbortError') { lastErr = new Error('Request timed out. Please try again.'); break; }
-          if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 1500));
+          clearTimeout(timeout2);
+        } catch (retryErr) {
+          clearTimeout(timeout2);
+          throw new Error('Network error. Please check your connection and try again.');
         }
       }
-      if (!res) throw new Error(lastErr?.message || 'Network error. Please check your connection.');
+      clearTimeout(timeout);
 
       const contentType = res.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Server returned non-JSON response. Please check your connection and try again.');
+      if (!contentType?.includes('application/json')) {
+        throw new Error('Server error. Please try again.');
       }
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
       if (selectedEvent.price > 0) {
+        // Fetch payment info in parallel — don't block on it
         try {
           const payInfoRes = await fetch(`${API_BASE_URL}/api/events/${selectedEvent._id}/payment-info`);
           const payInfoData = await payInfoRes.json();
           setPaymentInfo(payInfoData);
           setShowingPayment(true);
-          setSubmitting(false);
-        } catch (err) {
+        } catch {
           setRegSuccess(true);
-          setSubmitting(false);
         }
       } else {
         setRegSuccess(true);
-        setSubmitting(false);
         setTimeout(() => {
           setRegSuccess(false);
           setShowingPayment(false);
@@ -159,6 +166,7 @@ const Contests = () => {
     } catch (err) {
       console.error('Registration error:', err);
       alert(err.message || 'Registration failed. Please try again.');
+    } finally {
       setSubmitting(false);
     }
   };

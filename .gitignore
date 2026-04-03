@@ -28,6 +28,12 @@ Thumbs.db
 Project_Features_Detailed.pdf
 Project_Features.md
 gen_pdf.js
+out.txt
+test-api.js
+RAZORPAY_SETUP.txt
+fix_emoji.js
+fix_bom.js
+*.log
 
 # Replit
 .replit.nix

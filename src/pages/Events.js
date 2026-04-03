@@ -1,6 +1,6 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X, Download, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users, ArrowRight, ChevronLeft, ChevronRight, Trophy, Code, Key, Gamepad2, X, Download, CheckCircle, ChevronDown, ChevronUp, FolderOpen, Camera } from 'lucide-react';
 import API_BASE_URL from '../apiConfig';
 import PaymentFlow from '../components/PaymentFlow';
 import SmartImage from '../components/SmartImage';
@@ -345,49 +345,44 @@ const Events = () => {
   // Enhanced registration handler with state machine logic
   const handleRsvpSubmit = async (e, forceData = null) => {
     if (e && e.preventDefault) e.preventDefault();
-    
-    // Prevent multiple submissions
-    if (registrationFlow.isSubmitting || !registrationFlow.canSubmit) {
-      console.log('Registration already in progress or blocked');
-      return;
-    }
+    if (registrationFlow.isSubmitting || !registrationFlow.canSubmit) return;
 
-    // Set processing state
-    setRegistrationFlow(prev => ({
-      ...prev,
-      step: 'processing',
-      isSubmitting: true,
-      canSubmit: false,
-      error: null
-    }));
+    setRegistrationFlow(prev => ({ ...prev, step: 'processing', isSubmitting: true, canSubmit: false, error: null }));
 
     const submitData = forceData || rsvpForm;
 
     try {
-      // Retry up to 3 times on network/server errors
-      let res, lastErr;
-      for (let attempt = 1; attempt <= 3; attempt++) {
+      // Single attempt — server now responds immediately (email is async)
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+      let res;
+      try {
+        res = await fetch(`${API_BASE_URL}/api/events/${rsvpEvent._id}/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(submitData),
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+      } catch (fetchErr) {
+        clearTimeout(timeout);
+        if (fetchErr.name === 'AbortError') throw new Error('Request timed out. Please try again.');
+        // One retry on network drop (common on mobile)
+        const c2 = new AbortController();
+        const t2 = setTimeout(() => c2.abort(), 30000);
         try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 30000) // 30s — mobile networks can be slow; // 15s timeout
           res = await fetch(`${API_BASE_URL}/api/events/${rsvpEvent._id}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(submitData),
-            signal: controller.signal
+            signal: c2.signal
           });
-          clearTimeout(timeout);
-          break; // success — exit retry loop
-        } catch (fetchErr) {
-          lastErr = fetchErr;
-          if (fetchErr.name === 'AbortError') {
-            lastErr = new Error('Request timed out. Please try again.');
-            break; // don't retry on timeout
-          }
-          if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 1000));
+          clearTimeout(t2);
+        } catch {
+          clearTimeout(t2);
+          throw new Error('Network error. Please check your connection and try again.');
         }
       }
-      if (!res) throw new Error(lastErr?.message || 'Network error. Please check your connection and try again.');
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ message: 'Registration failed' }));
@@ -396,12 +391,9 @@ const Events = () => {
 
       const data = await res.json();
 
-      // Handle successful registration
       if (rsvpEvent.price > 0) {
-        // Paid event - initiate payment flow
         await initiatePaymentFlow(data);
       } else {
-        // Free event
         handleRegistrationSuccess(data);
       }
 
@@ -717,7 +709,7 @@ const Events = () => {
                       })}
                       className="glass-button text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black transition-all inline-flex items-center justify-center self-start px-3 sm:px-6 py-2 text-sm"
                     >
-                      ðŸ“¸ View Photos
+                      View Photos
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </button>
                   )}
@@ -727,7 +719,7 @@ const Events = () => {
                       onClick={() => window.open(prayogDisplay.galleryDriveLink, '_blank')}
                       className="glass-button text-green-400 border border-green-400/30 hover:bg-green-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-3 sm:px-6 py-2 text-sm"
                     >
-                      ðŸ“ Drive Gallery
+                      Drive Gallery
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </button>
                   )}
@@ -1126,20 +1118,20 @@ const Events = () => {
                             <span className="text-white/70">
                               Registration Fee {rsvpEvent.teamPricing?.perTeam ? '(Per Team)' : '(Per Person)'}
                             </span>
-                            <span className="text-white font-bold">â‚¹{rsvpEvent.price}</span>
+                            <span className="text-white font-bold">₹{rsvpEvent.price}</span>
                           </div>
 
                           {rsvpEvent.gstEnabled && (
                             <div className="flex justify-between items-center text-sm">
                               <span className="text-white/50">GST ({rsvpEvent.gstPercent}%)</span>
-                              <span className="text-white/70">â‚¹{Math.round(rsvpEvent.price * (rsvpEvent.gstPercent / 100))}</span>
+                              <span className="text-white/70">₹{Math.round(rsvpEvent.price * (rsvpEvent.gstPercent / 100))}</span>
                             </div>
                           )}
 
                           <div className="border-t border-white/10 pt-2 flex justify-between items-center font-bold">
                             <span className="text-white">Total Amount</span>
                             <span className="text-green-400 text-lg">
-                              â‚¹{rsvpEvent.gstEnabled ?
+                              ₹{rsvpEvent.gstEnabled ?
                                 Math.round(rsvpEvent.price * (1 + rsvpEvent.gstPercent / 100)) :
                                 rsvpEvent.price}
                             </span>
@@ -1149,12 +1141,12 @@ const Events = () => {
                         {/* Early Bird Discount */}
                         {rsvpEvent.earlyBirdDiscount?.enabled && new Date() <= new Date(rsvpEvent.earlyBirdDiscount.validUntil) && (
                           <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                            <div className="text-yellow-400 text-xs font-bold uppercase tracking-wider mb-1">ðŸŽ‰ Early Bird Offer</div>
+                            <div className="text-yellow-400 text-xs font-bold uppercase tracking-wider mb-1"> Early Bird Offer</div>
                             <div className="text-white/70 text-xs">
                               Get {rsvpEvent.earlyBirdDiscount.discountPercent}% discount until {new Date(rsvpEvent.earlyBirdDiscount.validUntil).toLocaleDateString()}
                             </div>
                             <div className="text-green-400 text-sm font-bold mt-1">
-                              Save â‚¹{Math.round(rsvpEvent.price * (rsvpEvent.earlyBirdDiscount.discountPercent / 100))}
+                              Save ₹{Math.round(rsvpEvent.price * (rsvpEvent.earlyBirdDiscount.discountPercent / 100))}
                             </div>
                           </div>
                         )}
@@ -1188,7 +1180,7 @@ const Events = () => {
                                   <div className="flex justify-between items-center">
                                     <span className="text-vortex-blue font-bold text-sm">{coupon.code}</span>
                                     <span className="text-green-400 text-xs">
-                                      {coupon.discountPercent ? `${coupon.discountPercent}% OFF` : `â‚¹${coupon.flatDiscount} OFF`}
+                                      {coupon.discountPercent ? `${coupon.discountPercent}% OFF` : `₹${coupon.flatDiscount} OFF`}
                                     </span>
                                   </div>
                                   {coupon.validUntil && (
@@ -1261,12 +1253,12 @@ const Events = () => {
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2">
                                         <span className="text-yellow-400 font-bold text-sm">{prize.position}</span>
-                                        {prize.trophy && <span className="text-[10px]">ðŸ†</span>}
+                                        {prize.trophy && <Trophy size={12} className="text-yellow-400" />}
                                       </div>
                                       <div className="text-white/70 text-xs mt-1">{prize.description}</div>
                                     </div>
                                     {prize.cashAmount > 0 && (
-                                      <span className="text-green-400 text-sm font-bold ml-2">â‚¹{prize.cashAmount}</span>
+                                      <span className="text-green-400 text-sm font-bold ml-2">₹{prize.cashAmount}</span>
                                     )}
                                   </div>
                                 </div>
@@ -1275,7 +1267,7 @@ const Events = () => {
                           </div>
                         ) : (
                           <div className="text-center py-8">
-                            <div className="text-white/20 text-4xl mb-2">ðŸ†</div>
+                            <div className="flex justify-center mb-2"><Trophy size={40} className="text-white/20" /></div>
                             <div className="text-white/40 text-sm">Prize details will be announced soon</div>
                           </div>
                         )}
@@ -1286,12 +1278,12 @@ const Events = () => {
                           <div className="flex flex-wrap gap-2">
                             {rsvpEvent.participationCertificate && (
                               <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded-full border border-blue-500/20">
-                                ðŸ“œ Participation Certificate
+                                Participation Certificate
                               </span>
                             )}
                             {rsvpEvent.winnerCertificate && (
                               <span className="text-[10px] bg-yellow-500/10 text-yellow-400 px-2 py-1 rounded-full border border-yellow-500/20">
-                                ðŸ¥‡ Winner Certificate
+                                Winner Certificate
                               </span>
                             )}
                           </div>
@@ -1551,7 +1543,7 @@ const Events = () => {
                                   onClick={() => setSelectedEventGallery(event)}
                                   className="glass-button text-vortex-blue border border-vortex-blue/30 hover:bg-vortex-blue hover:text-black transition-all inline-flex items-center justify-center self-start px-3 sm:px-6 py-2 text-sm"
                                 >
-                                  ðŸ“¸ View Photos
+                                  View Photos
                                   <ArrowRight className="h-4 w-4 ml-2" />
                                 </button>
                               )}
@@ -1562,7 +1554,7 @@ const Events = () => {
                                   onClick={() => window.open(event.galleryDriveLink, '_blank')}
                                   className="glass-button text-green-400 border border-green-400/30 hover:bg-green-400 hover:text-black transition-all inline-flex items-center justify-center self-start px-3 sm:px-6 py-2 text-sm"
                                 >
-                                  ðŸ“ Drive Gallery
+                                  Drive Gallery
                                   <ArrowRight className="h-4 w-4 ml-2" />
                                 </button>
                               )}

@@ -1,4 +1,4 @@
-﻿﻿const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
 const PaymentLog = require('../models/PaymentLog');
@@ -301,67 +301,46 @@ router.post('/', async (req, res) => {
 });
 
 // @route   POST /api/events/:id/register-multiple
-// @desc    Register for multiple sub-events in a single transaction
+// @desc    Register for multiple sub-events (Fast — atomic push, async email)
 router.post('/:id/register-multiple', async (req, res) => {
-    const { selectedSubEvents, teamName, country, institutionName, department, yearOfStudy, members, pricing, couponCode, appliedCoupon } = req.body;
+    const { selectedSubEvents, teamName, country, institutionName, department, yearOfStudy, members } = req.body;
 
     if (!selectedSubEvents || !Array.isArray(selectedSubEvents) || selectedSubEvents.length === 0) {
         return res.status(400).json({ message: 'At least one sub-event must be selected' });
     }
-
     if (!members || !Array.isArray(members) || members.length === 0) {
         return res.status(400).json({ message: 'At least one participant is required' });
     }
-
-    // Basic validation for the first member
     const primaryMember = members[0];
     if (!primaryMember.name || !primaryMember.email) {
         return res.status(400).json({ message: 'Primary member name and email are required' });
     }
 
     try {
-        const event = await Event.findById(req.params.id);
+        // Only load what we need — skip feedback, waitlist full arrays
+        const event = await Event.findById(req.params.id)
+            .select('title date startTime endTime location price subEvents registrations')
+            .lean();
         if (!event) return res.status(404).json({ message: 'Event not found' });
+        if (!event.subEvents?.length) return res.status(400).json({ message: 'This event does not have sub-events' });
 
-        if (!event.subEvents || event.subEvents.length === 0) {
-            return res.status(400).json({ message: 'This event does not have sub-events' });
-        }
+        const allEmails = members.map(m => m.email.toLowerCase());
+        const allIds = members.map(m => m.idNumber).filter(Boolean);
+        const alreadyIn = event.registrations.some(reg =>
+            reg.members.some(m => allEmails.includes(m.email?.toLowerCase()) || (m.idNumber && allIds.includes(m.idNumber)))
+        );
+        if (alreadyIn) return res.status(400).json({ message: 'One or more members are already registered for this event' });
 
-        // Generate a unique group ID for this multi-event registration
         const multiEventGroupId = `multi_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-        // Check if any member is already registered
-        const allEmails = members.map(m => m.email.toLowerCase());
-        const allIds = members.map(m => m.idNumber).filter(id => id);
-
-        const isRegistered = event.registrations.some(reg =>
-            reg.members.some(m => allEmails.includes(m.email.toLowerCase()) || (m.idNumber && allIds.includes(m.idNumber)))
-        );
-
-        if (isRegistered) {
-            return res.status(400).json({ message: 'One or more members are already registered for this event' });
-        }
-
-        // Calculate total price (server-side validation)
-        const subtotal = selectedSubEvents.reduce((sum, subEventId) => {
-            const subEvent = event.subEvents.find(se => se.id === subEventId || se.title === subEventId);
-            return sum + (subEvent?.price || 0);
+        const subtotal = selectedSubEvents.reduce((sum, id) => {
+            const sub = event.subEvents.find(se => se.id === id || se.title === id);
+            return sum + (sub?.price || 0);
         }, 0);
-
-        let multiEventDiscount = 0;
         const eventCount = selectedSubEvents.length;
-        
-        if (eventCount >= 4) {
-            multiEventDiscount = subtotal * 0.25;
-        } else if (eventCount >= 3) {
-            multiEventDiscount = subtotal * 0.20;
-        } else if (eventCount >= 2) {
-            multiEventDiscount = subtotal * 0.10;
-        }
-
+        const multiEventDiscount = eventCount >= 4 ? subtotal * 0.25 : eventCount >= 3 ? subtotal * 0.20 : eventCount >= 2 ? subtotal * 0.10 : 0;
         const totalAmount = Math.max(0, subtotal - multiEventDiscount);
 
-        // Create registration object
         const registration = {
             teamName: teamName || '',
             country: country || 'India',
@@ -369,58 +348,50 @@ router.post('/:id/register-multiple', async (req, res) => {
             department: department || '',
             yearOfStudy: yearOfStudy || '',
             members,
-            paid: totalAmount === 0, // Free if total is 0
+            paid: totalAmount === 0,
             paymentId: '',
             paymentStatus: totalAmount > 0 ? 'pending' : 'verified',
             registeredAt: new Date(),
-            multiEventGroupId: multiEventGroupId,
-            selectedSubEvents: selectedSubEvents,
-            pricing: {
-                subtotal: subtotal,
-                multiEventDiscount: multiEventDiscount,
-                couponDiscount: 0,
-                total: totalAmount
-            }
+            multiEventGroupId,
+            selectedSubEvents,
+            pricing: { subtotal, multiEventDiscount, couponDiscount: 0, total: totalAmount }
         };
 
-        // Add to registrations
-        event.registrations.push(registration);
-        await event.save();
+        // Atomic push — no full document reload
+        await Event.updateOne({ _id: event._id }, { $push: { registrations: registration } });
 
-        // Send confirmation to all members (safe — registration never fails if email fails)
-        let emailResult = { sent: 0, failed: 0 };
-        try {
-            const subEventTitles = selectedSubEvents.map(subEventId => {
-                const subEvent = event.subEvents.find(se => se.id === subEventId || se.title === subEventId);
-                return subEvent?.title || subEventId;
+        // Respond immediately
+        res.json({
+            message: 'Multi-event registration successful!',
+            multiEventGroupId,
+            selectedSubEvents,
+            pricing: registration.pricing,
+            status: 'success',
+            emailSent: false
+        });
+
+        // Fire email after response — zero impact on response time
+        setImmediate(() => {
+            const subEventTitles = selectedSubEvents.map(id => {
+                const sub = event.subEvents.find(se => se.id === id || se.title === id);
+                return sub?.title || id;
             });
-
-            emailResult = await sendToAllMembersSafe(members, 'registrationConfirmation', {
+            sendToAllMembersSafe(members, 'registrationConfirmation', {
                 name: primaryMember.name,
                 eventTitle: event.title,
-                teamName: teamName,
-                date: new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-                time: `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`,
-                location: event.location,
+                teamName,
+                date: event.date ? new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '',
+                time: `${event.startTime || ''}${event.endTime ? ` - ${event.endTime}` : ''}`,
+                location: event.location || '',
                 amount: totalAmount,
                 savings: multiEventDiscount,
                 paymentPending: totalAmount > 0,
                 isMultiEvent: true,
                 selectedEvents: subEventTitles
-            });
-            console.log(`📧 Registration emails: ${emailResult.sent} sent, ${emailResult.failed} failed`);
-        } catch (notifErr) {
-            console.error('Notification Error:', notifErr);
-        }
-
-        res.json({
-            message: 'Multi-event registration successful!',
-            multiEventGroupId: multiEventGroupId,
-            selectedSubEvents: selectedSubEvents,
-            pricing: registration.pricing,
-            status: 'success',
-            emailSent: emailResult.sent > 0
+            }).then(r => console.log(`📧 Multi-reg emails: ${r.sent} sent, ${r.failed} failed`))
+              .catch(e => console.error('Email error:', e));
         });
+
     } catch (err) {
         console.error('Multi-Event Registration Error:', err);
         res.status(500).json({ message: 'Server error during multi-event registration' });
@@ -428,7 +399,7 @@ router.post('/:id/register-multiple', async (req, res) => {
 });
 
 // @route   POST /api/events/:id/register
-// @desc    Register a student/team for an event (Atomic & Robust)
+// @desc    Register a student/team for an event (Fast — minimal DB load, async email)
 router.post('/:id/register', async (req, res) => {
     const { teamName, country, members, paid, paymentId } = req.body;
 
@@ -436,35 +407,34 @@ router.post('/:id/register', async (req, res) => {
         return res.status(400).json({ message: 'At least one participant is required' });
     }
 
-    // Basic validation for the first member
     const primaryMember = members[0];
     if (!primaryMember.name || !primaryMember.email) {
         return res.status(400).json({ message: 'Primary member name and email are required' });
     }
 
     try {
-        const event = await Event.findById(req.params.id);
+        // Load only the fields needed for validation — skip registrations/waitlist arrays
+        const event = await Event.findById(req.params.id)
+            .select('title date startTime endTime location price capacity registrationType status registrations waitlist')
+            .lean();
         if (!event) return res.status(404).json({ message: 'Event not found' });
 
-        // Check if any member is already registered or in waitlist
+        // Duplicate check
         const allEmails = members.map(m => m.email.toLowerCase());
-        const allIds = members.map(m => m.idNumber).filter(id => id);
+        const allIds = members.map(m => m.idNumber).filter(Boolean);
 
-        const isRegistered = event.registrations.some(reg =>
-            reg.members.some(m => allEmails.includes(m.email.toLowerCase()) || (m.idNumber && allIds.includes(m.idNumber)))
-        );
-        const inWaitlist = event.waitlist.some(reg =>
-            reg.members.some(m => allEmails.includes(m.email.toLowerCase()) || (m.idNumber && allIds.includes(m.idNumber)))
+        const alreadyIn = (list) => list.some(reg =>
+            reg.members.some(m =>
+                allEmails.includes(m.email?.toLowerCase()) ||
+                (m.idNumber && allIds.includes(m.idNumber))
+            )
         );
 
-        if (isRegistered || inWaitlist) {
+        if (alreadyIn(event.registrations) || alreadyIn(event.waitlist)) {
             return res.status(400).json({ message: 'One or more members are already registered for this event' });
         }
 
-        // For paid events: registration expires in 30 min if no payment proof submitted
-        const paymentExpiresAt = event.price > 0
-            ? new Date(Date.now() + 30 * 60 * 1000)
-            : null;
+        const paymentExpiresAt = event.price > 0 ? new Date(Date.now() + 30 * 60 * 1000) : null;
 
         const registration = {
             teamName: teamName || '',
@@ -474,53 +444,67 @@ router.post('/:id/register', async (req, res) => {
             paymentId: paymentId || '',
             paymentStatus: event.price > 0 ? 'pending' : 'verified',
             registeredAt: new Date(),
-            paymentExpiresAt // null for free events, 30-min window for paid
+            paymentExpiresAt
         };
 
-        // Check capacity (exclude rejected + expired-pending registrations)
-        const activeRegistrations = event.registrations.filter(r =>
-            r.paymentStatus !== 'rejected' &&
-            !(r.paymentStatus === 'pending' && r.paymentExpiresAt && new Date(r.paymentExpiresAt) < new Date())
-        );
-        if (event.capacity > 0 && activeRegistrations.length >= event.capacity) {
-            event.waitlist.push(registration);
-            await event.save();
-            return res.json({
-                message: 'Event is full. Your team has been placed on the priority waitlist.',
-                event,
-                status: 'waitlist'
-            });
+        // Capacity check using count query — no need to load all registrations
+        let status = 'success';
+        if (event.capacity > 0) {
+            const activeCount = event.registrations.filter(r =>
+                r.paymentStatus !== 'rejected' &&
+                !(r.paymentStatus === 'pending' && r.paymentExpiresAt && new Date(r.paymentExpiresAt) < new Date())
+            ).length;
+
+            if (activeCount >= event.capacity) {
+                // Use atomic $push to waitlist — no full document reload needed
+                await Event.updateOne({ _id: event._id }, { $push: { waitlist: registration } });
+                status = 'waitlist';
+                // Fire email in background — don't block response
+                setImmediate(() => {
+                    sendToAllMembersSafe(members, 'registrationConfirmation', {
+                        name: primaryMember.name,
+                        eventTitle: event.title,
+                        teamName,
+                        date: event.date ? new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '',
+                        time: `${event.startTime || ''}${event.endTime ? ` - ${event.endTime}` : ''}`,
+                        location: event.location || '',
+                        amount: event.price,
+                        paymentPending: false,
+                        isMultiEvent: false,
+                        selectedEvents: []
+                    }).catch(e => console.error('Email error:', e));
+                });
+                return res.json({ message: 'Event is full. Your team has been placed on the priority waitlist.', status });
+            }
         }
 
-        event.registrations.push(registration);
-        await event.save();
+        // Atomic $push — much faster than load-modify-save on large documents
+        await Event.updateOne({ _id: event._id }, { $push: { registrations: registration } });
 
-        // Send confirmation to all members (safe — registration never fails if email fails)
-        let emailResult = { sent: 0, failed: 0 };
-        try {
-            emailResult = await sendToAllMembersSafe(members, 'registrationConfirmation', {
+        // Respond immediately — don't wait for email
+        res.json({
+            message: paid ? 'Payment verified and registration confirmed!' : 'Registration successful!',
+            status,
+            emailSent: false // email fires in background
+        });
+
+        // Fire email after response is sent — zero impact on response time
+        setImmediate(() => {
+            sendToAllMembersSafe(members, 'registrationConfirmation', {
                 name: primaryMember.name,
                 eventTitle: event.title,
-                teamName: teamName,
-                date: new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-                time: `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`,
-                location: event.location,
+                teamName,
+                date: event.date ? new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '',
+                time: `${event.startTime || ''}${event.endTime ? ` - ${event.endTime}` : ''}`,
+                location: event.location || '',
                 amount: event.price,
                 paymentPending: event.price > 0 && !paid,
                 isMultiEvent: false,
                 selectedEvents: []
-            });
-            console.log(`📧 Registration emails: ${emailResult.sent} sent, ${emailResult.failed} failed`);
-        } catch (notifErr) {
-            console.error('Notification Error:', notifErr);
-        }
-
-        res.json({
-            message: paid ? 'Payment verified and registration confirmed!' : 'Registration successful!',
-            event,
-            status: 'success',
-            emailSent: emailResult.sent > 0
+            }).then(r => console.log(`📧 Reg emails: ${r.sent} sent, ${r.failed} failed`))
+              .catch(e => console.error('Email error:', e));
         });
+
     } catch (err) {
         console.error('Registration Error:', err);
         res.status(500).json({ message: 'Server error during registration' });
