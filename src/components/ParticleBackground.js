@@ -12,15 +12,10 @@ const ParticleBackground = () => {
 
         const isMobile = window.innerWidth < 768;
 
-        // Completely skip animation on mobile — canvas rAF loop kills scroll performance
-        if (isMobile) {
-            canvas.style.display = 'none';
-            return;
-        }
-
-        const PARTICLE_COUNT = 60;
-        const CONNECTION_DIST = 120;
-        const TARGET_FPS = 40;
+        // Mobile: fewer particles, lower FPS, no connection lines — looks great, won't kill scroll
+        const PARTICLE_COUNT = isMobile ? 25 : 60;
+        const CONNECTION_DIST = isMobile ? 0 : 120; // no lines on mobile
+        const TARGET_FPS = isMobile ? 24 : 40;
         const FRAME_INTERVAL = 1000 / TARGET_FPS;
 
         const resizeCanvas = () => {
@@ -38,9 +33,9 @@ const ParticleBackground = () => {
             reset() {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-                this.vx = (Math.random() - 0.5) * 0.4;
-                this.vy = (Math.random() - 0.5) * 0.4;
-                this.size = Math.random() * 1.5 + 0.5;
+                this.vx = (Math.random() - 0.5) * (isMobile ? 0.25 : 0.4);
+                this.vy = (Math.random() - 0.5) * (isMobile ? 0.25 : 0.4);
+                this.size = Math.random() * (isMobile ? 1.2 : 1.5) + 0.5;
                 this.color = Math.random() > 0.5 ? '#00D4FF' : '#FF6B35';
             }
             update() {
@@ -76,17 +71,19 @@ const ParticleBackground = () => {
                 particles[i].update();
                 particles[i].draw();
 
-                for (let j = i + 1; j < particles.length; j++) {
-                    const dx = particles[j].x - particles[i].x;
-                    const dy = particles[j].y - particles[i].y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < CONNECTION_DIST) {
-                        ctx.beginPath();
-                        ctx.strokeStyle = `rgba(255,255,255,${0.08 - dist / 1500})`;
-                        ctx.lineWidth = 0.4;
-                        ctx.moveTo(particles[i].x, particles[i].y);
-                        ctx.lineTo(particles[j].x, particles[j].y);
-                        ctx.stroke();
+                if (CONNECTION_DIST > 0) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[j].x - particles[i].x;
+                        const dy = particles[j].y - particles[i].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < CONNECTION_DIST) {
+                            ctx.beginPath();
+                            ctx.strokeStyle = `rgba(255,255,255,${0.08 - dist / 1500})`;
+                            ctx.lineWidth = 0.4;
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                        }
                     }
                 }
             }

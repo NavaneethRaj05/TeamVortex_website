@@ -184,7 +184,7 @@ const AIChatbot = () => {
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
             exit={{ scale: 0, opacity: 0, rotate: 180 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-transform hover:scale-110 active:scale-95"
+            className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[9999] w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-transform hover:scale-110 active:scale-95"
             aria-label="Open Chat"
           >
             {/* Animated rotating gradient background */}

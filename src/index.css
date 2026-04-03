@@ -3078,10 +3078,9 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
 }
 
 /* Prevent the whole page from scrolling behind the modal on iOS */
+/* Use overflow:hidden only — position:fixed breaks modal scroll on iOS */
 body.modal-open {
   overflow: hidden;
-  position: fixed;
-  width: 100%;
 }
 
 /* Autofill fix for inputs with bg-[#111] (solid dark bg, not transparent) */
@@ -3212,21 +3211,6 @@ button,
 a,
 label {
   touch-action: manipulation;
-}
-
-/* Fix position:fixed elements being pushed by iOS keyboard */
-@supports (-webkit-touch-callout: none) {
-  /* iOS only */
-  .registration-modal-overlay {
-    /* Use position absolute within a fixed container to avoid keyboard push */
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    overflow-y: scroll;
-    -webkit-overflow-scrolling: touch;
-  }
 }
 
 /* Prevent horizontal scroll on mobile */

@@ -1005,12 +1005,19 @@ const Events = () => {
           {rsvpEvent && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] flex items-start justify-center sm:items-center p-2 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto registration-modal-overlay"
+              className="fixed inset-0 z-[100] bg-black/85"
               onClick={() => setRsvpEvent(null)}
             >
+              {/* Scroll wrapper — separate from the backdrop so touches on content don't close modal */}
+              <div
+                className="absolute inset-0 overflow-y-auto"
+                style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex items-start justify-center min-h-full p-2 sm:p-4">
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                className="relative glass-card p-4 sm:p-8 max-w-2xl w-full my-2 sm:my-4 registration-modal-content"
+                initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                className="relative glass-card p-4 sm:p-8 max-w-2xl w-full my-2 sm:my-4"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button 
@@ -1421,6 +1428,8 @@ const Events = () => {
                   />
                 )}
               </motion.div>
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
