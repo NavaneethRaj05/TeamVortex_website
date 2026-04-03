@@ -28,6 +28,7 @@ const PaymentVerificationPanel = ({ selectedEventId = null }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // all, pending, submitted
     const [actionLoading, setActionLoading] = useState(false);
+    const [toast, setToast] = useState(null); // { type: 'success'|'error', message: string }
     const [rejectionReason, setRejectionReason] = useState('');
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [paymentLogs, setPaymentLogs] = useState([]);
@@ -138,6 +139,11 @@ const PaymentVerificationPanel = ({ selectedEventId = null }) => {
         doc.save(`${selectedEvent?.title.replace(/\s+/g, '_')}_Payments.pdf`);
     };
 
+    const showToast = (type, message) => {
+        setToast({ type, message });
+        setTimeout(() => setToast(null), 5000);
+    };
+
     const handleVerifyPayment = async (regIndex, action) => {
         setActionLoading(true);
         setError('');
@@ -161,8 +167,17 @@ const PaymentVerificationPanel = ({ selectedEventId = null }) => {
             setViewingPayment(null);
             setRejectionReason('');
             await fetchPendingPayments();
+
+            // Show clear confirmation to admin
+            const studentEmail = data.studentEmail || '';
+            if (action === 'approve') {
+                showToast('success', `✅ Payment approved${studentEmail ? ` — confirmation email sent to ${studentEmail}` : ' — confirmation email sent to student'}`);
+            } else {
+                showToast('info', `❌ Payment rejected${studentEmail ? ` — rejection email sent to ${studentEmail}` : ' — rejection email sent to student'}`);
+            }
         } catch (err) {
             setError(err.message);
+            showToast('error', `Action failed: ${err.message}`);
         } finally {
             setActionLoading(false);
         }
@@ -202,6 +217,23 @@ const PaymentVerificationPanel = ({ selectedEventId = null }) => {
 
     return (
         <div className="space-y-6">
+
+            {/* Toast notification */}
+            {toast && (
+                <div className={`flex items-start gap-3 p-4 rounded-xl border text-sm font-medium ${
+                    toast.type === 'success' ? 'bg-green-500/15 border-green-500/30 text-green-300' :
+                    toast.type === 'info'    ? 'bg-blue-500/15 border-blue-500/30 text-blue-300' :
+                                              'bg-red-500/15 border-red-500/30 text-red-300'
+                }`}>
+                    {toast.type === 'success' ? <CheckCircle size={18} className="flex-shrink-0 mt-0.5" /> :
+                     toast.type === 'info'    ? <Mail size={18} className="flex-shrink-0 mt-0.5" /> :
+                                               <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />}
+                    <span className="flex-1">{toast.message}</span>
+                    <button onClick={() => setToast(null)} className="text-white/40 hover:text-white flex-shrink-0">
+                        <X size={16} />
+                    </button>
+                </div>
+            )}
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">

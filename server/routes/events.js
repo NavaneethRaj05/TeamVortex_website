@@ -879,7 +879,8 @@ router.post('/:id/verify-payment/:regIndex', async (req, res) => {
 
         res.json({
             message: action === 'approve' ? 'Payment verified successfully' : 'Payment rejected',
-            status: registration.paymentStatus
+            status: registration.paymentStatus,
+            studentEmail: primaryMember?.email || ''
         });
 
     } catch (err) {
