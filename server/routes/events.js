@@ -818,69 +818,65 @@ router.post('/:id/verify-payment/:regIndex', async (req, res) => {
             registration.registrationStatus = 'confirmed';
             registration.verifiedAt = new Date();
             registration.verifiedBy = verifiedBy || 'admin';
-
-            // Create Payment Log (non-blocking — don't let log failure crash verification)
-            PaymentLog.create({
-                eventId: event._id,
-                registrationIndex: regIndex,
-                teamName: registration.teamName,
-                leadEmail: primaryMember?.email || 'unknown',
-                action: 'verified',
-                previousStatus: prevStatus,
-                newStatus: 'verified',
-                amount: registration.paymentProof?.amountPaid || event.price,
-                utrNumber: registration.paymentProof?.utrNumber,
-                performedBy: verifiedBy || 'admin',
-                ipAddress: req.ip
-            }).catch(e => console.error('PaymentLog create error:', e));
-
-            // Send approval notification in background — don't block response
-            sendToAllMembersSafe(registration.members, 'paymentApproved', {
-                name: primaryMember?.name,
-                eventTitle: event.title,
-                amount: registration.paymentProof?.amountPaid || event.price,
-                utrNumber: registration.paymentProof?.utrNumber,
-                date: event.date ? new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '',
-                time: event.startTime ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}` : '',
-                location: event.location
-            }).catch(e => console.error('Approval email error:', e));
         } else {
             registration.paymentStatus = 'rejected';
             registration.rejectionReason = rejectionReason || 'Payment verification failed';
-
-            // Create Payment Log (non-blocking)
-            PaymentLog.create({
-                eventId: event._id,
-                registrationIndex: regIndex,
-                teamName: registration.teamName,
-                leadEmail: primaryMember?.email || 'unknown',
-                action: 'rejected',
-                previousStatus: prevStatus,
-                newStatus: 'rejected',
-                rejectionReason: registration.rejectionReason,
-                performedBy: verifiedBy || 'admin',
-                ipAddress: req.ip
-            }).catch(e => console.error('PaymentLog create error:', e));
-
-            // Send rejection notification in background — don't block response
-            sendToAllMembersSafe(registration.members, 'paymentRejected', {
-                name: primaryMember?.name || 'Participant',
-                eventTitle: event.title,
-                reason: rejectionReason || 'Payment verification failed'
-            }).catch(e => console.error('Rejection email error:', e));
         }
 
-        // Use $set on the specific registration to bypass full-document validation
+        // Save DB update first
         const updatePath = `registrations.${regIndex}`;
         await Event.updateOne(
             { _id: event._id },
             { $set: { [updatePath]: registration.toObject() } }
         );
 
+        // Send email BEFORE responding — serverless functions die after res.json()
+        // so setImmediate/background tasks never run on Netlify
+        let emailResult = { sent: 0, failed: 0 };
+        try {
+            if (action === 'approve') {
+                emailResult = await sendToAllMembersSafe(registration.members, 'paymentApproved', {
+                    name: primaryMember?.name,
+                    eventTitle: event.title,
+                    amount: registration.paymentProof?.amountPaid || event.price,
+                    utrNumber: registration.paymentProof?.utrNumber,
+                    date: event.date ? new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '',
+                    time: event.startTime ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}` : '',
+                    location: event.location
+                });
+            } else {
+                emailResult = await sendToAllMembersSafe(registration.members, 'paymentRejected', {
+                    name: primaryMember?.name || 'Participant',
+                    eventTitle: event.title,
+                    reason: rejectionReason || 'Payment verification failed'
+                });
+            }
+            console.log(`📧 ${action} email: ${emailResult.sent} sent, ${emailResult.failed} failed to ${primaryMember?.email}`);
+        } catch (emailErr) {
+            console.error('Email send error:', emailErr.message);
+        }
+
+        // Log payment action (non-blocking — don't let log failure affect response)
+        PaymentLog.create({
+            eventId: event._id,
+            registrationIndex: regIndex,
+            teamName: registration.teamName,
+            leadEmail: primaryMember?.email || 'unknown',
+            action: action === 'approve' ? 'verified' : 'rejected',
+            previousStatus: prevStatus,
+            newStatus: registration.paymentStatus,
+            amount: registration.paymentProof?.amountPaid || event.price,
+            utrNumber: registration.paymentProof?.utrNumber,
+            rejectionReason: registration.rejectionReason,
+            performedBy: verifiedBy || 'admin',
+            ipAddress: req.ip
+        }).catch(e => console.error('PaymentLog create error:', e));
+
         res.json({
             message: action === 'approve' ? 'Payment verified successfully' : 'Payment rejected',
             status: registration.paymentStatus,
-            studentEmail: primaryMember?.email || ''
+            studentEmail: primaryMember?.email || '',
+            emailSent: emailResult.sent > 0
         });
 
     } catch (err) {

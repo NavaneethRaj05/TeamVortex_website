@@ -10,7 +10,17 @@ const AIChatbot = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState(new Set());
   const [sessionQueries, setSessionQueries] = useState([]);
+  const [modalOpen, setModalOpen] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Hide chatbot button when registration modal is open
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setModalOpen(document.body.classList.contains('modal-open'));
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     // Load chatbot data and initial greeting
@@ -178,13 +188,13 @@ const AIChatbot = () => {
     <>
       {/* Chatbot Toggle Button */}
       <AnimatePresence>
-        {!isOpen && (
+        {!isOpen && !modalOpen && (
           <motion.button
             initial={{ scale: 0, opacity: 0, rotate: -180 }}
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
             exit={{ scale: 0, opacity: 0, rotate: 180 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[9999] w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-transform hover:scale-110 active:scale-95"
+            className="fixed bottom-24 right-4 sm:bottom-6 sm:right-6 z-[9999] w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-transform hover:scale-110 active:scale-95"
             aria-label="Open Chat"
           >
             {/* Animated rotating gradient background */}

@@ -170,10 +170,17 @@ const PaymentVerificationPanel = ({ selectedEventId = null }) => {
 
             // Show clear confirmation to admin
             const studentEmail = data.studentEmail || '';
+            const emailSent = data.emailSent !== false; // true unless server explicitly says false
             if (action === 'approve') {
-                showToast('success', `✅ Payment approved${studentEmail ? ` — confirmation email sent to ${studentEmail}` : ' — confirmation email sent to student'}`);
+                showToast('success', emailSent
+                    ? `✅ Payment approved — confirmation email sent to ${studentEmail}`
+                    : `✅ Payment approved — but email delivery failed for ${studentEmail}, check server logs`
+                );
             } else {
-                showToast('info', `❌ Payment rejected${studentEmail ? ` — rejection email sent to ${studentEmail}` : ' — rejection email sent to student'}`);
+                showToast('info', emailSent
+                    ? `❌ Payment rejected — rejection email sent to ${studentEmail}`
+                    : `❌ Payment rejected — but email delivery failed for ${studentEmail}, check server logs`
+                );
             }
         } catch (err) {
             setError(err.message);

@@ -26,6 +26,17 @@ const PaymentFlow = ({
     const [canSubmit, setCanSubmit] = useState(true);
     const fileInputRef = useRef(null);
 
+    // Guard against iOS screenshot gesture firing phantom taps on buttons
+    // iOS screenshot (side + volume) briefly triggers touchstart/touchend on whatever is under the finger
+    const lastTapRef = useRef(0);
+    const safeTap = useCallback((fn) => (e) => {
+        // Ignore taps that fire within 300ms of each other (screenshot gesture pattern)
+        const now = Date.now();
+        if (now - lastTapRef.current < 300) return;
+        lastTapRef.current = now;
+        fn(e);
+    }, []);
+
     const [proofData, setProofData] = useState({
         utrNumber: '',
         transactionDate: new Date().toISOString().split('T')[0],
@@ -34,7 +45,6 @@ const PaymentFlow = ({
         userNotes: ''
     });
 
-    const utrInputRef = useRef(null);
     const setUtr = useCallback((val) => {
         const clean = val.toUpperCase().replace(/[^A-Z0-9]/g, '');
         setProofData(prev => ({ ...prev, utrNumber: clean }));
@@ -289,8 +299,8 @@ const PaymentFlow = ({
             </div>
 
             <div className="flex gap-3">
-                <button onClick={onCancel} className="flex-1 py-3 rounded-xl bg-white/5 text-white/50 active:bg-white/10 touch-manipulation">Cancel</button>
-                <button onClick={() => setStep(2)} className="flex-1 py-3 rounded-xl bg-vortex-blue text-black font-bold active:opacity-80 touch-manipulation flex items-center justify-center gap-2">
+                <button onClick={safeTap(onCancel)} className="flex-1 py-3 rounded-xl bg-white/5 text-white/50 active:bg-white/10 touch-manipulation">Cancel</button>
+                <button onClick={safeTap(() => setStep(2))} className="flex-1 py-3 rounded-xl bg-vortex-blue text-black font-bold active:opacity-80 touch-manipulation flex items-center justify-center gap-2">
                     I Have Paid <ArrowRight size={16} />
                 </button>
             </div>
@@ -344,17 +354,18 @@ const PaymentFlow = ({
             <div>
                 <label className="block text-sm font-medium text-white/70 mb-1.5">UTR / Transaction ID <span className="text-red-400">*</span></label>
                 <input
-                    ref={utrInputRef}
                     type="text"
-                    defaultValue=""
-                    onInput={(e) => setUtr(e.target.value)}
+                    value={proofData.utrNumber}
+                    onChange={(e) => setUtr(e.target.value)}
                     placeholder="12–22 character transaction ID"
                     maxLength={22}
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="characters"
                     spellCheck={false}
-                    className="w-full px-4 py-3 bg-[#111] border border-white/15 rounded-xl text-white font-mono text-base placeholder-white/30 focus:outline-none focus:border-vortex-blue/60"
+                    inputMode="text"
+                    style={{ WebkitTextFillColor: '#ffffff', color: '#ffffff', caretColor: '#ffffff' }}
+                    className="w-full px-4 py-3 bg-[#111] border border-white/15 rounded-xl font-mono text-base placeholder-white/30 focus:outline-none focus:border-vortex-blue/60"
                 />
                 {utrLen > 0 && (
                     <p className={`text-xs mt-1 ${utrValid ? 'text-green-400' : 'text-red-400'}`}>{utrHint}</p>
@@ -367,7 +378,8 @@ const PaymentFlow = ({
                 <label className="block text-sm font-medium text-white/70 mb-1.5">Transaction Date</label>
                 <input type="date" value={proofData.transactionDate}
                     onChange={(e) => setProofData({ ...proofData, transactionDate: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#111] border border-white/15 rounded-xl text-white focus:outline-none focus:border-vortex-blue/60" />
+                    style={{ WebkitTextFillColor: '#ffffff', color: '#ffffff', colorScheme: 'dark' }}
+                    className="w-full px-4 py-3 bg-[#111] border border-white/15 rounded-xl focus:outline-none focus:border-vortex-blue/60" />
             </div>
 
             {/* Amount */}
@@ -376,7 +388,8 @@ const PaymentFlow = ({
                 <input type="text" inputMode="numeric" value={proofData.amountPaid}
                     onChange={(e) => setProofData({ ...proofData, amountPaid: e.target.value })}
                     placeholder={String(amount)}
-                    className="w-full px-4 py-3 bg-[#111] border border-white/15 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-vortex-blue/60" />
+                    style={{ WebkitTextFillColor: '#ffffff', color: '#ffffff', caretColor: '#ffffff' }}
+                    className="w-full px-4 py-3 bg-[#111] border border-white/15 rounded-xl placeholder-white/30 focus:outline-none focus:border-vortex-blue/60" />
             </div>
 
             {/* Paid From */}
@@ -385,7 +398,8 @@ const PaymentFlow = ({
                 <input type="text" value={proofData.paidFrom}
                     onChange={(e) => setProofData({ ...proofData, paidFrom: e.target.value })}
                     placeholder="yourname@upi or 9876543210"
-                    className="w-full px-4 py-3 bg-[#111] border border-white/15 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-vortex-blue/60" />
+                    style={{ WebkitTextFillColor: '#ffffff', color: '#ffffff', caretColor: '#ffffff' }}
+                    className="w-full px-4 py-3 bg-[#111] border border-white/15 rounded-xl placeholder-white/30 focus:outline-none focus:border-vortex-blue/60" />
             </div>
 
             {/* Notes */}
@@ -395,11 +409,12 @@ const PaymentFlow = ({
                     onChange={(e) => setProofData({ ...proofData, userNotes: e.target.value })}
                     placeholder="Any additional information..."
                     rows={2}
-                    className="w-full px-4 py-3 bg-[#111] border border-white/15 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-vortex-blue/60 resize-none" />
+                    style={{ WebkitTextFillColor: '#ffffff', color: '#ffffff', caretColor: '#ffffff' }}
+                    className="w-full px-4 py-3 bg-[#111] border border-white/15 rounded-xl placeholder-white/30 focus:outline-none focus:border-vortex-blue/60 resize-none" />
             </div>
 
             <div className="flex gap-3">
-                <button onClick={() => setStep(1)} disabled={isSubmitting}
+                <button onClick={safeTap(() => setStep(1))} disabled={isSubmitting}
                     className="flex-1 py-3 rounded-xl bg-white/5 text-white/50 active:bg-white/10 touch-manipulation flex items-center justify-center gap-2">
                     <ArrowLeft size={16} /> Back
                 </button>

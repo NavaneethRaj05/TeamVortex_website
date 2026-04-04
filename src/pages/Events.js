@@ -998,7 +998,14 @@ const Events = () => {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-[100] bg-black/85"
-              onClick={() => setRsvpEvent(null)}
+              onPointerDown={(e) => { e.currentTarget._pointerDownTime = Date.now(); }}
+              onClick={(e) => {
+                // Only close if this was a real deliberate tap (pointerdown happened on this element)
+                // iOS screenshot gesture fires click without a preceding pointerdown on the element
+                const downTime = e.currentTarget._pointerDownTime || 0;
+                if (Date.now() - downTime > 600) return; // no recent pointerdown = phantom tap
+                setRsvpEvent(null);
+              }}
             >
               {/* Scroll wrapper — separate from the backdrop so touches on content don't close modal */}
               <div

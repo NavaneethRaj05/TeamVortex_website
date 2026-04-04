@@ -360,7 +360,12 @@ const Contests = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-black/85"
-            onClick={() => !submitting && setSelectedEvent(null)}
+            onPointerDown={(e) => { e.currentTarget._pointerDownTime = Date.now(); }}
+            onClick={(e) => {
+              const downTime = e.currentTarget._pointerDownTime || 0;
+              if (Date.now() - downTime > 600) return; // phantom tap guard
+              if (!submitting) setSelectedEvent(null);
+            }}
           >
             {/* Scroll wrapper — separate from backdrop so content touches don't close modal */}
             <div

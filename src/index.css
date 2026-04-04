@@ -3230,3 +3230,78 @@ body, html {
 body.offline-active .glass-nav {
   top: 2rem;
 }
+
+/* ========================================
+   iOS Safari — force white text on ALL inputs
+   iOS ignores CSS `color` on inputs; must use -webkit-text-fill-color
+   ======================================== */
+.registration-form input,
+.registration-form textarea,
+.registration-form select,
+input.autofill-dark,
+input[style*="111"],
+.bg-\[\\#111\] {
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+  caret-color: #ffffff !important;
+}
+
+/* Global fallback — any input with dark bg should have white text on iOS */
+input[class*="bg-[#"],
+textarea[class*="bg-[#"],
+input[class*="bg-black"],
+textarea[class*="bg-black"] {
+  -webkit-text-fill-color: #ffffff;
+  color: #ffffff;
+  caret-color: #ffffff;
+}
+
+/* ========================================
+   iOS Safari AUTOFILL — dark background + white text
+   iOS forces a blue/yellow tint on autofilled fields and overrides
+   both background-color and color. The ONLY reliable fix is:
+   1. -webkit-box-shadow inset to fake the background
+   2. -webkit-text-fill-color for the text (iOS ignores `color`)
+   3. transition delay so the background never visibly flashes
+   ======================================== */
+
+/* Covers ALL inputs site-wide when autofilled */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #111111 inset !important;
+  box-shadow: 0 0 0 1000px #111111 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+  caret-color: #ffffff !important;
+  background-color: #111111 !important;
+  /* Delay background-color transition so it never visibly changes to white */
+  transition: background-color 99999s ease-in-out 0s,
+              color 99999s ease-in-out 0s !important;
+}
+
+/* Extra specificity for registration form inputs on iOS */
+.registration-form input:-webkit-autofill,
+.registration-form input:-webkit-autofill:hover,
+.registration-form input:-webkit-autofill:focus,
+.registration-form input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #111111 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+}
+
+/* Payment flow inputs autofill */
+.bg-\[\\#111\]:-webkit-autofill,
+.bg-\[\\#0d0d0d\]:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #111111 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
