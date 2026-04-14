@@ -677,6 +677,7 @@ const Events = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-16"
         >
+          {prayogEvent && (
           <div className="glass-card overflow-hidden bg-white/5 border border-white/10">
             <div className="p-4 sm:p-6 md:p-10">
               <div className="text-center mb-4 sm:mb-6 md:mb-8">
@@ -763,6 +764,7 @@ const Events = () => {
               )}
             </div>
           </div>
+          )}
         </motion.section>
 
         {groupedUpcomingEvents.length > 0 && (

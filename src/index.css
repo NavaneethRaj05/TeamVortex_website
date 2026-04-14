@@ -3305,3 +3305,424 @@ select:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 1000px #111111 inset !important;
   -webkit-text-fill-color: #ffffff !important;
 }
+
+/* ========================================
+   SCROLL ANIMATIONS — CSS-only via IntersectionObserver classes
+   Mobile-safe: GPU-composited only (opacity + transform), will-change set
+   ======================================== */
+
+.reveal, .reveal-left, .reveal-right, .reveal-scale {
+  will-change: opacity, transform;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px); /* reduced from 32px — less jarring on mobile */
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  will-change: auto;
+}
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-28px);
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-left.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+  will-change: auto;
+}
+.reveal-right {
+  opacity: 0;
+  transform: translateX(28px);
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-right.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+  will-change: auto;
+}
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-scale.is-visible {
+  opacity: 1;
+  transform: scale(1);
+  will-change: auto;
+}
+
+/* Respect prefers-reduced-motion — no animations for users who opt out */
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal-left, .reveal-right, .reveal-scale {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* Stagger delays for child elements */
+.stagger-children > *:nth-child(1) { transition-delay: 0s; }
+.stagger-children > *:nth-child(2) { transition-delay: 0.08s; }
+.stagger-children > *:nth-child(3) { transition-delay: 0.16s; }
+.stagger-children > *:nth-child(4) { transition-delay: 0.24s; }
+.stagger-children > *:nth-child(5) { transition-delay: 0.32s; }
+.stagger-children > *:nth-child(6) { transition-delay: 0.40s; }
+
+/* Mobile: reduce hover effects that don't apply on touch */
+@media (max-width: 767px) {
+  .btn-magnetic:hover,
+  .card-hover:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  /* Keep active states for touch feedback */
+  .btn-magnetic:active { transform: scale(0.97) !important; }
+  .card-hover:active   { transform: scale(0.98) !important; }
+}
+.stagger-children > *:nth-child(6) { transition-delay: 0.5s; }
+
+/* ========================================
+   ENHANCED HOVER EFFECTS
+   ======================================== */
+
+/* Magnetic button effect — subtle scale + glow */
+.btn-magnetic {
+  position: relative;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.2s ease;
+}
+.btn-magnetic:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 12px 40px rgba(0, 212, 255, 0.35);
+}
+.btn-magnetic:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* Card tilt effect on hover — GPU composited */
+.card-hover {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease,
+              border-color 0.3s ease;
+  will-change: transform;
+}
+.card-hover:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 20px 60px rgba(0, 212, 255, 0.15),
+              0 8px 24px rgba(0, 0, 0, 0.4);
+  border-color: rgba(0, 212, 255, 0.3) !important;
+}
+
+/* Glowing border on hover */
+.glow-border {
+  position: relative;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.glow-border:hover {
+  border-color: rgba(0, 212, 255, 0.5);
+  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.2),
+              0 0 20px rgba(0, 212, 255, 0.15);
+}
+
+/* Underline slide effect for links */
+.link-underline {
+  position: relative;
+  text-decoration: none;
+}
+.link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #00D4FF, #FF6B35);
+  transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: 2px;
+}
+.link-underline:hover::after { width: 100%; }
+
+/* Icon bounce on hover */
+.icon-hover {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.icon-hover:hover { transform: scale(1.2) rotate(-5deg); }
+
+/* ========================================
+   LOADING ANIMATIONS — skeleton + spinner variants
+   ======================================== */
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.10) 50%,
+    rgba(255,255,255,0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Dot loader */
+.dot-loader {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.dot-loader span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00D4FF;
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+.dot-loader span:nth-child(2) { animation-delay: 0.2s; background: #7c3aed; }
+.dot-loader span:nth-child(3) { animation-delay: 0.4s; background: #FF6B35; }
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+  40%           { transform: scale(1.1); opacity: 1; }
+}
+
+/* Progress bar loader */
+.progress-bar {
+  height: 3px;
+  background: linear-gradient(90deg, #00D4FF, #7c3aed, #FF6B35);
+  background-size: 200% 100%;
+  animation: progress-flow 1.5s linear infinite;
+  border-radius: 3px;
+}
+@keyframes progress-flow {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ========================================
+   PARALLAX UTILITY
+   ======================================== */
+
+/* Apply via JS: element.style.transform = `translateY(${scrollY * speed}px)` */
+.parallax-slow  { will-change: transform; }
+.parallax-med   { will-change: transform; }
+.parallax-fast  { will-change: transform; }
+
+/* ========================================
+   INTERACTIVE FORM ENHANCEMENTS
+   ======================================== */
+
+/* Floating label effect */
+.form-group {
+  position: relative;
+}
+.form-group .floating-label {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255,255,255,0.4);
+  font-size: 0.875rem;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  background: transparent;
+  padding: 0 4px;
+}
+.form-group input:focus ~ .floating-label,
+.form-group input:not(:placeholder-shown) ~ .floating-label {
+  top: 0;
+  font-size: 0.7rem;
+  color: #00D4FF;
+  background: #111;
+}
+
+/* Input focus ring animation */
+.input-animated {
+  position: relative;
+  transition: border-color 0.2s ease;
+}
+.input-animated::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #00D4FF, #7c3aed);
+  transition: width 0.3s ease, left 0.3s ease;
+  border-radius: 2px;
+}
+.input-animated:focus-within::after {
+  width: 100%;
+  left: 0;
+}
+
+/* Checkbox custom style */
+.checkbox-custom {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 5px;
+  background: #111;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+.checkbox-custom:checked {
+  background: #00D4FF;
+  border-color: #00D4FF;
+}
+.checkbox-custom:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #000;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* ========================================
+   DARK / LIGHT MODE
+   ======================================== */
+
+:root.light {
+  --bg-primary: #f0f4ff;
+  --bg-card: rgba(255,255,255,0.8);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --border: rgba(0,0,0,0.08);
+}
+:root.dark {
+  --bg-primary: #0A0A0A;
+  --bg-card: rgba(255,255,255,0.05);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255,255,255,0.6);
+  --border: rgba(255,255,255,0.1);
+}
+
+/* Light mode overrides */
+:root.light body {
+  color: var(--text-primary);
+}
+:root.light .glass-card {
+  background: rgba(255,255,255,0.85) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08) !important;
+  color: #0f172a;
+}
+:root.light .glass-nav {
+  background: rgba(255,255,255,0.9) !important;
+  border-bottom: 1px solid rgba(0,0,0,0.08) !important;
+}
+:root.light .gradient-text {
+  background: linear-gradient(135deg, #0066cc, #00D4FF, #7c3aed);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+:root.light .text-white { color: #0f172a !important; }
+:root.light .text-white\/60 { color: #475569 !important; }
+:root.light .text-white\/70 { color: #374151 !important; }
+:root.light .text-white\/40 { color: #6b7280 !important; }
+:root.light .bg-dark-bg { background: #f0f4ff !important; }
+:root.light .bento-card {
+  background: rgba(255,255,255,0.9) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+  color: #0f172a;
+}
+
+/* ========================================
+   ENHANCED BUTTON STYLES
+   ======================================== */
+
+/* Gradient border button */
+.btn-gradient-border {
+  position: relative;
+  background: transparent;
+  border: none;
+  padding: 2px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #00D4FF, #7c3aed, #FF6B35);
+  background-size: 200% 200%;
+  animation: border-flow 3s ease infinite;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-gradient-border:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,212,255,0.3);
+}
+.btn-gradient-border > span {
+  display: block;
+  background: #0a0a0a;
+  border-radius: 10px;
+  padding: 10px 24px;
+  color: white;
+  font-weight: 600;
+}
+
+/* Neon glow button */
+.btn-neon {
+  background: transparent;
+  border: 2px solid #00D4FF;
+  color: #00D4FF;
+  border-radius: 10px;
+  padding: 10px 24px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  transition: all 0.25s ease;
+  text-shadow: 0 0 8px rgba(0,212,255,0.5);
+  box-shadow: 0 0 10px rgba(0,212,255,0.2), inset 0 0 10px rgba(0,212,255,0.05);
+}
+.btn-neon:hover {
+  background: rgba(0,212,255,0.1);
+  box-shadow: 0 0 25px rgba(0,212,255,0.5), inset 0 0 20px rgba(0,212,255,0.1);
+  transform: translateY(-2px);
+}
+
+/* ========================================
+   SCROLL PROGRESS BAR (top of page)
+   ======================================== */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #00D4FF, #7c3aed, #FF6B35);
+  z-index: 99999;
+  transition: width 0.1s linear;
+  border-radius: 0 3px 3px 0;
+}
+
+/* ========================================
+   CURSOR GLOW (desktop only)
+   ======================================== */
+@media (pointer: fine) {
+  .cursor-glow {
+    position: fixed;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.3s ease;
+  }
+}

@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import FloatingTrophy from './components/FloatingTrophy';
 import AIChatbot from './components/AIChatbot';
 import ErrorBoundary from './components/ErrorBoundary';
+import { ThemeProvider } from './context/ThemeContext';
 
 const ConditionalNavbar = () => {
   const location = useLocation();
@@ -66,11 +67,81 @@ const RootRoute = () => {
   return user ? <Navigate to="/dashboard" replace /> : <Home />;
 };
 
+// Scroll progress bar + scroll reveal (mobile-safe)
+const ScrollEffects = () => {
+  useEffect(() => {
+    // Scroll progress bar
+    const bar = document.createElement('div');
+    bar.className = 'scroll-progress';
+    document.body.appendChild(bar);
+
+    // Cursor glow — desktop only, skip on touch devices
+    let glow = null;
+    const isDesktop = window.matchMedia('(pointer: fine) and (min-width: 768px)').matches;
+    if (isDesktop) {
+      glow = document.createElement('div');
+      glow.className = 'cursor-glow';
+      document.body.appendChild(glow);
+    }
+
+    const onScroll = () => {
+      const total = document.documentElement.scrollHeight - window.innerHeight;
+      if (total <= 0) return;
+      bar.style.width = `${Math.min((window.scrollY / total) * 100, 100)}%`;
+    };
+
+    const onMouseMove = (e) => {
+      if (glow) {
+        glow.style.left = `${e.clientX}px`;
+        glow.style.top = `${e.clientY}px`;
+      }
+    };
+
+    // Scroll reveal — observe existing + future elements via MutationObserver
+    const revealSelector = '.reveal, .reveal-left, .reveal-right, .reveal-scale';
+
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    const observeAll = () => {
+      document.querySelectorAll(revealSelector).forEach(el => {
+        if (!el.classList.contains('is-visible')) revealObserver.observe(el);
+      });
+    };
+
+    // Watch for new elements added to DOM (lazy-loaded pages)
+    const mutationObserver = new MutationObserver(observeAll);
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+    observeAll(); // observe existing elements immediately
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    if (isDesktop) window.addEventListener('mousemove', onMouseMove, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (isDesktop) window.removeEventListener('mousemove', onMouseMove);
+      bar.remove();
+      glow?.remove();
+      revealObserver.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, []);
+  return null;
+};
+
 function App() {
   return (
+    <ThemeProvider>
     <ErrorBoundary>
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="min-h-screen bg-dark-bg">
+          <ScrollEffects />
           <OfflineBanner />
           <ConditionalNavbar />
           <ErrorBoundary>
@@ -93,6 +164,7 @@ function App() {
         </div>
       </Router>
     </ErrorBoundary>
+    </ThemeProvider>
   );
 }
 

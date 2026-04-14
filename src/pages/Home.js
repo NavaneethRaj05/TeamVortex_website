@@ -115,7 +115,7 @@ const Home = () => {
             <motion.div variants={item} className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-16 sm:mb-0">
               <Link
                 to="/team"
-                className="glass-button group flex items-center justify-center gap-2 sm:gap-3 text-white px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-bold rounded-xl bg-gradient-to-r from-vortex-blue to-blue-600 hover:from-vortex-blue/90 hover:to-blue-600/90 shadow-lg hover:shadow-vortex-blue/50 transition-all"
+                className="btn-magnetic glass-button group flex items-center justify-center gap-2 sm:gap-3 text-white px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-bold rounded-xl bg-gradient-to-r from-vortex-blue to-blue-600 hover:from-vortex-blue/90 hover:to-blue-600/90 shadow-lg hover:shadow-vortex-blue/50 transition-all"
               >
                 <Users className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Meet the Team</span>
@@ -123,7 +123,7 @@ const Home = () => {
               </Link>
               <Link
                 to="/contests"
-                className="glass-button group flex items-center justify-center gap-2 sm:gap-3 text-white px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-bold rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-lg hover:shadow-purple-500/50 transition-all"
+                className="btn-magnetic glass-button group flex items-center justify-center gap-2 sm:gap-3 text-white px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-bold rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-lg hover:shadow-purple-500/50 transition-all"
               >
                 <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>View Contests</span>
@@ -234,7 +234,7 @@ const Home = () => {
 
       {/* Stats Section with Counter Effect */}
       <section className="py-20 border-y border-white/5 bg-black/80 backdrop-blur-md z-10 relative">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8 text-center stagger-children">
           <StatItem number={settings?.stats?.activeMembers || "25+"} label="Active Members" icon={Users} />
           <StatItem number={settings?.stats?.projectsBuilt || "50+"} label="Projects Built" icon={Code} />
           <StatItem number={settings?.stats?.awardsWon || "12"} label="Awards Won" icon={Award} />
@@ -258,7 +258,7 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Our Vision Card */}
             <motion.div
-              className="bento-card relative overflow-hidden group border-vortex-blue/20 hover:border-vortex-blue/50 transition-colors"
+              className="bento-card card-hover relative overflow-hidden group border-vortex-blue/20 hover:border-vortex-blue/50 transition-colors"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
