@@ -258,47 +258,60 @@ const Events = () => {
     }
   }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  const pastEvents = displayableEvents.filter(e => {
-    if (!e || e.status === 'completed') return true;
-    // Main event containers: include if they have a past date or no date (show with sub-events)
-    if (e.isMainEventContainer) {
-      if (!e.date) return false; // no date yet, don't show
-      const d = new Date(e.date);
-      return !isNaN(d.getTime()) && now > d;
-    }
-
+  // Helper: is a single event past/completed?
+  const isEventPast = (e) => {
+    if (!e) return false;
+    if (e.status === 'draft') return false;
+    if (e.status === 'completed') return true;
     try {
       const eventDate = new Date(e.date);
       if (isNaN(eventDate.getTime())) return false;
-      
       const eventEnd = new Date(eventDate);
       eventEnd.setHours(23, 59, 59, 999);
-
       if (e.endTime) {
         const [h, m] = e.endTime.split(':').map(num => parseInt(num, 10));
         if (!isNaN(h) && !isNaN(m)) eventEnd.setHours(h, m, 0, 0);
       }
+      return new Date() > eventEnd;
+    } catch { return false; }
+  };
 
-      return now > eventEnd;
-    } catch (err) {
-      return false;
+  const pastEvents = displayableEvents.filter(e => {
+    if (!e) return false;
+    if (e.status === 'draft') return false;
+    if (e.status === 'completed') return true;
+    if (e.isMainEventContainer) {
+      // Show main event if its own date is past OR any child sub-event is past
+      if (e.date) {
+        const d = new Date(e.date);
+        if (!isNaN(d.getTime()) && new Date() > d) return true;
+      }
+      return displayableEvents.some(
+        child => child.parentEventId && String(child.parentEventId) === String(e._id) && isEventPast(child)
+      );
     }
+    return isEventPast(e);
   }).sort((a, b) => {
     if ((b.priority || 0) !== (a.priority || 0)) return (b.priority || 0) - (a.priority || 0);
     return new Date(b.date) - new Date(a.date);
   });
 
-  // Group past events: parent events get their children attached, children are excluded from top level
+  // Group past events: parent gets only its PAST children — future sub-events hidden until they pass
   const groupedPastEvents = useMemo(() => {
     return pastEvents
-      .filter(e => !e.parentEventId) // only top-level events
+      .filter(e => !e.parentEventId)
       .map(e => ({
         ...e,
-        childEvents: pastEvents
-          .filter(c => String(c.parentEventId) === String(e._id))
-          .sort((a, b) => new Date(a.date) - new Date(b.date)) // sort sub-events by date
+        childEvents: displayableEvents
+          .filter(c =>
+            c.parentEventId &&
+            String(c.parentEventId) === String(e._id) &&
+            isEventPast(c) // only past/completed sub-events
+          )
+          .sort((a, b) => new Date(a.date) - new Date(b.date))
       }));
-  }, [pastEvents]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pastEvents, displayableEvents]);
 
   // Upcoming: only show sub-events (have parentEventId) and standalone events (no parent)
   // Main event containers are excluded from upcomingEvents filter above, so here we just show everything

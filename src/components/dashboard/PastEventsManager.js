@@ -8,7 +8,6 @@ const PastEventsManager = () => {
   const [loading, setLoading] = useState(true);
   const [editingEvent, setEditingEvent] = useState(null);
   const [editMode, setEditMode] = useState('gallery'); // 'gallery' | 'info' | 'subevents'
-  const [prayogMissing, setPrayogMissing] = useState(false);
   const [editForm, setEditForm] = useState({
     // Basic Info
     title: '',
@@ -46,80 +45,33 @@ const PastEventsManager = () => {
 
   const fetchPastEvents = async () => {
     try {
-      console.log('Fetching past events...');
       const res = await fetch(`${API_BASE_URL}/api/events`);
       const data = await res.json();
-      console.log('Total events fetched:', data.length);
-
-      const prayog = data.find(e => (e.title || '').trim().toLowerCase() === 'prayog 1.0');
-
-      // Check if PRAYOG exists but has no sub-events
-      const prayogNeedsSubEvents = prayog && (!prayog.subEvents || prayog.subEvents.length === 0);
-      setPrayogMissing(!prayog || prayogNeedsSubEvents);
-
-      // If PRAYOG doesn't exist at all, create it automatically (silently)
-      if (!prayog) {
-        console.log('PRAYOG 1.0 not found in database. Creating automatically...');
-        await handleCreatePrayog(true); // true = silent mode
-        return; // Will refetch after creation
-      }
 
       // Automatically filter for past events based on date
-      // Events are considered "past" if:
-      // 1. Status is explicitly set to 'completed', OR
-      // 2. Event date + end time has passed (automatic detection)
       const now = new Date();
       const past = data.filter(event => {
-        // IMPORTANT: Only show events that have a valid _id (exist in database)
-        if (!event._id) {
-          console.warn('Skipping event without _id:', event.title);
-          return false;
-        }
-
-        // Skip draft events
+        if (!event._id) return false;
         if (event.status === 'draft') return false;
-
-        // Include explicitly completed events
         if (event.status === 'completed') return true;
 
-        // Auto-detect past events based on date/time
         try {
           const eventDate = new Date(event.date);
-
-          // Check if date is valid
-          if (isNaN(eventDate.getTime())) {
-            console.warn('Invalid date for event:', event.title, event.date);
-            return false;
-          }
-
-          // Create end time for the event
+          if (isNaN(eventDate.getTime())) return false;
           const eventEnd = new Date(eventDate);
-          eventEnd.setHours(23, 59, 59, 999); // Default to end of day
-
-          // If event has end time, use that for more precise detection
+          eventEnd.setHours(23, 59, 59, 999);
           if (event.endTime) {
             const [h, m] = event.endTime.split(':').map(num => parseInt(num, 10));
-            if (!isNaN(h) && !isNaN(m)) {
-              eventEnd.setHours(h, m, 0, 0);
-            }
+            if (!isNaN(h) && !isNaN(m)) eventEnd.setHours(h, m, 0, 0);
           }
-
-          // Event is past if current time is after event end time
           return now > eventEnd;
         } catch (err) {
-          console.error('Error processing event date:', event.title, err);
           return false;
         }
       }).sort((a, b) => {
-        // Sort by Priority (descending) first, then Date (descending)
-        if ((b.priority || 0) !== (a.priority || 0)) {
-          return (b.priority || 0) - (a.priority || 0);
-        }
+        if ((b.priority || 0) !== (a.priority || 0)) return (b.priority || 0) - (a.priority || 0);
         return new Date(b.date) - new Date(a.date);
       });
-
-      console.log('Past events filtered:', past.length);
-      console.log('Past event IDs:', past.map(e => ({ id: e._id, title: e.title })));
 
       setPastEvents(past);
       setLoading(false);
@@ -463,12 +415,20 @@ const PastEventsManager = () => {
     );
   }
 
+  // Group: top-level events (main containers + standalones) with sub-events nested inside
+  const topLevelEvents = pastEvents.filter(e => !e.parentEventId);
+  const groupedEvents = topLevelEvents.map(e => ({
+    ...e,
+    subEvents: pastEvents.filter(c => String(c.parentEventId) === String(e._id))
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+  }));
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Past Events Management</h2>
         <div className="text-sm text-white/60">
-          {pastEvents.length} past events • Auto-detected by date • Full CRUD Operations
+          {groupedEvents.length} past events ({pastEvents.length} total incl. sub-events) • Auto-detected by date
         </div>
       </div>
 
@@ -525,23 +485,6 @@ const PastEventsManager = () => {
         </div>
       )}
 
-      {prayogMissing && (
-        <div className="glass-card p-6 border border-yellow-500/30 bg-yellow-500/5">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <div className="text-white font-bold">PRAYOG 1.0 needs setup</div>
-              <div className="text-white/60 text-sm">PRAYOG 1.0 is missing or doesn't have sub-events. Create/update it to manage its info, sub-events, and gallery from here.</div>
-            </div>
-            <button
-              onClick={handleCreatePrayog}
-              className="bg-vortex-blue text-black font-bold py-2 px-4 rounded-lg hover:bg-vortex-blue/80 transition-colors"
-            >
-              Setup PRAYOG 1.0
-            </button>
-          </div>
-        </div>
-      )}
-
       {pastEvents.length === 0 ? (
         <div className="glass-card p-12 text-center">
           <Calendar className="w-16 h-16 text-white/20 mx-auto mb-4" />
@@ -550,7 +493,7 @@ const PastEventsManager = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6">
-          {pastEvents.map((event) => (
+          {groupedEvents.map((event) => (
             <div key={event._id} className="glass-card p-6 border-l-4 border-vortex-blue">
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                 <div className="flex-1 w-full">
@@ -1090,6 +1033,33 @@ const PastEventsManager = () => {
                 </div>
               )}
 
+              {/* Sub-events nested under this parent */}
+              {event.subEvents && event.subEvents.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <p className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3">
+                    Sub-Events ({event.subEvents.length})
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {event.subEvents.map(sub => (
+                      <div key={sub._id} className="p-3 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">{sub.title}</p>
+                          <p className="text-xs text-white/40 mt-0.5">
+                            {sub.date ? new Date(sub.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date TBA'}
+                            {sub.registrationCount ? ` · ${sub.registrationCount} participants` : ''}
+                          </p>
+                        </div>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${
+                          sub.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'
+                        }`}>
+                          {sub.status === 'completed' ? 'Done' : 'Past'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Delete Confirmation */}
               {deleteConfirm === event._id && (
                 <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
@@ -1114,6 +1084,7 @@ const PastEventsManager = () => {
                       Cancel
                     </button>
                   </div>
+                </div>
                 </div>
               )}
             </div>
